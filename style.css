@@ -1,0 +1,107 @@
+
+main {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 0;
+  line-height: 1.6;
+  background-color: #fdfdfd;
+  color: #222;
+}
+
+h1 {
+  font-size: 3vw;
+}
+
+.logo{
+ max-width: 20%; /* adapte la taille de l’image principale */
+  height: auto;
+}
+
+header {
+  background-color: black;
+  color: white;
+  padding: 2rem;
+  padding: 10px 20px;
+   justify-content: space-between;
+  display: flex;
+  align-items: center;
+  text-align: left ;
+}
+
+section {
+  padding: 2rem;
+  max-width: 1000px;
+  margin: auto;
+}
+
+h2 {
+  border-bottom: 1px solid #000;
+  padding-bottom: 0.5rem;
+}
+
+.gallery {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.gallery img {
+  width: auto;
+  height: 200px; 
+  max-width: 300px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+footer {
+  text-align: center;
+  padding: 1rem;
+  background-color: #eee;
+  font-size: 0.9rem;
+}
+
+.carousel {
+  overflow: hidden;
+  width: 100%;
+  max-width: 800px;
+  margin: 2rem auto;
+  border-radius: 10px;
+  position: relative;
+}
+
+.carousel-track {
+  display: flex;
+  gap: 1rem;
+  width: max-content;
+  animation: scroll 60s linear infinite;
+}
+
+.carousel-track img {
+  width: 200px;
+  height: 200px;
+  object-fit: cover;
+  flex-shrink: 0;
+  border-radius: 8px;
+}
+
+@keyframes scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+  .carousel-track img {
+    max-width: 200px;
+  }
+}
