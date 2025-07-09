@@ -15,19 +15,62 @@ body {
 }
 
 h1 {
+ 
   font-size: 3vw;
+  color: #fff;
+  letter-spacing: 0; /* serré, sans espace */
+  font-weight: normal;
+}
+
+h1 br {
+  content: "";
+  margin-bottom: 0.2em;
+  display: block;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+}
+
+.logo {
+  height: 60px;
+  width: auto;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,0.15));
 }
 
 .logo{
- max-width: 20%; /* adapte la taille de l’image principale */
+ max-width: 15%;
   height: auto;
+}
+
+.apropos-contenu {
+  display: flex;
+  align-items: flex-start;
+  gap: 2rem; /* espace entre image et texte */
+  flex-wrap: wrap; /* pour que ça passe en colonne sur petit écran */
+}
+
+.apropos-contenu img {
+  width: 300px;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+}
+
+.apropos-contenu p {
+  flex: 1;
+  font-size: 1rem;
+  color: #333;
 }
 
 header {
   background-color: black;
   color: white;
   padding: 2rem;
-  padding: 10px 20px;
+  padding: 0px 40px;
    justify-content: space-between;
   display: flex;
   align-items: center;
@@ -104,4 +147,50 @@ footer {
   .carousel-track img {
     max-width: 200px;
   }
+}
+
+a {
+  color: #0077cc;          /* bleu doux */
+  text-decoration: none;   /* enlève le soulignement */
+  font-weight: 600;        /* un peu plus gras */
+  transition: color 0.3s ease;
+}
+
+a:hover,
+a:focus {
+  color: #005fa3;          /* bleu plus foncé au survol */
+  text-decoration: underline; /* souligne au survol/focus */
+  outline: none;
+  cursor: pointer;
+}
+
+#contact {
+  background-color: #f9f9f9;
+  padding: 2rem;
+  border-radius: 12px;
+  width: fit-content;
+   margin: 0 auto; 
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%; 
+}
+
+#contact h2 {
+  text-align: center;
+  font-size: 1.8rem;
+  margin-bottom: 1.5rem;
+}
+
+.contact-item {
+  margin-bottom: 1rem;
+  font-size: 1.1rem;
+}
+
+.contact-item a {
+  color: #0077cc;
+  text-decoration: none;
+  margin-left: 0.5rem;
+}
+
+.contact-item a:hover {
+  text-decoration: underline;
 }
