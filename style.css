@@ -1,8 +1,8 @@
 
 main {
   max-width: 800px;
-  margin: 0 auto;
-  padding: 1rem;
+  margin: 2rem auto;
+  padding: 1rem 1.5rem;
 }
 
 body {
@@ -42,7 +42,7 @@ header {
 }
 
 .logo{
- max-width: 15%;
+ max-width: 20%;
   height: auto;
 }
 
@@ -169,9 +169,8 @@ a:focus {
   padding: 2rem;
   border-radius: 12px;
   width: fit-content;
-   margin: 0 auto; 
+  margin: 0 auto; 
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  width: 100%; 
 }
 
 #contact h2 {
