@@ -1,24 +1,28 @@
-window.addEventListener('load', () => { // 'load' attend tout, y compris images
-  const track = document.getElementById('carousel-track');
+document.addEventListener('DOMContentLoaded', function() {
+  const darkModeToggle = document.querySelector('.dark-mode-toggle');
+  const body = document.body;
+  const icon = darkModeToggle.querySelector('.icon');
+  const text = darkModeToggle.querySelector('.text');
 
-  const images = Array.from(track.children);
-  images.forEach(img => {
-    const clone = img.cloneNode(true);
-    track.appendChild(clone);
-  });
-
-  const scrollWidth = track.scrollWidth / 2;
-  let currentScroll = 0;
-  const speed = 1;
-
-  function animate() {
-    currentScroll += speed;
-    if (currentScroll >= scrollWidth) {
-      currentScroll = 0;
-    }
-    track.scrollLeft = currentScroll;
-    requestAnimationFrame(animate);
+  // Vérifie si le mode sombre est activé dans le localStorage
+  if (localStorage.getItem('darkMode') === 'enabled') {
+    body.classList.add('dark-mode');
+    icon.textContent = '☀️';
+    text.textContent = 'Mode jour';
   }
 
-  animate();
+  // Écouteur d'événement pour le bouton
+  darkModeToggle.addEventListener('click', () => {
+    body.classList.toggle('dark-mode');
+
+    if (body.classList.contains('dark-mode')) {
+      icon.textContent = '☀️';
+      text.textContent = 'Mode jour';
+      localStorage.setItem('darkMode', 'enabled');
+    } else {
+      icon.textContent = '🌙';
+      text.textContent = 'Mode nuit';
+      localStorage.setItem('darkMode', 'disabled');
+    }
+  });
 });

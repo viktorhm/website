@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Portfolio – Horlogerie Haratyk</title>
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <meta name="description" content="Artisan horloger à Marcq-en-Barœul, près de Lille. Réparation et entretien de montres et pendules. Devis gratuits sur rendez-vous.">
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Satisfy&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "LocalBusiness",
+    "name": "Horlogerie Haratyk",
+    "image": "https://tonsite.fr/assets/H.png",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "43 rue du Vieux Four",
+      "addressLocality": "Marcq-en-Barœul",
+      "postalCode": "59700",
+      "addressCountry": "FR"
+    },
+    "url": "https://tonsite.fr",
+    "telephone": "+33785851080",
+    "description": "Artisan horloger à Marcq-en-Barœul, près de Lille. Réparation et entretien de montres et pendules. Sur rendez-vous. Devis gratuit.",
+    "openingHours": "Mo-Fr 10:00-18:00",
+    "sameAs": ["https://www.instagram.com/horlogerie_haratyk"]
+  }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="logo-container">
+      <a href="index.html">
+        <img class="logo" src="assets/H.png" alt="Logo Horlogerie Haratyk">
+      </a>
+      <p class="slogan">Artisan horloger</p>
+    </div>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="index.html">Accueil</a></li>
+        <li><a href="portfolio.html">Portfolio</a></li>
+      </ul>
+      <button id="darkModeToggle" class="dark-mode-toggle">
+        <span class="icon">🌙</span>
+        <span class="text">Mode nuit</span>
+      </button>
+    </nav>
+  </header>
+
+  <main>
+    <section id="portfolio">
+      <h2>Quelques restaurations réalisées</h2>
+      <p>
+        Chaque intervention est réalisée avec soin et précision, dans le respect des traditions artisanales.
+        Toutes les montres qui passent entre mes mains sont testées et garanties : 1 an pour les montres et 3 ans pour la pendulerie.
+      </p>
+      <div class="portfolio-grid">
+        <img src="assets/carrousel/1.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/2.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/3.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/4.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/6.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/7.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/8.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/9.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/10.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/11.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/12.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/13.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/14.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/15.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/16.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/17.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/18.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/19.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/20.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/21.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/22.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/23.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/24.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/25.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/26.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/27.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/28.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/29.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/30.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/31.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/32.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/33.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/34.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/35.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/36.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/37.JPG" alt="Montre" loading="lazy">
+        <img src="assets/carrousel/38.JPG" alt="Montre" loading="lazy">
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p><a href="index.html">← Retour à l'accueil</a></p>
+    <p>&copy; 2025 Horlogerie Haratyk – Tous droits réservés.</p>
+  </footer>
+
+  <script>
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const body = document.body;
+    darkModeToggle.addEventListener('click', () => {
+      body.classList.toggle('dark-mode');
+      localStorage.setItem('darkMode', body.classList.contains('dark-mode'));
+    });
+    if (localStorage.getItem('darkMode') === 'true') {
+      body.classList.add('dark-mode');
+    }
+  </script>
+</body>
+</html>

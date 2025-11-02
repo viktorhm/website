@@ -1,22 +1,14 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-  <title>Horloger à Lille et Marcq-en-Barœul – Horlogerie Haratyk</title>
-
-  <link rel="icon" href="assets/favicon.png" type="image/png" />
-  
-  <meta name="description" content="Artisan horloger à Marcq-en-Barœul, près de Lille. Réparation et entretien de montres et pendules. Devis gratuits sur rendez-vous." />
-
-  <!-- Feuille de style -->
-  <link rel="stylesheet" href="style.css" />
-  
-  <!-- Police Google Fonts -->
-  <link href="https://fonts.googleapis.com/css2?family=Satisfy&display=swap" rel="stylesheet">
-
-  <!-- Données structurées pour Google -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Horloger à Lille – Horlogerie Haratyk</title>
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <meta name="description" content="Artisan horloger à Marcq-en-Barœul, près de Lille. Réparation et entretien de montres et pendules. Devis gratuits sur rendez-vous.">
+  <link rel="stylesheet" href="style.css">
+   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Satisfy&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -32,129 +24,130 @@
     },
     "url": "https://tonsite.fr",
     "telephone": "+33785851080",
-    "description": "Artisan horloger à Marcq-en-Barœul, près de Lille, dans les Hauts-de-France. Réparation et entretien de montres et pendules. Sur rendez-vous. Devis gratuit.",
+    "description": "Artisan horloger à Marcq-en-Barœul, près de Lille. Réparation et entretien de montres et pendules. Sur rendez-vous. Devis gratuit.",
     "openingHours": "Mo-Fr 10:00-18:00",
-    "sameAs": [
-      "https://www.instagram.com/horlogerie_haratyk"
-    ]
+    "sameAs": ["https://www.instagram.com/horlogerie_haratyk"]
   }
   </script>
 </head>
-
 <body>
   <header>
-    <h1>Horlogerie Haratyk <br>Artisan horloger </h1>
-    
-    <img class="logo" src="assets/H.png" alt="Logo">
+    <div class="logo-container">
+      <a href="index.html">
+        <img class="logo" src="assets/H.png" alt="Logo Horlogerie Haratyk">
+      </a>
+      <p class="slogan">Artisan horloger</p>
+    </div>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="index.html">Accueil</a></li>
+        <li><a href="portfolio.html">Portfolio</a></li>
+      </ul>
+      <button id="darkModeToggle" class="dark-mode-toggle">
+        <span class="icon">🌙</span>
+        <span class="text">Mode nuit</span>
+      </button>
+    </nav>
   </header>
 
-  <section id="a-propos">
-    <h2>À propos</h2>
-    <p> Passionné de mécanique, de modélisme et de restauration d’objets anciens, je suis aujourd’hui artisan horloger à Marcq-en-Barœul, dans la métropole de Lille. 
-  Après un apprentissage autodidacte, j’ai été formé intensivement par Samuel Marc, horloger professionnel au Havre. 
-  Aujourd’hui, je propose mes services d’entretien et de réparation horlogère, sur rendez-vous, dans la région lilloise.
-</p>
-  </section >
+  <main>
+    <section id="a-propos">
+      <h2>À propos</h2>
+      <p>
+        Passionné depuis toujours par la mécanique, le modélisme et la restauration d’objets anciens,
+        je suis aujourd’hui <strong>artisan horloger à Marcq-en-Barœul</strong>, au cœur de la métropole lilloise.
+        Après un apprentissage autodidacte, j’ai eu la chance d’être formé intensivement pendant un an
+        par un <strong>horloger professionnel au Havre</strong>, avant d’obtenir mon <strong>CAP Horlogerie</strong> en candidat libre.
+      </p>
+      <p>
+        Aujourd’hui, je mets mon savoir-faire au service des passionnés de montres ou de tout type de garde-temps :
+        <strong>entretien, réparation et restauration horlogère</strong> sur rendez-vous, dans la région de <strong>Lille</strong> et ses environs.
+      </p>
+    </section>
 
-  <section id="services">
-    <h2>Services d'entretien et de réparation horlogère</h2>
-    <ul>
-      <p>Je travaille sur toutes les marques et tous les types de mécanismes</p>
-      <li>Montre</li>
-        <ul>
-          <li>Remontage manuel</li>
-          <li>Automatique</li>
-          <li>Chronographe</li>
-          <li>Quartz</li>
-        </ul>
-      <li>Pendulerie</li>
-        <ul>
-          <li>Comtoise</li>
-          <li>Pendule de marine</li>
-          <li>Mouvement de paris / Napoléon</li>
-        </ul>
-    </ul>
-  <p>Pour les tarifs de révision, je fonctionne sur <u>devis</u>, et ceux-ci sont <u>gratuits</u>.<br>
-  Je travaille uniquement sur <u>rendez-vous</u>. Vous pouvez me contacter par téléphone ou par mail.<br>
-  N’hésitez pas à me joindre si vous avez des questions.
-  </p>
-  </section>
-
-  <section id="galerie">
-    <h2>Objets sur lesquels j’ai travaillé</h2>
-    <div class="carousel">
-          <div class="carousel-track" id="carousel-track">
-                <img src="assets/carrousel/1.JPG" alt="Montre" />
-                <img src="assets/carrousel/2.JPG" alt="montre" />
-                <img src="assets/carrousel/4.JPG" alt="montre" />
-                <img src="assets/carrousel/5.JPG" alt="montre" />
-                <img src="assets/carrousel/6.JPG" alt="montre" />
-                <img src="assets/carrousel/7.JPG" alt="montre" />
-                <img src="assets/carrousel/8.JPG" alt="montre" />
-                <img src="assets/carrousel/9.JPG" alt="montre" />
-                <img src="assets/carrousel/10.JPG" alt="montre" />
-                <img src="assets/carrousel/11.JPG" alt="montre" />
-                <img src="assets/carrousel/12.JPG" alt="montre" />
-                <img src="assets/carrousel/13.JPG" alt="montre" />
-                <img src="assets/carrousel/14.JPG" alt="montre" />
-                <img src="assets/carrousel/15.JPG" alt="montre" />
-                <img src="assets/carrousel/16.JPG" alt="montre" />
-                <img src="assets/carrousel/17.JPG" alt="montre" />
-                <img src="assets/carrousel/18.JPG" alt="montre" />
-                <img src="assets/carrousel/19.JPG" alt="montre" />
-                <img src="assets/carrousel/20.JPG" alt="montre" />
-                <img src="assets/carrousel/21.JPG" alt="montre" />
-                <img src="assets/carrousel/22.JPG" alt="montre" />
-                <img src="assets/carrousel/23.JPG" alt="montre" />
-                <img src="assets/carrousel/24.JPG" alt="montre" />
-                <img src="assets/carrousel/25.JPG" alt="montre" />
-                <img src="assets/carrousel/26.JPG" alt="montre" />
-                <img src="assets/carrousel/27.JPG" alt="montre" />
-                <img src="assets/carrousel/28.JPG" alt="montre" />
-                <img src="assets/carrousel/29.JPG" alt="montre" />
-                <img src="assets/carrousel/30.JPG" alt="montre" />
-                <img src="assets/carrousel/31.JPG" alt="montre" />
+    <section id="services">
+      <h2>Services d'entretien et de réparation horlogère</h2>
+      <p>Je travaille sur toutes les marques et tous les types de mécanismes, qu'il s'agisse de <strong>montres mécaniques, automatiques, quartz</strong> ou de <strong>pendules anciennes</strong>.</p>
+      <div class="services-container">
+        <div class="service-card">
+          <h3 class="service-title">Montre</h3>
+          <ul class="service-list">
+            <li class="service-item">Remontage manuel</li>
+            <li class="service-item">Automatique</li>
+            <li class="service-item">Chronographe</li>
+            <li class="service-item">Quartz</li>
+          </ul>
         </div>
-</div>
-    </div>
-  </section>
+        <div class="service-card">
+          <h3 class="service-title">Pendulerie</h3>
+          <p class="service-description">Je me déplace à domicile pour la prise de vos objets, ainsi que pour la pose.</p>
+          <ul class="service-list">
+            <li class="service-item">Pendule</li>
+            <li class="service-item">Carillon</li>
+            <li class="service-item">Coucou</li>
+            <li class="service-item">Pendule de marine</li>
+            <li class="service-item">Pendule d'officier</li>
+            <li class="service-item">Mouvement de Paris</li>
+            <li class="service-item">Comtoise</li>
+            <li class="service-item">Capucine</li>
+          </ul>
+        </div>
+      </div>
+      <p>Pour les <strong>tarifs de révision</strong>, je fonctionne sur <u>devis gratuits</u>. Vous pouvez me contacter par téléphone ou par mail. N’hésitez pas à me joindre pour toute question.</p>
+    </section>
 
-<section id="a-propos">
-  <h2>Où me trouver :
-  <br> à Marcq-en-Barœul, sur la region nord pas de calais.</h2>
-  <div class="apropos-contenu">
-    <img src="assets/maps.png" alt="maps">
-    <p>Je suis basé dans le secteur de Marcq-en-Barœul, près de Lille, et j’effectue également des déplacements à domicile pour le retrait et l’installation de vos pendules.</p>
-  </div>
-</section>
+    <section id="contact">
+      <h2>Contactez votre artisan horloger</h2>
+      <div class="contact-container">
+        <div class="contact-item">
+          <strong>Téléphone :</strong> <a href="tel:+33785851080">07 85 85 10 80</a>
+        </div>
+        <div class="contact-item">
+          <strong>Email :</strong> <a href="mailto:haratykviktor@gmail.com">haratykviktor@gmail.com</a>
+        </div>
+        <div class="contact-item">
+          <strong>Instagram :</strong> <a href="https://www.instagram.com/horlogerie_haratyk" target="_blank">@horlogerie_haratyk</a>
+        </div>
+      </div>
 
-  <section id="contact">
-  <h2>Contactez votre artisan horloger</h2>
-  
-  <div class="contact-item">
-    <strong>Téléphone :</strong>
-    <a href="tel:+33785851080">07 85 85 10 80</a>
-  </div>
-  <div class="contact-item">
-    <strong>Email :</strong>
-    <a href="mailto:haratykviktor@gmail.com">haratykviktor@gmail.com</a>
-  </div>
-  <div class="contact-item">
-    <strong>Instagram :</strong>
-    <a href="https://www.instagram.com/horlogerie_haratyk" target="_blank">@horlogerie_haratyk</a>
-  </div>
-</section>
+      <h2>Horaires d'ouverture</h2>
+      <div class="opening-hours-table">
+        <table>
+          <tr><td class="day">Lundi</td><td class="hours closed">Fermé</td></tr>
+          <tr><td class="day">Mardi</td><td class="hours">10:00 - 18:00 <span class="appointment">(sur rendez-vous)</span></td></tr>
+          <tr><td class="day">Mercredi</td><td class="hours">10:00 - 18:00</td></tr>
+          <tr><td class="day">Jeudi</td><td class="hours">10:00 - 18:00</td></tr>
+          <tr><td class="day">Vendredi</td><td class="hours">10:00 - 18:00 <span class="appointment">(sur rendez-vous)</span></td></tr>
+          <tr><td class="day">Samedi</td><td class="hours">12:00 - 17:00 <span class="appointment">(sur rendez-vous)</span></td></tr>
+          <tr><td class="day">Dimanche</td><td class="hours closed">Fermé</td></tr>
+        </table>
+      </div>
+    </section>
 
-<footer>
-  <p>&copy; 2025 Horlogerie Haratyk – Artisan horloger à Marcq-en-Barœul, près de Lille. Tous droits réservés.</p>
-  <p class="footer-keywords" style="font-size: 0.9em; opacity: 0.7;">
-    Réparation de montres anciennes | Entretien de pendules comtoises | Horloger Lille | Horloger Marcq-en-Barœul | Horlogerie
-  </p>
-</footer>
+    <section id="localisation" style="text-align:center; padding: 2rem 1rem;">
+      <h2>Où me trouver :<br><small>à Marcq-en-Barœul, dans la région Hauts-de-France</small></h2>
+      <div style="max-width: 900px; margin: 0 auto; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2996.158880919748!2d3.07279017702339!3d50.67119687163524!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x47c32bee7bbeb251%3A0x8e53f00ebe72fe12!2sHorlogerie%20Haratyk!5e1!3m2!1sen!2sfr!4v1761079705526!5m2!1sen!2sfr"
+          width="100%" height="400" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </section>
+  </main>
 
-<script src="slider.js"></script>
+  <footer>
+    <p>&copy; 2025 Horlogerie Haratyk – Artisan horloger à Marcq-en-Barœul, près de Lille. Tous droits réservés.</p>
+    <p class="footer-keywords">Réparation de montres anciennes | Entretien de pendules comtoises | Horloger Lille | Horloger Marcq-en-Barœul</p>
+  </footer>
+
+  <script>
+    const darkModeToggle = document.getElementById('darkModeToggle');
+    const body = document.body;
+    darkModeToggle.addEventListener('click', () => {
+      body.classList.toggle('dark-mode');
+      localStorage.setItem('darkMode', body.classList.contains('dark-mode'));
+    });
+    if (localStorage.getItem('darkMode') === 'true') {
+      body.classList.add('dark-mode');
+    }
+  </script>
 </body>
 </html>
-
-
-
