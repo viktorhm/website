@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    (function(){
+      var s = localStorage.getItem("theme");
+      var dark = s ? s === "dark" : window.matchMedia("(prefers-color-scheme:dark)").matches;
+      document.documentElement.classList.add(dark ? "force-dark" : "force-light");
+    })();
+  </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conditions Générales de Vente – Horlogerie Haratyk</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--gold:#c9a84c;--gold-dim:#8a6e30;--black:#0a0a0a;--surface:#111111;--border:rgba(201,168,76,0.18);--text:#e8e4dc;--text-muted:#8a8580;--header-bg:rgba(10,10,10,0.92);--logo-filter:invert(0)}
+    @media(prefers-color-scheme:light){:root{--gold:#a07828;--black:#f5f2ec;--surface:#ffffff;--border:rgba(160,120,40,0.2);--text:#1a1714;--text-muted:#6b6560;--header-bg:rgba(245,242,236,0.93);--logo-filter:invert(1)}}
+    html.force-dark{--gold:#c9a84c;--black:#0a0a0a;--surface:#111111;--border:rgba(201,168,76,0.18);--text:#e8e4dc;--text-muted:#8a8580;--header-bg:rgba(10,10,10,0.92);--logo-filter:invert(0)}
+    html.force-light{--gold:#a07828;--black:#f5f2ec;--surface:#ffffff;--border:rgba(160,120,40,0.2);--text:#1a1714;--text-muted:#6b6560;--header-bg:rgba(245,242,236,0.93);--logo-filter:invert(1)}
+    html{scroll-behavior:smooth}
+    body{font-family:'Jost',sans-serif;font-weight:300;background:var(--black);color:var(--text);line-height:1.7}
+    header{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--header-bg);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);padding:0 5vw;height:72px;display:flex;align-items:center;justify-content:space-between}
+    .logo-wrap{display:flex;align-items:center;gap:1rem;text-decoration:none}
+    .logo{height:44px;width:auto;filter:var(--logo-filter);transition:opacity .4s}
+    nav{display:flex;align-items:center;gap:2rem}
+    .nav-links{list-style:none;display:flex;gap:2rem}
+    .nav-links a{font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;transition:color .4s}
+    .nav-links a:hover{color:var(--gold)}
+    .slogan{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1rem;color:var(--gold)}
+    .theme-toggle{background:none;border:1px solid var(--border);color:var(--text-muted);width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .4s}
+    .theme-toggle:hover{border-color:var(--gold);color:var(--gold)}
+    .theme-toggle svg{width:15px;height:15px;fill:currentColor}
+    .page-wrap{max-width:780px;margin:0 auto;padding:140px 5vw 7rem}
+    .section-label{font-size:.65rem;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:1rem}
+    .page-title{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,5vw,3.5rem);font-weight:600;line-height:1.1;color:var(--text)}
+    .section-divider{width:40px;height:1px;background:var(--gold);margin:1.5rem 0 3rem}
+    .cgv-block{margin-bottom:2.5rem;padding-bottom:2.5rem;border-bottom:1px solid var(--border)}
+    .cgv-block:last-child{border-bottom:none}
+    .cgv-block h2{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:600;color:var(--gold);margin-bottom:1rem}
+    .cgv-block p{font-size:.9rem;color:var(--text-muted);line-height:1.9;margin-bottom:.8rem}
+    .cgv-block p:last-child{margin-bottom:0}
+    .cgv-block strong{color:var(--text);font-weight:400}
+    .cgv-block ul{margin:.5rem 0 .8rem 1.2rem;font-size:.9rem;color:var(--text-muted);line-height:1.9}
+    footer{border-top:1px solid var(--border);padding:2.5rem 5vw;display:flex;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+    footer a{font-size:.8rem;color:var(--gold);text-decoration:none}
+    footer p{font-size:.75rem;color:#444}
+    @media(max-width:600px){.slogan{display:none}}
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo-wrap">
+      <img class="logo" src="assets/H.png" alt="Logo Horlogerie Haratyk">
+      <span class="slogan">Artisan horloger</span>
+    </a>
+    <nav>
+      <ul class="nav-links">
+        <li><a href="index.html">Accueil</a></li>
+        <li><a href="boutique.html">Boutique</a></li>
+      </ul>
+      <button class="theme-toggle" id="themeToggle" aria-label="Changer le thème">
+        <svg id="iconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
+        <svg id="iconSun" viewBox="0 0 24 24" style="display:none"><path d="M12 4.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0112 4.5zm0 12a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zm7.5-7.5a.75.75 0 010 1.5h-1.5a.75.75 0 010-1.5h1.5zM6 12a.75.75 0 01-.75.75H3.75a.75.75 0 010-1.5H5.25A.75.75 0 016 12zm9.89-5.89a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM9.17 14.83a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm6.72 1.06a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06zM9.17 9.17a.75.75 0 01-1.06 0L7.05 8.11A.75.75 0 018.11 7.05l1.06 1.06a.75.75 0 010 1.06zM12 8a4 4 0 110 8 4 4 0 010-8z"/></svg>
+      </button>
+    </nav>
+  </header>
+
+  <main>
+    <div class="page-wrap">
+      <span class="section-label">Vente en ligne</span>
+      <h1 class="page-title">Conditions Générales<br>de Vente</h1>
+      <div class="section-divider"></div>
+
+      <div class="cgv-block">
+        <h2>Article 1 — Vendeur</h2>
+        <p>Les présentes Conditions Générales de Vente (CGV) régissent les ventes conclues entre <strong>Viktor Haratyk — Horlogerie Haratyk</strong>, entrepreneur individuel, SIRET 988 378 378, dont le siège est situé 43 rue du Vieux Four, 59700 Marcq-en-Barœul, et tout acheteur (ci-après « le Client ») passant commande sur le site <strong>horlogerie-haratyk.fr</strong>.</p>
+      </div>
+
+      <div class="cgv-block">
+        <h2>Article 2 — Produits</h2>
+        <p>Les montres proposées à la vente sont des montres d'occasion ayant fait l'objet d'une révision complète par un artisan horloger titulaire du CAP Horlogerie. Chaque montre est décrite avec soin mais peut présenter des traces d'usure inhérentes à son ancienneté.</p>
+        <p>Les photographies présentées sont non contractuelles mais reflètent fidèlement l'état réel du produit au moment de la mise en vente.</p>
+      </div>
+
+      <div class="cgv-block">
+        <h2>Article 3 — Prix</h2>
+        <p>Les prix sont indiqués en euros toutes taxes comprises. <strong>Horlogerie Haratyk n'est pas assujetti à la TVA</strong> (article 293 B du CGI). Les frais de livraison sont indiqués séparément lors de la commande et s'ajoutent au prix de la montre.</p>
+      </div>
+
+      <div class="cgv-block">
+        <h2>Article 4 — Commande et paiement</h2>
+        <p>La commande est validée après remplissage du formulaire et paiement par carte bancaire via <strong>Stripe</strong>, prestataire de paiement sécurisé. Le contrat de vente est formé à la réception de la confirmation de paiement.</p>
+        <p>Horlogerie Haratyk se réserve le droit d'annuler toute commande en cas de doute sur la validité du paiement ou d'erreur manifeste sur le prix.</p>
+      </div>
+
+      <div class="cgv-block">
+        <h2>Article 5 — Livraison</h2>
+        <p>Trois modes sont proposés au moment de la commande :</p>
+        <ul>
+          <li><strong>Retrait à Marcq-en-Barœul</strong> — gratuit, sur rendez-vous aux horaires d'ouverture.</li>
+          <li><strong>Colissimo suivi (2–3 jours)</strong> — 8 €, envoi en recommandé avec numéro de suivi.</li>
+          <li><strong>Chronopost express (24h)</strong> — 15 €, livraison le lendemain ouvré.</li>
+        </ul>
+        <p>L'expédition est effectuée dans un délai de <strong>2 jours ouvrés</strong> après confirmation du paiement. Les risques liés au transport sont transférés au Client dès la remise du colis au transporteur.</p>
+      </div>
+
+      <div class="cgv-block">
+        <h2>Article 6 — Droit de rétractation</h2>
+        <p>Conformément à l'article L.221-18 du Code de la consommation, le Client dispose d'un délai de <strong>14 jours calendaires</strong> à compter de la réception du colis pour exercer son droit de rétractation, sans avoir à justifier de motifs ni à payer de pénalités.</p>
+        <p>Pour exercer ce droit, le Client doit notifier sa décision par email à <strong>haratykviktor@gmail.com</strong> avant l'expiration du délai. La montre doit être retournée dans son état d'origine, dans son emballage d'origine, à l'adresse indiquée. Les frais de retour sont à la charge du Client.</p>
+        <p>Le remboursement sera effectué dans un délai de <strong>14 jours</strong> après réception du retour et vérification de l'état de la montre.</p>
+      </div>
+
+      <div class="cgv-block">
+        <h2>Article 7 — Garantie</h2>
+        <p>Chaque montre bénéficie d'une <strong>garantie contractuelle de 1 an</strong> couvrant les défauts de fonctionnement liés à la révision effectuée. Cette garantie ne couvre pas les dommages résultant d'une utilisation anormale, d'un choc, d'une immersion non prévue ou d'une intervention par un tiers.</p>
+        <p>La garantie légale de conformité (articles L.217-4 et suivants du Code de la consommation) et la garantie des vices cachés (articles 1641 et suivants du Code civil) s'appliquent également.</p>
+      </div>
+
+      <div class="cgv-block">
+        <h2>Article 8 — Responsabilité</h2>
+        <p>Horlogerie Haratyk ne saurait être tenu responsable des dommages indirects résultant de l'utilisation des produits vendus. La responsabilité est limitée au montant de la commande concernée.</p>
+      </div>
+
+      <div class="cgv-block">
+        <h2>Article 9 — Données personnelles</h2>
+        <p>Les données collectées lors de la commande (nom, adresse, email, téléphone) sont utilisées exclusivement pour le traitement et la livraison de la commande. Elles ne sont jamais cédées à des tiers. Conformément au RGPD, vous disposez d'un droit d'accès, de rectification et de suppression en écrivant à <strong>haratykviktor@gmail.com</strong>.</p>
+      </div>
+
+      <div class="cgv-block">
+        <h2>Article 10 — Droit applicable</h2>
+        <p>Les présentes CGV sont soumises au droit français. En cas de litige, une solution amiable sera recherchée en priorité. À défaut, les tribunaux compétents du ressort de Lille seront saisis.</p>
+        <p style="margin-top:1.5rem;font-size:.8rem;color:#555">Dernière mise à jour : avril 2026</p>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <a href="boutique.html">← Retour à la boutique</a>
+    <p>&copy; 2025 Horlogerie Haratyk</p>
+    <a href="mentions-legales.html">Mentions légales</a>
+  </footer>
+
+  <script>
+    const html=document.documentElement,tBtn=document.getElementById('themeToggle'),moon=document.getElementById('iconMoon'),sun=document.getElementById('iconSun');
+    function isDark(){const s=localStorage.getItem('theme');if(s)return s==='dark';return window.matchMedia('(prefers-color-scheme:dark)').matches}
+    function applyTheme(d){html.classList.toggle('force-dark',d);html.classList.toggle('force-light',!d);moon.style.display=d?'block':'none';sun.style.display=d?'none':'block'}
+    applyTheme(isDark());
+    tBtn.addEventListener('click',()=>{const d=html.classList.contains('force-dark');localStorage.setItem('theme',d?'light':'dark');applyTheme(!d)});
+  </script>
+</body>
+</html>

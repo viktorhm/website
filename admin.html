@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin – Horlogerie Haratyk</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--gold:#c9a84c;--gold-dim:#8a6e30;--black:#0a0a0a;--surface:#111111;--surface2:#181818;--border:rgba(201,168,76,0.18);--text:#e8e4dc;--text-muted:#8a8580;--red:#c0392b}
+    body{font-family:'Jost',sans-serif;font-weight:300;background:var(--black);color:var(--text);min-height:100vh}
+
+    #login-screen{min-height:100vh;display:none;align-items:center;justify-content:center;padding:2rem}
+    .login-box{background:var(--surface);border:1px solid var(--border);padding:3rem 2.5rem;width:100%;max-width:380px;text-align:center}
+    .login-box h1{font-family:'Cormorant Garamond',serif;font-size:1.8rem;color:var(--gold);margin-bottom:.5rem}
+    .login-box p{font-size:.82rem;color:var(--text-muted);margin-bottom:2rem}
+    .login-box input{width:100%;padding:.85rem 1rem;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Jost',sans-serif;font-size:.9rem;margin-bottom:1rem;outline:none;letter-spacing:.1em}
+    .login-box input:focus{border-color:var(--gold)}
+    .btn-gold{width:100%;padding:.9rem;background:transparent;border:1px solid var(--gold);color:var(--gold);font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s;font-family:'Jost',sans-serif}
+    .btn-gold:hover{background:var(--gold);color:var(--black)}
+    .login-error{color:#e74c3c;font-size:.8rem;margin-top:.8rem;min-height:1em}
+
+    #admin-screen{display:none;padding:2rem 5vw 5rem;max-width:1000px;margin:0 auto}
+    .admin-header{display:flex;align-items:center;justify-content:space-between;padding:1.5rem 0;border-bottom:1px solid var(--border);margin-bottom:3rem}
+    .admin-header h1{font-family:'Cormorant Garamond',serif;font-size:1.6rem;color:var(--gold)}
+    .btn-logout{background:none;border:1px solid var(--border);color:var(--text-muted);padding:.5rem 1rem;font-size:.72rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;transition:all .3s;font-family:'Jost',sans-serif}
+    .btn-logout:hover{border-color:var(--red);color:var(--red)}
+
+    .form-section{background:var(--surface);border:1px solid var(--border);padding:2rem;margin-bottom:3rem}
+    .form-section h2{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--gold);margin-bottom:1.5rem;padding-bottom:.8rem;border-bottom:1px solid var(--border)}
+    .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+    .form-group{display:flex;flex-direction:column;gap:.4rem}
+    .form-group.full{grid-column:1/-1}
+    .form-group label{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-dim)}
+    .form-group input,.form-group textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.75rem 1rem;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;transition:border-color .3s;resize:vertical}
+    .form-group input:focus,.form-group textarea:focus{border-color:var(--gold)}
+    .form-hint{font-size:.72rem;color:var(--text-muted);margin-top:.3rem}
+
+    /* RONDS d'état (input) */
+    .stars-input{display:flex;gap:8px;margin-top:.3rem}
+    .stars-input .si{width:16px;height:16px;border-radius:50%;border:1px solid var(--border);background:transparent;cursor:pointer;transition:all .15s;display:inline-block}
+    .stars-input .si.on,.stars-input .si.hover{background:#3B8BD4;border-color:#3B8BD4}
+    .note-value{font-size:.8rem;color:var(--text-muted);margin-left:.5rem;align-self:center}
+
+    /* MULTI-PHOTO */
+    .photos-zone{border:2px dashed var(--border);padding:1.5rem;background:var(--surface2);transition:border-color .3s;position:relative}
+    .photos-zone:hover,.photos-zone.drag{border-color:var(--gold)}
+    .photos-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+    .photos-zone-text{text-align:center;pointer-events:none}
+    .photos-zone-text strong{color:var(--gold);display:block;margin-bottom:.3rem}
+    .photos-zone-text span{font-size:.8rem;color:var(--text-muted)}
+    .photos-preview{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px;margin-top:1rem}
+    .photo-thumb-wrap{position:relative;aspect-ratio:1}
+    .photo-thumb-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+    .photo-thumb-remove{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.7);color:#fff;border:none;width:18px;height:18px;font-size:.7rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .2s}
+    .photo-thumb-remove:hover{background:var(--red)}
+    .photo-thumb-main{position:absolute;bottom:2px;left:2px;background:rgba(201,168,76,.8);color:#000;font-size:.55rem;letter-spacing:.05em;padding:1px 4px}
+    .upload-progress{height:2px;background:var(--border);margin-top:.8rem;display:none}
+    .upload-progress-bar{height:100%;background:var(--gold);width:0%;transition:width .3s}
+    .upload-status{font-size:.75rem;color:var(--text-muted);margin-top:.4rem}
+
+    .form-actions{display:flex;gap:1rem;margin-top:1.5rem}
+    .btn-submit{padding:.9rem 2rem;background:transparent;border:1px solid var(--gold);color:var(--gold);font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s;font-family:'Jost',sans-serif}
+    .btn-submit:hover{background:var(--gold);color:var(--black)}
+    .btn-submit:disabled{opacity:.5;cursor:not-allowed}
+    .btn-reset{padding:.9rem 1.5rem;background:transparent;border:1px solid var(--border);color:var(--text-muted);font-size:.75rem;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;transition:all .3s;font-family:'Jost',sans-serif}
+    .btn-reset:hover{color:var(--text);border-color:var(--text-muted)}
+
+    #toast{position:fixed;bottom:2rem;right:2rem;padding:1rem 1.5rem;background:var(--surface);border:1px solid var(--gold);color:var(--text);font-size:.85rem;display:none;z-index:999;animation:fadeIn .3s}
+    #toast.error{border-color:var(--red)}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+    .list-section h2{font-family:'Cormorant Garamond',serif;font-size:1.3rem;color:var(--gold);margin-bottom:1.5rem;padding-bottom:.8rem;border-bottom:1px solid var(--border)}
+
+    /* LIGNES MONTRE + STATUTS */
+    .montre-row{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border);display:grid;grid-template-columns:80px 1fr auto;gap:1rem;align-items:center;padding:1rem;margin-bottom:1px;transition:background .3s,border-color .3s}
+    .montre-row:hover{background:var(--surface2)}
+    .montre-row.st-disponible{border-left-color:#2e9b63}
+    .montre-row.st-reservee{border-left-color:#d08a2a}
+    .montre-row.st-vendue{border-left-color:rgba(138,133,128,0.4);opacity:.62}
+    .montre-row.st-vendue .row-nom{text-decoration:line-through;text-decoration-color:rgba(138,133,128,0.5)}
+
+    .montre-row-main img{width:80px;height:80px;object-fit:cover}
+    .row-head{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap}
+    .row-nom{font-family:'Cormorant Garamond',serif;font-size:1.1rem;color:var(--text)}
+    .row-meta{font-size:.78rem;color:var(--text-muted);margin-top:.2rem}
+    .row-prix{font-size:1rem;color:var(--gold);margin-top:.3rem}
+    .row-stars{display:flex;gap:3px;margin-top:.3rem}
+    .row-stars .rs{width:8px;height:8px;border-radius:50%;border:1px solid var(--border);background:transparent;display:inline-block}
+    .row-stars .rs.on{background:#3B8BD4;border-color:#3B8BD4}
+
+    .status-badge{font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;padding:3px 9px;border:1px solid;display:inline-block;font-weight:400}
+    .status-badge.st-disponible{color:#4dc789;background:rgba(46,155,99,0.12);border-color:rgba(46,155,99,0.4)}
+    .status-badge.st-reservee{color:#e8a94a;background:rgba(208,138,42,0.12);border-color:rgba(208,138,42,0.4)}
+    .status-badge.st-vendue{color:#8a8580;background:rgba(138,133,128,0.12);border-color:rgba(138,133,128,0.35)}
+
+    .reservation-box{background:rgba(208,138,42,0.06);border-left:2px solid #d08a2a;padding:.55rem .8rem;margin-top:.5rem;font-size:.78rem;color:var(--text-soft,#b8b4ac);line-height:1.5}
+    .reservation-box .rb-label{color:#e8a94a;font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;margin-bottom:.2rem;display:block}
+    .reservation-box .rb-countdown{color:var(--text-muted);margin-top:.3rem;font-size:.72rem}
+    .reservation-box.expired{border-left-color:var(--red);background:rgba(192,57,43,0.06)}
+    .reservation-box.expired .rb-label{color:var(--red)}
+
+    .row-actions{display:flex;gap:.4rem;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:340px}
+    .btn-statut,.btn-suppr,.btn-liberer{padding:.38rem .75rem;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);color:var(--text-muted);transition:all .3s;font-family:'Jost',sans-serif;background:none;white-space:nowrap}
+    .btn-statut:hover{color:var(--text)}
+    .btn-statut.active.st-disponible{border-color:rgba(46,155,99,0.6);color:#4dc789;background:rgba(46,155,99,0.08)}
+    .btn-statut.active.st-reservee{border-color:rgba(208,138,42,0.6);color:#e8a94a;background:rgba(208,138,42,0.08)}
+    .btn-statut.active.st-vendue{border-color:rgba(138,133,128,0.5);color:#b8b4ac;background:rgba(138,133,128,0.1)}
+    .btn-suppr:hover{border-color:var(--red);color:var(--red)}
+    .btn-liberer{border-color:rgba(208,138,42,0.4);color:#e8a94a}
+    .btn-liberer:hover{background:rgba(208,138,42,0.1)}
+
+    .empty-list{padding:3rem;text-align:center;color:var(--text-muted);font-size:.9rem;background:var(--surface);border:1px solid var(--border)}
+    @media(max-width:700px){.form-grid{grid-template-columns:1fr}.montre-row{grid-template-columns:60px 1fr;gap:.8rem}.row-actions{grid-column:1/-1;justify-content:flex-start}}
+  </style>
+</head>
+<body>
+
+<div id="login-screen">
+  <div class="login-box">
+    <h1>Admin</h1>
+    <p>Horlogerie Haratyk — espace privé</p>
+    <input type="email" id="email-input" placeholder="Email" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('pwd-input').focus()">
+    <input type="password" id="pwd-input" placeholder="Mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter')login()">
+    <button class="btn-gold" id="btn-login" onclick="login()">Accéder</button>
+    <p class="login-error" id="login-error"></p>
+    <p style="font-size:.72rem;color:var(--text-muted);margin-top:1.2rem"><a id="reset-link" href="#" onclick="resetPwd();return false;" style="color:var(--gold-dim);text-decoration:underline;text-underline-offset:3px">Mot de passe oublié ?</a></p>
+  </div>
+</div>
+
+<div id="admin-screen">
+  <div class="admin-header">
+    <h1>Gestion des annonces</h1>
+    <button class="btn-logout" onclick="logout()">Déconnexion</button>
+  </div>
+
+  <div class="form-section">
+    <h2>Ajouter une montre</h2>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Nom / Modèle *</label>
+        <input type="text" id="f-nom" placeholder="ex. Omega Seamaster 1968">
+      </div>
+      <div class="form-group">
+        <label>Référence</label>
+        <input type="text" id="f-ref" placeholder="ex. OSM-001">
+      </div>
+      <div class="form-group">
+        <label>Prix (€) *</label>
+        <input type="number" id="f-prix" placeholder="ex. 450">
+      </div>
+      <div class="form-group">
+        <label>Note d'état (ronds bleus)</label>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.3rem">
+          <div class="stars-input" id="stars-input">
+            <span class="si" data-v="1"></span>
+            <span class="si" data-v="2"></span>
+            <span class="si" data-v="3"></span>
+            <span class="si" data-v="4"></span>
+            <span class="si" data-v="5"></span>
+          </div>
+          <span class="note-value" id="note-value">Aucune note</span>
+        </div>
+        <input type="hidden" id="f-note" value="0">
+      </div>
+      <div class="form-group full">
+        <label>Photos (jusqu'à 10) *</label>
+        <div class="photos-zone" id="photos-zone">
+          <input type="file" id="f-photos" accept="image/*" multiple onchange="handlePhotos(this.files)">
+          <div class="photos-zone-text">
+            <strong>Cliquer ou glisser jusqu'à 10 photos</strong>
+            <span>JPG, PNG — la première photo sera la photo principale</span>
+          </div>
+        </div>
+        <div class="photos-preview" id="photos-preview"></div>
+        <div class="upload-progress" id="upload-progress"><div class="upload-progress-bar" id="upload-bar"></div></div>
+        <div class="upload-status" id="upload-status"></div>
+      </div>
+      <div class="form-group full">
+        <label>Description</label>
+        <textarea id="f-desc" rows="3" placeholder="Calibre, état, particularités, année..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn-submit" id="btn-publier" onclick="ajouterMontre()">Publier l'annonce</button>
+      <button class="btn-reset" onclick="resetForm()">Effacer</button>
+    </div>
+  </div>
+
+  <div class="list-section">
+    <h2>Annonces publiées</h2>
+    <div id="admin-list"><div class="empty-list">Chargement...</div></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+  const app=initializeApp({apiKey:"AIzaSyBdhXev9PvfrQIBKktIJJ58vEsP-Db-mpc",authDomain:"horlogerie-haratyk.firebaseapp.com",projectId:"horlogerie-haratyk",storageBucket:"horlogerie-haratyk.firebasestorage.app",messagingSenderId:"90184929449",appId:"1:90184929449:web:03bc08665e0577ac6399b8"});
+  const db=getFirestore(app);
+  const auth=getAuth(app);
+
+  const CLOUD_NAME="dhdgbhuq8";
+  const CLOUD_PRESET="site web";
+
+  let pendingFiles=[];
+  let noteSelectionnee=0;
+
+  // ─── AUTH ────────────────────────────────────────
+  const loginScreen=document.getElementById('login-screen');
+  const adminScreen=document.getElementById('admin-screen');
+  const errorEl=document.getElementById('login-error');
+
+  onAuthStateChanged(auth,user=>{
+    if(user){
+      loginScreen.style.display='none';
+      adminScreen.style.display='block';
+      loadList();
+    }else{
+      loginScreen.style.display='flex';
+      adminScreen.style.display='none';
+    }
+  });
+
+  window.login=async function(){
+    const email=document.getElementById('email-input').value.trim();
+    const pwd=document.getElementById('pwd-input').value;
+    const btn=document.getElementById('btn-login');
+    if(!email||!pwd){errorEl.textContent='Email et mot de passe requis.';return;}
+    btn.disabled=true;btn.textContent='Connexion…';
+    errorEl.textContent='';
+    try{
+      await signInWithEmailAndPassword(auth,email,pwd);
+    }catch(e){
+      const msg={
+        'auth/invalid-credential':'Email ou mot de passe incorrect.',
+        'auth/invalid-email':'Format d\'email invalide.',
+        'auth/user-not-found':'Aucun compte avec cet email.',
+        'auth/wrong-password':'Mot de passe incorrect.',
+        'auth/too-many-requests':'Trop de tentatives. Réessayez plus tard.',
+        'auth/network-request-failed':'Problème de connexion réseau.'
+      }[e.code]||'Erreur : '+e.message;
+      errorEl.textContent=msg;
+    }finally{btn.disabled=false;btn.textContent='Accéder';}
+  };
+
+  window.logout=async function(){
+    try{await signOut(auth);}catch(e){}
+  };
+
+  window.resetPwd=async function(){
+    const email=document.getElementById('email-input').value.trim();
+    if(!email){errorEl.textContent='Saisissez votre email puis cliquez à nouveau.';return;}
+    try{
+      await sendPasswordResetEmail(auth,email);
+      errorEl.style.color='#4dc789';
+      errorEl.textContent='Email de réinitialisation envoyé. Vérifiez votre boîte.';
+      setTimeout(()=>errorEl.style.color='',5000);
+    }catch(e){
+      errorEl.textContent='Erreur : '+(e.code==='auth/user-not-found'?'Aucun compte avec cet email.':e.message);
+    }
+  };
+
+  // ─── ÉTOILES ─────────────────────────────────────
+  const starsEl=document.querySelectorAll('#stars-input .si');
+  starsEl.forEach(s=>{
+    s.addEventListener('mouseover',()=>{
+      const v=parseInt(s.dataset.v);
+      starsEl.forEach(x=>x.classList.toggle('hover',parseInt(x.dataset.v)<=v));
+    });
+    s.addEventListener('mouseout',()=>starsEl.forEach(x=>x.classList.remove('hover')));
+    s.addEventListener('click',()=>{
+      noteSelectionnee=parseInt(s.dataset.v);
+      document.getElementById('f-note').value=noteSelectionnee;
+      starsEl.forEach(x=>x.classList.toggle('on',parseInt(x.dataset.v)<=noteSelectionnee));
+      document.getElementById('note-value').textContent=noteSelectionnee>0?noteSelectionnee+' / 5':'Aucune note';
+    });
+  });
+
+  // ─── GESTION PHOTOS ──────────────────────────────
+  window.handlePhotos=function(files){
+    const newFiles=Array.from(files).slice(0,10-pendingFiles.length);
+    newFiles.forEach(f=>{if(pendingFiles.length<10)pendingFiles.push(f);});
+    renderPreviews();
+  };
+
+  function renderPreviews(){
+    const preview=document.getElementById('photos-preview');
+    preview.innerHTML=pendingFiles.map((f,i)=>`
+      <div class="photo-thumb-wrap">
+        <img src="${URL.createObjectURL(f)}" alt="">
+        ${i===0?'<span class="photo-thumb-main">Principal</span>':''}
+        <button class="photo-thumb-remove" onclick="removePhoto(${i})">✕</button>
+      </div>`).join('');
+    document.getElementById('upload-status').textContent=pendingFiles.length>0?`${pendingFiles.length} photo${pendingFiles.length>1?'s':''} sélectionnée${pendingFiles.length>1?'s':''}. Max 10.`:'';
+  }
+
+  window.removePhoto=function(idx){
+    pendingFiles.splice(idx,1);renderPreviews();
+  };
+
+  // ─── UPLOAD CLOUDINARY ────────────────────────────
+  async function uploadPhoto(file,idx,total){
+    const fd=new FormData();
+    fd.append('file',file);
+    fd.append('upload_preset',CLOUD_PRESET);
+    fd.append('folder','boutique');
+    document.getElementById('upload-bar').style.width=Math.round((idx/total)*100)+'%';
+    document.getElementById('upload-status').textContent=`Upload photo ${idx+1}/${total}…`;
+    const r=await fetch(`https://api.cloudinary.com/v1_1/${CLOUD_NAME}/image/upload`,{method:'POST',body:fd});
+    if(!r.ok)throw new Error('Erreur Cloudinary photo '+(idx+1));
+    return (await r.json()).secure_url;
+  }
+
+  // ─── AJOUTER ─────────────────────────────────────
+  window.ajouterMontre=async function(){
+    const nom=document.getElementById('f-nom').value.trim();
+    const ref=document.getElementById('f-ref').value.trim();
+    const prix=document.getElementById('f-prix').value.trim();
+    const desc=document.getElementById('f-desc').value.trim();
+    const note=parseInt(document.getElementById('f-note').value)||0;
+    if(!nom||!prix||pendingFiles.length===0){toast('Nom, prix et au moins une photo sont obligatoires.',true);return;}
+    const btn=document.getElementById('btn-publier');
+    btn.disabled=true;btn.textContent='Publication…';
+    document.getElementById('upload-progress').style.display='block';
+    try{
+      const urls=[];
+      for(let i=0;i<pendingFiles.length;i++){
+        const url=await uploadPhoto(pendingFiles[i],i,pendingFiles.length);
+        urls.push(url);
+      }
+      document.getElementById('upload-bar').style.width='100%';
+      await addDoc(collection(db,'montres'),{
+        nom,ref,prix:parseFloat(prix),description:desc,note,
+        images:urls,imageUrl:urls[0],
+        statut:'disponible',vendue:false,reservation:null,
+        createdAt:serverTimestamp()
+      });
+      toast('✓ Annonce publiée avec succès !');
+      resetForm();loadList();
+    }catch(e){toast('Erreur : '+e.message,true);}
+    finally{btn.disabled=false;btn.textContent='Publier l\'annonce';document.getElementById('upload-progress').style.display='none';}
+  };
+
+  window.resetForm=function(){
+    ['f-nom','f-ref','f-prix','f-desc'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f-note').value='0';
+    noteSelectionnee=0;
+    starsEl.forEach(x=>x.classList.remove('on'));
+    document.getElementById('note-value').textContent='Aucune note';
+    pendingFiles=[];
+    document.getElementById('f-photos').value='';
+    renderPreviews();
+    document.getElementById('upload-bar').style.width='0%';
+    document.getElementById('upload-progress').style.display='none';
+  };
+
+  // ─── LISTE ───────────────────────────────────────
+  function resolveStatut(m){
+    if(m.statut) return m.statut;
+    if(m.vendue) return 'vendue';
+    if(m.reservation) return 'reservee';
+    return 'disponible';
+  }
+
+  function formatCountdown(expireAt){
+    if(!expireAt) return '';
+    const ms=(typeof expireAt.toMillis==='function'?expireAt.toMillis():new Date(expireAt).getTime())-Date.now();
+    if(ms<=0) return 'Expirée';
+    const h=Math.floor(ms/3600000);
+    const m=Math.floor((ms%3600000)/60000);
+    if(h>=1) return `Expire dans ${h}h${m.toString().padStart(2,'0')}`;
+    return `Expire dans ${m} min`;
+  }
+
+  function escapeHtml(s){return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+  async function loadList(){
+    const el=document.getElementById('admin-list');
+    try{
+      const snap=await getDocs(query(collection(db,'montres'),orderBy('createdAt','desc')));
+      if(snap.empty){el.innerHTML='<div class="empty-list">Aucune annonce pour le moment.</div>';return;}
+      el.innerHTML=snap.docs.map(d=>{
+        const m=d.data();
+        const imgs=m.images||[];
+        const note=m.note||0;
+        const statut=resolveStatut(m);
+        const statutLabel={disponible:'Disponible',reservee:'Réservée',vendue:'Vendue'}[statut];
+        const ronds=Array.from({length:5},(_,i)=>`<span class="rs ${i<note?'on':''}"></span>`).join('');
+
+        let reservationBlock='';
+        if(statut==='reservee' && m.reservation){
+          const r=m.reservation;
+          const countdown=formatCountdown(r.expireAt);
+          const expired=countdown==='Expirée';
+          reservationBlock=`<div class="reservation-box ${expired?'expired':''}">
+            <span class="rb-label">${expired?'Réservation expirée':'Client'}</span>
+            <div>${escapeHtml(r.prenom||'')} ${escapeHtml(r.nom||'')} · ${escapeHtml(r.email||'')}${r.tel?' · '+escapeHtml(r.tel):''}</div>
+            <div class="rb-countdown">${countdown}${r.mode==='retrait'?' · retrait atelier prévu':''}</div>
+          </div>`;
+        }
+
+        const btnStatut=(s,label)=>`<button class="btn-statut ${statut===s?'active st-'+s:''}" onclick="setStatut('${d.id}','${s}')">${statut===s?'●':'○'} ${label}</button>`;
+        const btnLiberer=statut==='reservee'?`<button class="btn-liberer" onclick="libererReservation('${d.id}')">Libérer</button>`:'';
+
+        return `<div class="montre-row st-${statut}">
+          <div class="montre-row-main"><img src="${imgs[0]||m.imageUrl||''}" alt="${escapeHtml(m.nom)}" onerror="this.style.opacity=.2"></div>
+          <div>
+            <div class="row-head">
+              <span class="row-nom">${escapeHtml(m.nom)}</span>
+              <span class="status-badge st-${statut}">${statutLabel}</span>
+            </div>
+            <div class="row-meta">Réf. ${escapeHtml(m.ref||'—')} · ${imgs.length} photo${imgs.length>1?'s':''}</div>
+            <div class="row-stars">${ronds}</div>
+            ${reservationBlock}
+            <div class="row-prix">${m.prix} €</div>
+          </div>
+          <div class="row-actions">
+            ${btnStatut('disponible','Disponible')}
+            ${btnStatut('reservee','Réservée')}
+            ${btnStatut('vendue','Vendue')}
+            ${btnLiberer}
+            <button class="btn-suppr" onclick="supprimerMontre('${d.id}')">Supprimer</button>
+          </div>
+        </div>`;
+      }).join('');
+    }catch(e){el.innerHTML='<div class="empty-list">Erreur de chargement.</div>';}
+  }
+
+  window.setStatut=async function(id,nouveau){
+    try{
+      const patch={statut:nouveau,vendue:nouveau==='vendue'};
+      if(nouveau!=='reservee') patch.reservation=null;
+      await updateDoc(doc(db,'montres',id),patch);
+      toast('Statut mis à jour : '+nouveau+'.');
+      loadList();
+    }catch(e){toast('Erreur : '+e.message,true);}
+  };
+
+  window.libererReservation=async function(id){
+    if(!confirm('Libérer cette réservation ? La montre redeviendra disponible.'))return;
+    try{
+      await updateDoc(doc(db,'montres',id),{statut:'disponible',vendue:false,reservation:null});
+      toast('Réservation libérée.');loadList();
+    }catch(e){toast('Erreur : '+e.message,true);}
+  };
+
+  window.supprimerMontre=async function(id){
+    if(!confirm('Supprimer cette annonce définitivement ?'))return;
+    try{await deleteDoc(doc(db,'montres',id));toast('Annonce supprimée.');loadList();}
+    catch(e){toast('Erreur',true);}
+  };
+
+  function toast(msg,err=false){
+    const t=document.getElementById('toast');
+    t.textContent=msg;t.className=err?'error':'';t.style.display='block';
+    setTimeout(()=>t.style.display='none',3500);
+  }
+
+  // Drag & drop
+  const zone=document.getElementById('photos-zone');
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag')});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('drag'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag');handlePhotos(e.dataTransfer.files);});
+</script>
+</body>
+</html>

@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <script>(function(){var s=localStorage.getItem('theme'),d=s?s==='dark':window.matchMedia('(prefers-color-scheme:dark)').matches;document.documentElement.classList.add(d?'force-dark':'force-light')})();</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Boutique – Horlogerie Haratyk | Montres révisées près de Lille</title>
+  <meta name="description" content="Montres révisées et garanties 1 an par Viktor Haratyk, artisan horloger CAP à Marcq-en-Barœul. Paiement sécurisé, livraison en France.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://horlogerie-haratyk.fr/boutique.html">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Boutique – Horlogerie Haratyk">
+  <meta property="og:image" content="https://horlogerie-haratyk.fr/assets/H.png">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Jost:wght@300;400;500&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://js.stripe.com/v3/"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--gold:#c9a84c;--gold-dim:#8a6e30;--black:#0a0a0a;--surface:#111111;--surface2:#181818;--border:rgba(201,168,76,0.18);--border2:rgba(201,168,76,0.35);--text:#e8e4dc;--text-muted:#8a8580;--text-soft:#b8b4ac;--transition:0.4s cubic-bezier(0.25,0.46,0.45,0.94);--header-bg:rgba(10,10,10,0.94);--logo-filter:invert(0)}
+    html.force-dark{--gold:#c9a84c;--gold-dim:#8a6e30;--black:#0a0a0a;--surface:#111111;--surface2:#181818;--border:rgba(201,168,76,0.18);--border2:rgba(201,168,76,0.35);--text:#e8e4dc;--text-muted:#8a8580;--text-soft:#b8b4ac;--header-bg:rgba(10,10,10,0.94);--logo-filter:invert(0)}
+    html.force-light{--gold:#9a7322;--gold-dim:#b8943a;--black:#f4f1ea;--surface:#ffffff;--surface2:#f0ece2;--border:rgba(140,100,30,0.2);--border2:rgba(140,100,30,0.4);--text:#1a1714;--text-muted:#6b6560;--text-soft:#8a8580;--header-bg:rgba(244,241,234,0.95);--logo-filter:invert(1)}
+    html{scroll-behavior:smooth}
+    body{font-family:'Jost',sans-serif;font-weight:300;background:var(--black);color:var(--text);line-height:1.7;overflow-x:hidden}
+
+    header{position:fixed;top:0;left:0;right:0;z-index:100;background:var(--header-bg);backdrop-filter:blur(16px);border-bottom:1px solid var(--border);padding:0 5vw;height:72px;display:flex;align-items:center;justify-content:space-between}
+    .logo-wrap{display:flex;align-items:center;gap:1rem;text-decoration:none}
+    .logo{height:44px;width:auto;filter:var(--logo-filter);transition:opacity .4s}
+    .logo-wrap:hover .logo{opacity:.75}
+    .slogan{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:1rem;color:var(--gold)}
+    nav{display:flex;align-items:center;gap:1.8rem}
+    .nav-links{list-style:none;display:flex;gap:1.8rem}
+    .nav-links a{font-size:.75rem;letter-spacing:.16em;text-transform:uppercase;color:var(--text-muted);text-decoration:none;transition:color .3s;position:relative}
+    .nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;right:0;height:1px;background:var(--gold);transform:scaleX(0);transition:transform .35s}
+    .nav-links a:hover{color:var(--gold)}
+    .nav-links a:hover::after{transform:scaleX(1)}
+    .theme-toggle{background:none;border:1px solid var(--border);color:var(--text-muted);width:36px;height:36px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .35s}
+    .theme-toggle:hover{border-color:var(--gold);color:var(--gold)}
+    .theme-toggle svg{width:15px;height:15px;fill:currentColor}
+
+    .page-header{padding:130px 6vw 50px;max-width:1200px;margin:0 auto}
+    .section-label{font-size:.62rem;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:1.2rem}
+    .page-title{font-family:'Cormorant Garamond',serif;font-size:clamp(3rem,7vw,5.5rem);font-weight:300;line-height:1.05;color:var(--text)}
+    .section-divider{width:48px;height:1px;background:var(--gold);margin:1.8rem 0 1.2rem}
+    .page-desc{font-family:'Cormorant Garamond',serif;font-size:clamp(1.1rem,2.5vw,1.3rem);font-weight:300;font-style:italic;color:var(--text-soft);max-width:580px;line-height:1.7}
+
+    .filters{padding:0 6vw 2.5rem;max-width:1200px;margin:0 auto;display:flex;gap:.8rem;flex-wrap:wrap}
+    .filter-btn{background:none;border:1px solid var(--border);color:var(--text-muted);padding:.5rem 1.4rem;font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all .3s;font-family:'Jost',sans-serif}
+    .filter-btn:hover,.filter-btn.active{border-color:var(--gold);color:var(--gold)}
+
+    .boutique-section{padding:0 6vw 8rem;max-width:1200px;margin:0 auto}
+    .boutique-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:1px;background:var(--border);border:1px solid var(--border)}
+
+    /* CARTE */
+    .montre-card{background:var(--surface);display:flex;flex-direction:column;cursor:pointer;transition:background var(--transition);position:relative}
+    .montre-card:hover{background:var(--surface2)}
+    .montre-card.vendue{opacity:.45}
+    .montre-card.reservee .montre-img::after{content:'';position:absolute;inset:0;background:rgba(208,138,42,0.08);pointer-events:none}
+    .montre-img{aspect-ratio:1;overflow:hidden;background:var(--surface2);position:relative}
+    .montre-img img{width:100%;height:100%;object-fit:cover;transition:transform .7s ease}
+    .montre-card:hover .montre-img img{transform:scale(1.06)}
+    .statut-badge{position:absolute;top:1rem;left:1rem;font-size:.58rem;letter-spacing:.22em;text-transform:uppercase;padding:.3rem .9rem;backdrop-filter:blur(4px)}
+    .statut-badge.vendue{background:rgba(0,0,0,.75);color:#888}
+    .statut-badge.reservee{background:rgba(208,138,42,0.9);color:#1a1714}
+
+    /* RONDS d'état sur la carte */
+    .card-stars{display:flex;gap:4px;margin-top:.3rem}
+    .card-stars .s{width:9px;height:9px;border-radius:50%;border:1px solid var(--border2);background:transparent;display:inline-block}
+    .card-stars .s.on{background:#3B8BD4;border-color:#3B8BD4}
+
+    .montre-info{padding:1.5rem;flex:1;display:flex;flex-direction:column;gap:.5rem}
+    .montre-ref{font-size:.6rem;letter-spacing:.28em;text-transform:uppercase;color:var(--gold-dim)}
+    .montre-nom{font-family:'Cormorant Garamond',serif;font-size:1.35rem;font-weight:600;color:var(--text);line-height:1.15}
+    .montre-desc-short{font-size:.82rem;color:var(--text-muted);line-height:1.65;flex:1}
+    .montre-garantie{font-size:.7rem;color:var(--gold-dim)}
+    .montre-footer{padding:1rem 1.5rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .montre-prix{font-family:'Cormorant Garamond',serif;font-size:1.65rem;font-weight:600;color:var(--gold)}
+    .btn-voir{padding:.55rem 1.1rem;background:none;border:1px solid var(--border);color:var(--text-muted);font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;transition:all .3s;font-family:'Jost',sans-serif}
+    .btn-voir:hover{border-color:var(--gold);color:var(--gold)}
+
+    .empty-state{grid-column:1/-1;padding:6rem 2rem;text-align:center}
+    .empty-state p{font-size:.95rem;color:var(--text-muted)}
+    .empty-icon{font-family:'Cormorant Garamond',serif;font-size:3.5rem;color:var(--border);margin-bottom:1.2rem}
+    .loading{grid-column:1/-1;padding:5rem;text-align:center}
+    .loading-line{width:40px;height:1px;background:var(--gold);margin:0 auto;animation:loadPulse 1.5s ease-in-out infinite}
+    @keyframes loadPulse{0%,100%{width:40px;opacity:.4}50%{width:90px;opacity:1}}
+
+    /* ════ MODAL PRODUIT PLEIN ÉCRAN ════ */
+    #product-modal{display:none;position:fixed;inset:0;z-index:200;background:var(--black);flex-direction:column;animation:fadeIn .25s ease}
+    #product-modal.open{display:flex}
+    @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+
+    .pm-topbar{height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 3vw;border-bottom:1px solid var(--border);flex-shrink:0}
+    .pm-topbar-info{display:flex;flex-direction:column}
+    .pm-topbar-nom{font-family:'Cormorant Garamond',serif;font-size:1.1rem;font-weight:600;color:var(--text)}
+    .pm-topbar-ref{font-size:.62rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-dim)}
+    .pm-close{background:rgba(224,92,92,0.08);border:1px solid #e05c5c;color:#e05c5c;width:38px;height:38px;cursor:pointer;font-size:1rem;display:flex;align-items:center;justify-content:center;transition:all .3s;font-family:'Jost',sans-serif;border-radius:3px}
+    .pm-close:hover{background:#e05c5c;color:var(--surface)}
+
+    .pm-body{flex:1;display:grid;grid-template-columns:1fr 420px;overflow:hidden;min-height:0}
+    @media(max-width:900px){.pm-body{grid-template-columns:1fr;overflow-y:auto}}
+
+    /* Galerie gauche */
+    .pm-gallery{display:flex;flex-direction:column;overflow:hidden;background:var(--surface2)}
+    .pm-main-img{flex:1;overflow:hidden;position:relative;min-height:0}
+    .pm-main-img img{width:100%;height:100%;object-fit:contain;display:block;transition:opacity .3s}
+    .pm-thumbs{display:flex;gap:4px;padding:8px;background:var(--surface);overflow-x:auto;flex-shrink:0}
+    .pm-thumb{width:64px;height:64px;object-fit:cover;cursor:pointer;opacity:.5;transition:opacity .25s;flex-shrink:0;border:1px solid transparent}
+    .pm-thumb:hover{opacity:.85}
+    .pm-thumb.active{opacity:1;border-color:var(--gold)}
+    .pm-gallery-nav{position:absolute;top:50%;transform:translateY(-50%);display:flex;justify-content:space-between;width:100%;padding:0 1rem;pointer-events:none}
+    .pm-nav-btn{pointer-events:all;background:rgba(0,0,0,.6);border:1px solid var(--border);color:var(--text);width:40px;height:40px;cursor:pointer;font-size:1.1rem;display:flex;align-items:center;justify-content:center;transition:all .3s;backdrop-filter:blur(4px)}
+    .pm-nav-btn:hover{border-color:var(--gold);color:var(--gold)}
+
+    /* Panneau droit */
+    .pm-panel{overflow-y:auto;padding:2.5rem 2rem;display:flex;flex-direction:column;gap:1.2rem;border-left:1px solid var(--border)}
+    @media(max-width:900px){.pm-panel{border-left:none;border-top:1px solid var(--border);padding:2rem 1.5rem}}
+    .pm-label{font-size:.6rem;letter-spacing:.35em;text-transform:uppercase;color:var(--gold)}
+    .pm-nom{font-family:'Cormorant Garamond',serif;font-size:clamp(2.2rem,4vw,3.2rem);font-weight:600;color:var(--text);line-height:1.05;letter-spacing:-0.01em}
+    .pm-prix{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;color:var(--gold)}
+    .pm-sep{width:36px;height:1px;background:var(--border2)}
+
+    /* RONDS d'état dans la modal */
+    .pm-stars{display:flex;gap:6px;align-items:center}
+    .pm-stars .star{width:14px;height:14px;border-radius:50%;border:1px solid var(--border2);background:transparent;display:inline-block;transition:all .2s;cursor:default}
+    .pm-stars .star.on{background:#3B8BD4;border-color:#3B8BD4}
+    .pm-stars-label{font-size:.78rem;color:var(--text-muted);margin-left:.6rem;align-self:center}
+    .pm-stars-help{font-size:.72rem;color:var(--gold);cursor:pointer;margin-left:.5rem;text-decoration:underline;text-underline-offset:3px;background:none;border:none;font-family:'Jost',sans-serif;padding:0}
+    .pm-stars-help:hover{opacity:.75}
+
+    /* Panneau légende états */
+    .etat-legend{background:var(--surface2);border:1px solid var(--border);padding:1.2rem 1.3rem;margin-top:.5rem;display:none}
+    .etat-legend.open{display:block;animation:slideUp .25s ease}
+    .etat-legend-title{font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold);margin-bottom:.9rem;display:block}
+    .etat-row{display:flex;align-items:center;gap:.9rem;padding:.35rem 0;font-size:.82rem;color:var(--text-soft)}
+    .etat-dots{display:flex;gap:3px;min-width:76px;flex-shrink:0}
+    .etat-dots span{width:11px;height:11px;border-radius:50%;border:1px solid var(--border2);background:transparent;display:inline-block}
+    .etat-dots span.on{background:#3B8BD4;border-color:#3B8BD4}
+
+    .pm-desc{font-size:.92rem;color:var(--text-muted);line-height:1.85}
+    .pm-garantie{font-size:.8rem;color:var(--text-soft);padding:.9rem 1.1rem;border-left:2px solid var(--gold);background:rgba(201,168,76,.05);line-height:1.6}
+    .pm-reservee-info{font-size:.85rem;color:var(--text-soft);padding:1rem 1.1rem;border-left:2px solid #d08a2a;background:rgba(208,138,42,.08);line-height:1.6;display:none}
+    .pm-reservee-info strong{color:#e8a94a;font-weight:500}
+    .pm-vendue-info{font-size:.85rem;color:var(--text-muted);padding:1rem 1.1rem;border-left:2px solid var(--text-muted);background:rgba(138,133,128,.05);line-height:1.6;display:none}
+    .pm-vendue-info strong{color:var(--text)}
+    .btn-acheter{display:flex;align-items:center;justify-content:center;padding:1rem 2rem;background:var(--gold);color:var(--black);font-size:.78rem;letter-spacing:.18em;text-transform:uppercase;border:none;cursor:pointer;transition:all .35s;font-family:'Jost',sans-serif;font-weight:500;width:100%}
+    .btn-acheter:hover{opacity:.88}
+    .pm-contact{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.95rem;color:var(--text-muted);text-align:center}
+    .pm-contact a{color:var(--gold);text-decoration:none}
+
+    /* ════ MODAL COMMANDE ════ */
+    #order-modal{display:none;position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.95);align-items:flex-start;justify-content:center;padding:1.5rem;overflow-y:auto}
+    #order-modal.open{display:flex}
+    .order-box{background:var(--surface);border:1px solid var(--border2);width:100%;max-width:600px;margin:auto;padding:2.8rem;position:relative;animation:slideUp .3s ease}
+    @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+    @media(max-width:600px){.order-box{padding:2rem 1.4rem}}
+    .order-close{position:absolute;top:1rem;right:1.2rem;background:none;border:none;color:var(--text-muted);font-size:1.3rem;cursor:pointer;transition:color .3s}
+    .order-close:hover{color:var(--gold)}
+    .order-eyebrow{font-size:.6rem;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:.6rem}
+    .order-title{font-family:'Cormorant Garamond',serif;font-size:1.65rem;font-weight:600;color:var(--text);line-height:1.1}
+    .order-ref{font-size:.8rem;color:var(--text-muted);margin-top:.3rem}
+    .order-divider{width:36px;height:1px;background:var(--gold);margin:1.5rem 0}
+    .order-section{font-size:.6rem;letter-spacing:.3em;text-transform:uppercase;color:var(--gold-dim);margin:1.8rem 0 .8rem;display:block}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:.8rem;margin-bottom:.8rem}
+    .form-row.full{grid-template-columns:1fr}
+    .fg{display:flex;flex-direction:column;gap:.35rem}
+    .fg label{font-size:.62rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text-muted)}
+    .fg input,.fg select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.8rem 1rem;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;transition:border-color .3s;width:100%}
+    .fg input:focus,.fg select:focus{border-color:var(--gold)}
+    .fg select option{background:var(--surface2)}
+
+    .livraison-opts{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.5rem}
+    .livraison-opt{display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.1rem;border:1px solid var(--border);cursor:pointer;transition:all .25s;user-select:none}
+    .livraison-opt:hover{border-color:var(--border2)}
+    .livraison-opt.selected{border-color:var(--gold);background:rgba(201,168,76,.05)}
+    .livraison-opt input[type=radio]{display:none}
+    .lv-left{display:flex;align-items:center;gap:.7rem}
+    .lv-dot{width:14px;height:14px;border:1px solid var(--border2);border-radius:50%;flex-shrink:0;position:relative;transition:border-color .25s}
+    .livraison-opt.selected .lv-dot{border-color:var(--gold)}
+    .livraison-opt.selected .lv-dot::after{content:'';position:absolute;inset:3px;background:var(--gold);border-radius:50%}
+    .lv-label{font-size:.86rem;color:var(--text)}
+    .lv-delay{font-size:.72rem;color:var(--text-muted);margin-top:.1rem}
+    .lv-prix{font-family:'Cormorant Garamond',serif;font-size:1rem;color:var(--gold);font-weight:600;white-space:nowrap}
+
+    .price-recap{background:var(--surface2);border:1px solid var(--border);padding:1.1rem 1.3rem;margin:1.2rem 0}
+    .price-line{display:flex;justify-content:space-between;padding:.3rem 0;font-size:.86rem;color:var(--text-muted)}
+    .price-line.total{border-top:1px solid var(--border);margin-top:.6rem;padding-top:.9rem;color:var(--text);font-size:1rem;font-weight:500}
+
+    .cgv-wrap{display:flex;align-items:flex-start;gap:.8rem;margin:1rem 0 1.5rem;cursor:pointer}
+    .cgv-wrap input[type=checkbox]{width:16px;height:16px;flex-shrink:0;margin-top:3px;accent-color:var(--gold);cursor:pointer}
+    .cgv-wrap label{font-size:.82rem;color:var(--text-muted);cursor:pointer;line-height:1.6}
+    .cgv-wrap a{color:var(--gold);text-decoration:none}
+
+    #card-element{background:var(--surface2);border:1px solid var(--border);padding:1.1rem;margin-bottom:.5rem;transition:border-color .3s}
+    #card-errors{color:#e05c5c;font-size:.82rem;min-height:1.3em;margin-bottom:.5rem}
+    #btn-pay{width:100%;padding:1.1rem;background:var(--gold);color:var(--black);border:none;font-size:.82rem;letter-spacing:.22em;text-transform:uppercase;cursor:pointer;font-family:'Jost',sans-serif;font-weight:500;transition:opacity .3s;margin-top:.3rem}
+    #btn-pay:hover{opacity:.86}
+    #btn-pay:disabled{opacity:.45;cursor:not-allowed}
+    .stripe-info{display:flex;align-items:center;justify-content:center;gap:.5rem;margin-top:.7rem;font-size:.7rem;color:var(--text-muted)}
+
+    #success-modal{display:none;position:fixed;inset:0;z-index:400;background:rgba(0,0,0,.97);align-items:center;justify-content:center;padding:1.5rem}
+    #success-modal.open{display:flex}
+    .success-box{background:var(--surface);border:1px solid rgba(201,168,76,.35);padding:3.5rem;max-width:480px;text-align:center;animation:slideUp .4s ease}
+    .success-icon{font-family:'Cormorant Garamond',serif;font-size:3.5rem;color:var(--gold);margin-bottom:1.2rem;display:block}
+    .success-box h2{font-family:'Cormorant Garamond',serif;font-size:2rem;color:var(--text);margin-bottom:1rem}
+    .success-box p{font-size:.9rem;color:var(--text-muted);line-height:1.85;margin-bottom:2rem}
+    .btn-close-success{padding:.9rem 2.5rem;background:none;border:1px solid var(--gold);color:var(--gold);font-size:.75rem;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;font-family:'Jost',sans-serif;transition:all .3s}
+    .btn-close-success:hover{background:var(--gold);color:var(--black)}
+
+    footer{border-top:1px solid var(--border);padding:2.5rem 6vw;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem}
+    footer a{font-size:.78rem;color:var(--gold);text-decoration:none;transition:opacity .3s}
+    footer a:hover{opacity:.7}
+    footer p{font-size:.72rem;color:var(--text-muted)}
+
+    .reveal{opacity:0;transform:translateY(22px);transition:opacity .85s ease,transform .85s ease}
+    .reveal.visible{opacity:1;transform:none}
+    .reveal-delay-1{transition-delay:.1s}
+    .reveal-delay-2{transition-delay:.22s}
+
+    @media(max-width:768px){nav{gap:1rem}.slogan{display:none}.boutique-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.page-header{padding:110px 5vw 40px}}
+  </style>
+</head>
+<body>
+
+<header>
+  <a href="index.html" class="logo-wrap">
+    <img class="logo" src="assets/H.png" alt="Logo Horlogerie Haratyk">
+    <span class="slogan">Artisan horloger</span>
+  </a>
+  <nav>
+    <ul class="nav-links">
+      <li><a href="index.html">Accueil</a></li>
+      <li><a href="portfolio.html">Portfolio</a></li>
+      <li><a href="boutique.html">Boutique</a></li>
+    </ul>
+    <button class="theme-toggle" id="themeToggle" aria-label="Changer le thème">
+      <svg id="iconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
+      <svg id="iconSun" viewBox="0 0 24 24" style="display:none"><path d="M12 4.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0112 4.5zm0 12a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zm7.5-7.5a.75.75 0 010 1.5h-1.5a.75.75 0 010-1.5h1.5zM6 12a.75.75 0 01-.75.75H3.75a.75.75 0 010-1.5H5.25A.75.75 0 016 12zm9.89-5.89a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM9.17 14.83a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm6.72 1.06a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06zM9.17 9.17a.75.75 0 01-1.06 0L7.05 8.11A.75.75 0 018.11 7.05l1.06 1.06a.75.75 0 010 1.06zM12 8a4 4 0 110 8 4 4 0 010-8z"/></svg>
+    </button>
+  </nav>
+</header>
+
+<main>
+  <div class="page-header">
+    <span class="section-label reveal">Sélection</span>
+    <h1 class="page-title reveal reveal-delay-1">Boutique</h1>
+    <div class="section-divider reveal reveal-delay-2"></div>
+    <p class="page-desc reveal reveal-delay-2">Chaque garde-temps a été révisé, testé et garanti un an par mes soins.</p>
+  </div>
+  <div class="filters reveal">
+    <button class="filter-btn active" data-filter="toutes">Toutes</button>
+    <button class="filter-btn" data-filter="disponible">Disponibles</button>
+    <button class="filter-btn" data-filter="reservee">Réservées</button>
+    <button class="filter-btn" data-filter="vendue">Vendues</button>
+  </div>
+  <section class="boutique-section">
+    <div class="boutique-grid" id="boutique-grid">
+      <div class="loading"><div class="loading-line"></div></div>
+    </div>
+  </section>
+</main>
+
+<!-- MODAL PRODUIT PLEIN ÉCRAN -->
+<div id="product-modal">
+  <div class="pm-topbar">
+    <div class="pm-topbar-info">
+      <span class="pm-topbar-nom" id="pm-topbar-nom"></span>
+      <span class="pm-topbar-ref" id="pm-topbar-ref"></span>
+    </div>
+    <button class="pm-close" onclick="closeProduct()" aria-label="Fermer">✕</button>
+  </div>
+  <div class="pm-body">
+    <!-- Galerie gauche -->
+    <div class="pm-gallery">
+      <div class="pm-main-img" id="pm-main-img-wrap">
+        <img id="pm-main-img" src="" alt="">
+        <div class="pm-gallery-nav">
+          <button class="pm-nav-btn" onclick="navPhoto(-1)">‹</button>
+          <button class="pm-nav-btn" onclick="navPhoto(1)">›</button>
+        </div>
+      </div>
+      <div class="pm-thumbs" id="pm-thumbs"></div>
+    </div>
+    <!-- Panneau droit -->
+    <div class="pm-panel">
+      <span class="pm-label" id="pm-topref"></span>
+      <div>
+        <h2 class="pm-nom" id="pm-nom"></h2>
+        <div style="display:flex;align-items:center;gap:.5rem;margin-top:.8rem;flex-wrap:wrap">
+          <div class="pm-stars" id="pm-stars" title="État général de la montre">
+            <span class="star" data-v="1"></span>
+            <span class="star" data-v="2"></span>
+            <span class="star" data-v="3"></span>
+            <span class="star" data-v="4"></span>
+            <span class="star" data-v="5"></span>
+          </div>
+          <span class="pm-stars-label" id="pm-stars-label"></span>
+          <button class="pm-stars-help" onclick="toggleEtatLegend()" type="button">Que signifient ces ronds ?</button>
+        </div>
+        <div class="etat-legend" id="etat-legend">
+          <span class="etat-legend-title">Échelle d'état général</span>
+          <div class="etat-row"><div class="etat-dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span></div><span>Neuve, état exceptionnel</span></div>
+          <div class="etat-row"><div class="etat-dots"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div><span>Très bon état, micro-rayures</span></div>
+          <div class="etat-row"><div class="etat-dots"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span></div><span>Bon état, défaut cadran ou boîte</span></div>
+          <div class="etat-row"><div class="etat-dots"><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div><span>Montre ancienne, plaque chromée usée</span></div>
+          <div class="etat-row"><div class="etat-dots"><span class="on"></span><span></span><span></span><span></span><span></span></div><span>Pour pièces ou restauration</span></div>
+        </div>
+      </div>
+      <span class="pm-prix" id="pm-prix"></span>
+      <div class="pm-sep"></div>
+      <p class="pm-desc" id="pm-desc"></p>
+      <div class="pm-garantie"><strong>✓ Révisée · Garantie 1 an</strong> pièces et main d'œuvre.</div>
+      <div class="pm-reservee-info" id="pm-reservee-info"><strong>Pièce actuellement réservée</strong><br><span id="pm-reservee-msg">Elle redeviendra disponible sous peu si la réservation n'est pas confirmée.</span></div>
+      <div class="pm-vendue-info" id="pm-vendue-info"><strong>Pièce déjà vendue</strong><br>Cette montre a trouvé preneur. Consultez les autres pièces disponibles ou contactez-moi pour une demande spécifique.</div>
+      <button class="btn-acheter" id="pm-btn-acheter" onclick="ouvrirCommande()">Acquérir cette pièce</button>
+      <p class="pm-contact">ou <a id="pm-mail" href="#">me contacter directement</a></p>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL COMMANDE -->
+<div id="order-modal" onclick="if(event.target===this)closeOrder()">
+  <div class="order-box">
+    <button class="order-close" onclick="closeOrder()">✕</button>
+    <span class="order-eyebrow">Commande</span>
+    <h2 class="order-title" id="order-title"></h2>
+    <p class="order-ref" id="order-ref"></p>
+    <div class="order-divider"></div>
+
+    <span class="order-section">Vos coordonnées</span>
+    <div class="form-row">
+      <div class="fg"><label>Prénom *</label><input type="text" id="o-prenom" autocomplete="given-name"></div>
+      <div class="fg"><label>Nom *</label><input type="text" id="o-nom" autocomplete="family-name"></div>
+    </div>
+    <div class="form-row full"><div class="fg"><label>Email *</label><input type="email" id="o-email" autocomplete="email"></div></div>
+    <div class="form-row full"><div class="fg"><label>Téléphone</label><input type="tel" id="o-tel" autocomplete="tel"></div></div>
+    <div class="form-row full"><div class="fg"><label>Adresse *</label><input type="text" id="o-adresse" autocomplete="street-address"></div></div>
+    <div class="form-row">
+      <div class="fg"><label>Code postal *</label><input type="text" id="o-cp" autocomplete="postal-code"></div>
+      <div class="fg"><label>Ville *</label><input type="text" id="o-ville" autocomplete="address-level2"></div>
+    </div>
+
+    <span class="order-section">Mode de livraison</span>
+    <div class="livraison-opts">
+      <label class="livraison-opt selected" onclick="selectLivraison(this,0,'Retrait à Marcq-en-Barœul')">
+        <input type="radio" name="liv" checked>
+        <div class="lv-left"><div class="lv-dot"></div><div><div class="lv-label">Retrait à Marcq-en-Barœul</div><div class="lv-delay">Sur rendez-vous</div></div></div>
+        <span class="lv-prix">Gratuit</span>
+      </label>
+      <label class="livraison-opt" onclick="selectLivraison(this,8,'Colissimo suivi')">
+        <input type="radio" name="liv">
+        <div class="lv-left"><div class="lv-dot"></div><div><div class="lv-label">Colissimo suivi</div><div class="lv-delay">2–3 jours ouvrés</div></div></div>
+        <span class="lv-prix">8 €</span>
+      </label>
+      <label class="livraison-opt" onclick="selectLivraison(this,15,'Chronopost express')">
+        <input type="radio" name="liv">
+        <div class="lv-left"><div class="lv-dot"></div><div><div class="lv-label">Chronopost express</div><div class="lv-delay">24h ouvrées</div></div></div>
+        <span class="lv-prix">15 €</span>
+      </label>
+    </div>
+
+    <div class="price-recap">
+      <div class="price-line"><span>Pièce horlogère</span><span id="recap-montre">—</span></div>
+      <div class="price-line"><span>Livraison</span><span id="recap-livraison">Gratuit</span></div>
+      <div class="price-line total"><span>Total TTC</span><span id="recap-total">—</span></div>
+    </div>
+
+    <span class="order-section">Paiement sécurisé</span>
+    <div id="card-element"></div>
+    <div id="card-errors"></div>
+    <div class="cgv-wrap">
+      <input type="checkbox" id="cgv-check">
+      <label for="cgv-check">J'ai lu et j'accepte les <a href="cgv.html" target="_blank">Conditions Générales de Vente</a> et le droit de rétractation de 14 jours.</label>
+    </div>
+    <button id="btn-pay" onclick="payerMontre()">Confirmer et payer</button>
+    <div class="stripe-info"><span>Paiement sécurisé par Stripe</span></div>
+  </div>
+</div>
+
+<!-- SUCCÈS -->
+<div id="success-modal">
+  <div class="success-box">
+    <span class="success-icon">◎</span>
+    <h2>Commande confirmée</h2>
+    <p id="success-msg"></p>
+    <button class="btn-close-success" onclick="closeSuccess()">Fermer</button>
+  </div>
+</div>
+
+<footer>
+  <a href="index.html">← Accueil</a>
+  <p>&copy; 2025 Horlogerie Haratyk</p>
+  <div style="display:flex;gap:1.5rem">
+    <a href="cgv.html">CGV</a>
+    <a href="mentions-legales.html" style="color:var(--text-muted)">Mentions légales</a>
+  </div>
+</footer>
+
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  const db=getFirestore(initializeApp({apiKey:"AIzaSyBdhXev9PvfrQIBKktIJJ58vEsP-Db-mpc",authDomain:"horlogerie-haratyk.firebaseapp.com",projectId:"horlogerie-haratyk",storageBucket:"horlogerie-haratyk.firebasestorage.app",messagingSenderId:"90184929449",appId:"1:90184929449:web:03bc08665e0577ac6399b8"}));
+  let all=[],filter='toutes';
+  window._data={};
+
+  function starsHtml(note,small=false){
+    let h='';
+    for(let i=1;i<=5;i++) h+=`<span class="${small?'s':'star'} ${i<=note?'on':''}"></span>`;
+    return h;
+  }
+
+  async function load(){
+    try{
+      const snap=await getDocs(query(collection(db,'montres'),orderBy('createdAt','desc')));
+      all=snap.docs.map(d=>({id:d.id,...d.data()}));
+      all.forEach(m=>window._data[m.id]=m);
+      render();
+    }catch(e){
+      document.getElementById('boutique-grid').innerHTML='<div class="empty-state"><p>Impossible de charger les annonces.</p></div>';
+    }
+  }
+
+  function resolveStatut(m){
+    if(m.statut) return m.statut;
+    if(m.vendue) return 'vendue';
+    if(m.reservation) return 'reservee';
+    return 'disponible';
+  }
+
+  function formatExpireDate(expireAt){
+    if(!expireAt) return '';
+    const ms=typeof expireAt.toMillis==='function'?expireAt.toMillis():new Date(expireAt).getTime();
+    const d=new Date(ms);
+    return d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+  }
+
+  function render(){
+    const g=document.getElementById('boutique-grid');
+    const list=filter==='toutes'?all:all.filter(m=>resolveStatut(m)===filter);
+    if(!list.length){g.innerHTML='<div class="empty-state"><div class="empty-icon">◎</div><p>Aucune pièce disponible pour le moment.</p></div>';return;}
+    g.innerHTML=list.map(m=>{
+      const imgs=m.images||[];
+      const mainImg=imgs[0]||m.imageUrl||'';
+      const note=m.note||0;
+      const statut=resolveStatut(m);
+      const badge=statut==='vendue'?'<span class="statut-badge vendue">Vendue</span>'
+                : statut==='reservee'?'<span class="statut-badge reservee">Réservée</span>':'';
+      const cardClass=statut==='vendue'?'vendue':(statut==='reservee'?'reservee':'');
+      return `<div class="montre-card ${cardClass}" onclick="ouvrirProduit('${m.id}')">
+        <div class="montre-img">
+          <img src="${mainImg}" alt="${m.nom}" loading="lazy">
+          ${badge}
+        </div>
+        <div class="montre-info">
+          <span class="montre-ref">Réf. ${m.ref||'—'}</span>
+          <h2 class="montre-nom">${m.nom}</h2>
+          ${note>0?`<div class="card-stars">${starsHtml(note,true)}</div>`:''}
+          <p class="montre-desc-short">${(m.description||'').substring(0,90)}${(m.description||'').length>90?'…':''}</p>
+          <span class="montre-garantie">✓ Révisée · Garantie 1 an</span>
+        </div>
+        <div class="montre-footer">
+          <span class="montre-prix">${m.prix} €</span>
+          <button class="btn-voir" onclick="event.stopPropagation();ouvrirProduit('${m.id}')">Découvrir</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>{
+    document.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');filter=b.dataset.filter;render();
+  }));
+  load();
+</script>
+
+<script>
+  const EMAILJS_PUBLIC_KEY='REMPLACE_PAR_TON_PUBLIC_KEY';
+  const EMAILJS_SERVICE_ID='REMPLACE_PAR_TON_SERVICE_ID';
+  const EMAILJS_TEMPLATE_ID='REMPLACE_PAR_TON_TEMPLATE_ID';
+  emailjs.init(EMAILJS_PUBLIC_KEY);
+
+  let stripe,cardEl,cardMounted=false,montreEnCours=null;
+  let livraison={prix:0,label:'Retrait à Marcq-en-Barœul'};
+  let currentPhotoIndex=0,currentPhotos=[];
+
+  window.addEventListener('load',()=>{
+    stripe=Stripe('pk_test_51TP3XCFeb0zh8unmjtzScpdauc52xzZHHbCHhxYOVN8r1eFdZ165ghXtD4iegBk7LUWpkCrwGPf49ZFyu4IRBM06006iXcLDr4');
+    const els=stripe.elements();
+    cardEl=els.create('card',{style:{base:{color:'#e8e4dc',fontFamily:'"Jost",sans-serif',fontSize:'15px','::placeholder':{color:'#8a8580'}},invalid:{color:'#e05c5c'}}});
+    cardEl.on('change',e=>{document.getElementById('card-errors').textContent=e.error?e.error.message:'';});
+  });
+
+  // ─── GALERIE ─────────────────────────────────────
+  function setPhoto(index){
+    currentPhotoIndex=index;
+    const img=document.getElementById('pm-main-img');
+    img.style.opacity='0';
+    setTimeout(()=>{img.src=currentPhotos[index];img.style.opacity='1';},150);
+    document.querySelectorAll('.pm-thumb').forEach((t,i)=>t.classList.toggle('active',i===index));
+  }
+
+  window.navPhoto=function(dir){
+    let n=currentPhotoIndex+dir;
+    if(n<0)n=currentPhotos.length-1;
+    if(n>=currentPhotos.length)n=0;
+    setPhoto(n);
+  };
+
+  // ─── MODAL PRODUIT ────────────────────────────────
+  window.ouvrirProduit=function(id){
+    const m=window._data[id];if(!m)return;
+    montreEnCours=m;
+    currentPhotos=Array.isArray(m.images)&&m.images.length>0?m.images:(m.imageUrl?[m.imageUrl]:[]);
+    currentPhotoIndex=0;
+
+    const refTxt=m.ref?'Réf. '+m.ref:'';
+    document.getElementById('pm-topbar-nom').textContent=m.nom;
+    document.getElementById('pm-topbar-ref').textContent=refTxt;
+    document.getElementById('pm-topref').textContent=refTxt||'Horlogerie Haratyk';
+    document.getElementById('pm-nom').textContent=m.nom;
+    document.getElementById('pm-prix').textContent=m.prix+' €';
+    document.getElementById('pm-desc').textContent=m.description||'';
+    document.getElementById('pm-mail').href=`mailto:haratykviktor@gmail.com?subject=${encodeURIComponent('Renseignement – '+m.nom)}`;
+    const statut=resolveStatut(m);
+    const btnAcheter=document.getElementById('pm-btn-acheter');
+    const infoReservee=document.getElementById('pm-reservee-info');
+    const infoVendue=document.getElementById('pm-vendue-info');
+
+    btnAcheter.style.display=statut==='disponible'?'flex':'none';
+    infoReservee.style.display=statut==='reservee'?'block':'none';
+    infoVendue.style.display=statut==='vendue'?'block':'none';
+
+    if(statut==='reservee' && m.reservation && m.reservation.expireAt){
+      document.getElementById('pm-reservee-msg').textContent=
+        'Elle redeviendra automatiquement disponible le '+formatExpireDate(m.reservation.expireAt)+' si la réservation n\'est pas confirmée.';
+    }else if(statut==='reservee'){
+      document.getElementById('pm-reservee-msg').textContent=
+        'Elle redeviendra disponible sous peu si la réservation n\'est pas confirmée.';
+    }
+
+    document.getElementById('etat-legend').classList.remove('open');
+
+    document.getElementById('pm-main-img').src=currentPhotos[0]||'';
+
+    const thumbs=document.getElementById('pm-thumbs');
+    if(currentPhotos.length>1){
+      thumbs.innerHTML=currentPhotos.map((u,i)=>`<img class="pm-thumb ${i===0?'active':''}" src="${u}" alt="" onclick="setPhoto(${i})">`).join('');
+      thumbs.style.display='flex';
+    }else{
+      thumbs.innerHTML='';thumbs.style.display='none';
+    }
+
+    const navBtns=document.querySelector('.pm-gallery-nav');
+    navBtns.style.display=currentPhotos.length>1?'flex':'none';
+
+    const note=m.note||0;
+    document.querySelectorAll('#pm-stars .star').forEach(s=>{
+      s.classList.toggle('on',parseInt(s.dataset.v)<=note);
+    });
+    document.getElementById('pm-stars-label').textContent=note>0?'État '+note+'/5':'État non évalué';
+
+    document.getElementById('product-modal').classList.add('open');
+    document.body.style.overflow='hidden';
+  };
+
+  window.toggleEtatLegend=function(){
+    document.getElementById('etat-legend').classList.toggle('open');
+  };
+
+  window.closeProduct=function(){
+    document.getElementById('product-modal').classList.remove('open');
+    document.body.style.overflow='';
+  };
+
+  // ─── MODAL COMMANDE ──────────────────────────────
+  window.ouvrirCommande=function(){
+    if(!montreEnCours)return;
+    closeProduct();
+    document.getElementById('order-title').textContent=montreEnCours.nom;
+    document.getElementById('order-ref').textContent=montreEnCours.ref?'Réf. '+montreEnCours.ref:'';
+    livraison={prix:0,label:'Retrait à Marcq-en-Barœul'};
+    document.querySelectorAll('.livraison-opt').forEach((o,i)=>o.classList.toggle('selected',i===0));
+    updateRecap();
+    document.getElementById('order-modal').classList.add('open');
+    document.body.style.overflow='hidden';
+    if(!cardMounted){cardEl.mount('#card-element');cardMounted=true;}
+  };
+
+  window.closeOrder=function(){document.getElementById('order-modal').classList.remove('open');document.body.style.overflow='';};
+
+  window.selectLivraison=function(el,prix,label){
+    document.querySelectorAll('.livraison-opt').forEach(o=>o.classList.remove('selected'));
+    el.classList.add('selected');livraison={prix,label};updateRecap();
+  };
+
+  function updateRecap(){
+    if(!montreEnCours)return;
+    const total=montreEnCours.prix+livraison.prix;
+    document.getElementById('recap-montre').textContent=montreEnCours.prix+' €';
+    document.getElementById('recap-livraison').textContent=livraison.prix===0?'Gratuit':livraison.prix+' €';
+    document.getElementById('recap-total').textContent=total+' €';
+  }
+
+  // ─── PAIEMENT ─────────────────────────────────────
+  window.payerMontre=async function(){
+    if(!montreEnCours)return;
+    const prenom=document.getElementById('o-prenom').value.trim();
+    const nom=document.getElementById('o-nom').value.trim();
+    const email=document.getElementById('o-email').value.trim();
+    const tel=document.getElementById('o-tel').value.trim();
+    const adresse=document.getElementById('o-adresse').value.trim();
+    const cp=document.getElementById('o-cp').value.trim();
+    const ville=document.getElementById('o-ville').value.trim();
+    const cgv=document.getElementById('cgv-check').checked;
+    const errEl=document.getElementById('card-errors');
+    if(!prenom||!nom||!email||!adresse||!cp||!ville){errEl.textContent='Merci de remplir tous les champs obligatoires.';return;}
+    if(!cgv){errEl.textContent='Veuillez accepter les CGV.';return;}
+    const btn=document.getElementById('btn-pay');
+    btn.disabled=true;btn.textContent='Traitement…';
+    const{paymentMethod,error}=await stripe.createPaymentMethod({type:'card',card:cardEl});
+    if(error){errEl.textContent=error.message;btn.disabled=false;btn.textContent='Confirmer et payer';return;}
+    const total=montreEnCours.prix+livraison.prix;
+    try{
+      await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{
+        montre_nom:montreEnCours.nom,montre_ref:montreEnCours.ref||'—',
+        montre_prix:montreEnCours.prix+' €',livraison_mode:livraison.label,
+        livraison_prix:livraison.prix===0?'Gratuit':livraison.prix+' €',
+        total:total+' €',client_prenom:prenom,client_nom:nom,
+        client_email:email,client_tel:tel||'—',
+        client_adresse:adresse+', '+cp+' '+ville,
+      });
+    }catch(e){console.warn('EmailJS:',e.message);}
+    closeOrder();
+    document.getElementById('success-msg').textContent=`Merci ${prenom} ! Votre commande pour « ${montreEnCours.nom} » (${total} €) est confirmée. Je vous contacterai à ${email} sous 24h.`;
+    document.getElementById('success-modal').classList.add('open');
+    btn.disabled=false;btn.textContent='Confirmer et payer';
+  };
+
+  window.closeSuccess=function(){document.getElementById('success-modal').classList.remove('open');document.body.style.overflow='';};
+
+  document.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){closeProduct();closeOrder();closeSuccess();}
+    if(e.key==='ArrowLeft')navPhoto(-1);
+    if(e.key==='ArrowRight')navPhoto(1);
+  });
+
+  // ─── THÈME ────────────────────────────────────────
+  const html=document.documentElement,tBtn=document.getElementById('themeToggle'),moon=document.getElementById('iconMoon'),sun=document.getElementById('iconSun');
+  function isDark(){const s=localStorage.getItem('theme');if(s)return s==='dark';return window.matchMedia('(prefers-color-scheme:dark)').matches}
+  function applyTheme(d){html.classList.toggle('force-dark',d);html.classList.toggle('force-light',!d);moon.style.display=d?'block':'none';sun.style.display=d?'none':'block'}
+  applyTheme(isDark());
+  tBtn.addEventListener('click',()=>{const d=html.classList.contains('force-dark');localStorage.setItem('theme',d?'light':'dark');applyTheme(!d)});
+  window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change',e=>{if(!localStorage.getItem('theme'))applyTheme(e.matches)});
+
+  const obs=new IntersectionObserver(e=>e.forEach(x=>{if(x.isIntersecting){x.target.classList.add('visible');obs.unobserve(x.target)}}),{threshold:.1});
+  document.querySelectorAll('.reveal').forEach(el=>obs.observe(el));
+</script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    (function(){
+      var s = localStorage.getItem("theme");
+      var dark = s ? s === "dark" : window.matchMedia("(prefers-color-scheme:dark)").matches;
+      document.documentElement.classList.add(dark ? "force-dark" : "force-light");
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commande confirmée — Horlogerie Haratyk</title>
+  <meta name="robots" content="noindex, nofollow">
+  <link rel="icon" href="assets/favicon.png" type="image/png">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--gold:#c9a84c;--gold-dim:#8a6e30;--black:#0a0a0a;--surface:#111111;--surface2:#181818;--border:rgba(201,168,76,0.18);--text:#e8e4dc;--text-muted:#8a8580;--text-soft:#b8b4ac;--header-bg:rgba(10,10,10,0.92);--logo-filter:invert(0);--success:#2e9b63}
+    @media(prefers-color-scheme:light){:root{--gold:#a07828;--black:#f5f2ec;--surface:#ffffff;--surface2:#ede9e0;--border:rgba(160,120,40,0.2);--text:#1a1714;--text-muted:#6b6560;--text-soft:#3d3a35;--header-bg:rgba(245,242,236,0.93);--logo-filter:invert(1)}}
+    html.force-dark{--gold:#c9a84c;--black:#0a0a0a;--surface:#111111;--surface2:#181818;--border:rgba(201,168,76,0.18);--text:#e8e4dc;--text-muted:#8a8580;--text-soft:#b8b4ac;--header-bg:rgba(10,10,10,0.92);--logo-filter:invert(0)}
+    html.force-light{--gold:#a07828;--black:#f5f2ec;--surface:#ffffff;--surface2:#ede9e0;--border:rgba(160,120,40,0.2);--text:#1a1714;--text-muted:#6b6560;--text-soft:#3d3a35;--header-bg:rgba(245,242,236,0.93);--logo-filter:invert(1)}
+    body{font-family:'Jost',sans-serif;font-weight:300;background:var(--black);color:var(--text);min-height:100vh;display:flex;flex-direction:column}
+    header{padding:1.5rem 5vw;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .logo-wrap{display:flex;align-items:center;gap:1rem;text-decoration:none}
+    .logo{height:38px;width:auto;filter:var(--logo-filter)}
+    .slogan{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:.95rem;color:var(--gold)}
+    main{flex:1;display:flex;align-items:center;justify-content:center;padding:3rem 5vw}
+    .card{max-width:560px;width:100%;background:var(--surface);border:1px solid var(--border);padding:3rem 2.5rem;text-align:center}
+    .success-icon{width:56px;height:56px;border-radius:50%;background:rgba(46,155,99,0.15);border:1px solid rgba(46,155,99,0.4);display:flex;align-items:center;justify-content:center;margin:0 auto 1.5rem;color:#4dc789;font-size:1.6rem;font-weight:300}
+    .card h1{font-family:'Cormorant Garamond',serif;font-size:2rem;font-weight:600;color:var(--text);margin-bottom:.8rem;line-height:1.2}
+    .card .lead{font-size:.92rem;color:var(--text-muted);line-height:1.7;margin-bottom:2rem}
+    .section-divider{width:40px;height:1px;background:var(--gold);margin:2rem auto}
+    .details{text-align:left;background:var(--surface2);padding:1.5rem 1.7rem;font-size:.88rem;line-height:1.8;color:var(--text-soft);margin-bottom:2rem;display:none}
+    .details.visible{display:block}
+    .details dt{font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:.2rem;margin-top:.8rem}
+    .details dt:first-child{margin-top:0}
+    .details dd{color:var(--text)}
+    .next-steps{text-align:left;font-size:.88rem;color:var(--text-muted);line-height:1.8;margin-bottom:2rem}
+    .next-steps h2{font-size:.65rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:.8rem;font-family:'Jost',sans-serif;font-weight:400}
+    .next-steps ul{list-style:none;padding:0}
+    .next-steps li{padding-left:1.4rem;position:relative;margin-bottom:.6rem}
+    .next-steps li::before{content:'—';position:absolute;left:0;color:var(--gold)}
+    .actions{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+    .btn{padding:.85rem 1.8rem;border:1px solid var(--gold);background:transparent;color:var(--gold);font-size:.75rem;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .3s;font-family:'Jost',sans-serif;text-decoration:none;display:inline-block}
+    .btn:hover{background:var(--gold);color:var(--black)}
+    .btn.secondary{border-color:var(--border);color:var(--text-muted)}
+    .btn.secondary:hover{background:transparent;color:var(--text);border-color:var(--text-muted)}
+    .loading{color:var(--text-muted);font-size:.9rem;padding:2rem}
+    .error-box{color:#e05c5c;background:rgba(224,92,92,0.08);border:1px solid #e05c5c;padding:1.2rem;margin-bottom:1.5rem;font-size:.88rem;display:none;text-align:left}
+    .error-box.visible{display:block}
+    footer{border-top:1px solid var(--border);padding:1.5rem 5vw;text-align:center;font-size:.78rem;color:var(--text-muted)}
+    footer a{color:var(--gold);text-decoration:none;margin:0 .8rem}
+  </style>
+</head>
+<body>
+  <header>
+    <a href="index.html" class="logo-wrap">
+      <img class="logo" src="assets/H.png" alt="Logo Horlogerie Haratyk">
+      <span class="slogan">Artisan horloger</span>
+    </a>
+  </header>
+
+  <main>
+    <div class="card">
+      <div id="loading-state" class="loading">Vérification de votre paiement…</div>
+
+      <div id="success-state" style="display:none">
+        <div class="success-icon">✓</div>
+        <h1>Commande confirmée</h1>
+        <p class="lead">Merci pour votre confiance. Votre paiement a bien été reçu et un email de confirmation vous a été envoyé.</p>
+
+        <dl class="details" id="order-details"></dl>
+
+        <div class="section-divider"></div>
+
+        <div class="next-steps">
+          <h2>Prochaines étapes</h2>
+          <ul id="next-steps-list"></ul>
+        </div>
+
+        <div class="actions">
+          <a href="boutique.html" class="btn">Retour à la boutique</a>
+          <a href="index.html" class="btn secondary">Accueil</a>
+        </div>
+      </div>
+
+      <div id="error-state" style="display:none">
+        <h1>Une erreur est survenue</h1>
+        <div class="error-box visible" id="error-msg"></div>
+        <p class="lead">Si votre paiement a bien été débité, contactez-moi directement et je vérifierai manuellement :</p>
+        <div class="actions">
+          <a href="mailto:haratykviktor@gmail.com" class="btn">M'envoyer un email</a>
+          <a href="boutique.html" class="btn secondary">Retour boutique</a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <a href="cgv.html">CGV</a>
+    <a href="mentions-legales.html">Mentions légales</a>
+    <span style="color:#555">&copy; 2025 Horlogerie Haratyk</span>
+  </footer>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id');
+
+    const loadingEl = document.getElementById('loading-state');
+    const successEl = document.getElementById('success-state');
+    const errorEl = document.getElementById('error-state');
+    const errorMsgEl = document.getElementById('error-msg');
+    const detailsEl = document.getElementById('order-details');
+    const nextStepsEl = document.getElementById('next-steps-list');
+
+    function showError(msg) {
+      loadingEl.style.display = 'none';
+      errorEl.style.display = 'block';
+      errorMsgEl.textContent = msg;
+    }
+
+    function showSuccess(data) {
+      loadingEl.style.display = 'none';
+      successEl.style.display = 'block';
+
+      const livraisonLabel = {
+        retrait: 'Retrait à l\'atelier (Marcq-en-Barœul)',
+        colissimo: 'Colissimo suivi (2-3 jours)',
+        chronopost: 'Chronopost express (24h)'
+      }[data.livraison] || data.livraison;
+
+      detailsEl.innerHTML = `
+        <dt>Pièce</dt>
+        <dd>${escapeHtml(data.montreNom)}${data.montreRef ? ' — Réf. ' + escapeHtml(data.montreRef) : ''}</dd>
+        <dt>Montant total</dt>
+        <dd>${data.montant.toFixed(2)} €</dd>
+        <dt>Livraison</dt>
+        <dd>${livraisonLabel}</dd>
+      `;
+      detailsEl.classList.add('visible');
+
+      const etapes = [];
+      if (data.livraison === 'retrait') {
+        etapes.push('Je vous contacte sous 24h pour convenir d\'un rendez-vous à l\'atelier.');
+        etapes.push('Ouverture : mercredi, jeudi 10h-18h · samedi 10h-14h.');
+      } else {
+        etapes.push('Votre pièce est expédiée sous 2 jours ouvrés, emballée avec soin.');
+        etapes.push('Un numéro de suivi vous sera communiqué par email dès l\'envoi.');
+      }
+      etapes.push('Garantie 1 an sur la révision, pièces et main d\'œuvre.');
+      etapes.push('Pour toute question : haratykviktor@gmail.com ou 07 85 85 10 80.');
+
+      nextStepsEl.innerHTML = etapes.map(e => `<li>${e}</li>`).join('');
+    }
+
+    function escapeHtml(s) {
+      return String(s || '').replace(/[&<>"']/g, c => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[c]));
+    }
+
+    if (!sessionId) {
+      showError('Aucune session de paiement trouvée dans l\'URL.');
+    } else {
+      loadingEl.textContent = 'Vérification du paiement en cours…';
+
+      let attempts = 0;
+      const maxAttempts = 8;
+      const interval = setInterval(async () => {
+        attempts++;
+        try {
+          const r = await fetch('/api/verify-session?id=' + encodeURIComponent(sessionId));
+          if (r.ok) {
+            const data = await r.json();
+            if (data.statut === 'payee') {
+              clearInterval(interval);
+              showSuccess(data);
+              return;
+            }
+          }
+          if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            showError('Le paiement est en cours de validation. Vous recevrez un email dès qu\'il sera confirmé. En cas de souci, contactez-moi.');
+          }
+        } catch (e) {
+          if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            showError('Impossible de vérifier le paiement. Si vous avez été débité, contactez-moi.');
+          }
+        }
+      }, 1500);
+    }
+  </script>
+</body>
+</html>
