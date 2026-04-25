@@ -17,9 +17,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    :root{--gold:#c9a84c;--gold-dim:#8a6e30;--black:#0a0a0a;--surface:#111111;--surface2:#181818;--border:rgba(201,168,76,0.18);--border2:rgba(201,168,76,0.35);--text:#e8e4dc;--text-muted:#8a8580;--text-soft:#b8b4ac;--transition:0.4s cubic-bezier(0.25,0.46,0.45,0.94);--header-bg:rgba(10,10,10,0.94);--logo-filter:invert(0)}
-    html.force-dark{--gold:#c9a84c;--gold-dim:#8a6e30;--black:#0a0a0a;--surface:#111111;--surface2:#181818;--border:rgba(201,168,76,0.18);--border2:rgba(201,168,76,0.35);--text:#e8e4dc;--text-muted:#8a8580;--text-soft:#b8b4ac;--header-bg:rgba(10,10,10,0.94);--logo-filter:invert(0)}
-    html.force-light{--gold:#9a7322;--gold-dim:#b8943a;--black:#f4f1ea;--surface:#ffffff;--surface2:#f0ece2;--border:rgba(140,100,30,0.2);--border2:rgba(140,100,30,0.4);--text:#1a1714;--text-muted:#6b6560;--text-soft:#8a8580;--header-bg:rgba(244,241,234,0.95);--logo-filter:invert(1)}
+    :root{--gold:#c9a84c;--gold-dim:#8a6e30;--black:#0a0a0a;--surface:#111111;--surface2:#181818;--border:rgba(201,168,76,0.18);--border2:rgba(201,168,76,0.35);--text:#e8e4dc;--text-muted:#8a8580;--text-soft:#b8b4ac;--transition:0.4s cubic-bezier(0.25,0.46,0.45,0.94);--header-bg:rgba(10,10,10,0.94);--logo-filter:invert(1)}
+    html.force-dark{--gold:#c9a84c;--gold-dim:#8a6e30;--black:#0a0a0a;--surface:#111111;--surface2:#181818;--border:rgba(201,168,76,0.18);--border2:rgba(201,168,76,0.35);--text:#e8e4dc;--text-muted:#8a8580;--text-soft:#b8b4ac;--header-bg:rgba(10,10,10,0.94);--logo-filter:invert(1)}
+    html.force-light{--gold:#9a7322;--gold-dim:#b8943a;--black:#f4f1ea;--surface:#ffffff;--surface2:#f0ece2;--border:rgba(140,100,30,0.2);--border2:rgba(140,100,30,0.4);--text:#1a1714;--text-muted:#6b6560;--text-soft:#8a8580;--header-bg:rgba(244,241,234,0.95);--logo-filter:invert(0)}
     html{scroll-behavior:smooth}
     body{font-family:'Jost',sans-serif;font-weight:300;background:var(--black);color:var(--text);line-height:1.7;overflow-x:hidden}
 
@@ -224,7 +224,7 @@
 
 <header>
   <a href="index.html" class="logo-wrap">
-    <img class="logo" src="assets/H.png" alt="Logo Horlogerie Haratyk">
+    <img class="logo" src="assets/logo.svg" alt="Logo Horlogerie Haratyk">
     <span class="slogan">Artisan horloger</span>
   </a>
   <nav>
@@ -426,6 +426,7 @@
     if(m.reservation) return 'reservee';
     return 'disponible';
   }
+  window.resolveStatut=resolveStatut;
 
   function formatExpireDate(expireAt){
     if(!expireAt) return '';
@@ -433,6 +434,7 @@
     const d=new Date(ms);
     return d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
   }
+  window.formatExpireDate=formatExpireDate;
 
   function render(){
     const g=document.getElementById('boutique-grid');
@@ -521,7 +523,7 @@
     document.getElementById('pm-prix').textContent=m.prix+' €';
     document.getElementById('pm-desc').textContent=m.description||'';
     document.getElementById('pm-mail').href=`mailto:haratykviktor@gmail.com?subject=${encodeURIComponent('Renseignement – '+m.nom)}`;
-    const statut=resolveStatut(m);
+    const statut=m.statut?m.statut:(m.vendue?'vendue':(m.reservation?'reservee':'disponible'));
     const btnAcheter=document.getElementById('pm-btn-acheter');
     const infoReservee=document.getElementById('pm-reservee-info');
     const infoVendue=document.getElementById('pm-vendue-info');
@@ -531,8 +533,12 @@
     infoVendue.style.display=statut==='vendue'?'block':'none';
 
     if(statut==='reservee' && m.reservation && m.reservation.expireAt){
+      const ea=m.reservation.expireAt;
+      const ms=typeof ea.toMillis==='function'?ea.toMillis():new Date(ea).getTime();
+      const d=new Date(ms);
+      const dStr=d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'})+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
       document.getElementById('pm-reservee-msg').textContent=
-        'Elle redeviendra automatiquement disponible le '+formatExpireDate(m.reservation.expireAt)+' si la réservation n\'est pas confirmée.';
+        'Elle redeviendra automatiquement disponible le '+dStr+' si la réservation n\'est pas confirmée.';
     }else if(statut==='reservee'){
       document.getElementById('pm-reservee-msg').textContent=
         'Elle redeviendra disponible sous peu si la réservation n\'est pas confirmée.';
