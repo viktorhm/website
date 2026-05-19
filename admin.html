@@ -34,8 +34,9 @@
     .form-group{display:flex;flex-direction:column;gap:.4rem}
     .form-group.full{grid-column:1/-1}
     .form-group label{font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gold-dim)}
-    .form-group input,.form-group textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.75rem 1rem;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;transition:border-color .3s;resize:vertical}
-    .form-group input:focus,.form-group textarea:focus{border-color:var(--gold)}
+    .form-group input,.form-group textarea,.form-group select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:.75rem 1rem;font-family:'Jost',sans-serif;font-size:.9rem;outline:none;transition:border-color .3s;resize:vertical}
+    .form-group input:focus,.form-group textarea:focus,.form-group select:focus{border-color:var(--gold)}
+    .form-group select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3e%3cpath fill='%23d08a2a' d='M6 8L0 0h12z'/%3e%3c/svg%3e");background-repeat:no-repeat;background-position:right 1rem center;padding-right:2.5rem;cursor:pointer}
     .form-hint{font-size:.72rem;color:var(--text-muted);margin-top:.3rem}
 
     /* RONDS d'état (input) */
@@ -150,6 +151,15 @@
       <div class="form-group">
         <label>Prix (€) *</label>
         <input type="number" id="f-prix" placeholder="ex. 450">
+      </div>
+      <div class="form-group">
+        <label>Mouvement</label>
+        <select id="f-mouvement">
+          <option value="">— Non précisé —</option>
+          <option value="automatique">Automatique</option>
+          <option value="manuel">Mécanique manuel</option>
+          <option value="quartz">Quartz</option>
+        </select>
       </div>
       <div class="form-group">
         <label>Note d'état (ronds bleus)</label>
@@ -324,6 +334,7 @@
     const ref=document.getElementById('f-ref').value.trim();
     const prix=document.getElementById('f-prix').value.trim();
     const desc=document.getElementById('f-desc').value.trim();
+    const mouvement=document.getElementById('f-mouvement').value;
     const note=parseInt(document.getElementById('f-note').value)||0;
     if(!nom||!prix||pendingFiles.length===0){toast('Nom, prix et au moins une photo sont obligatoires.',true);return;}
     const btn=document.getElementById('btn-publier');
@@ -337,7 +348,7 @@
       }
       document.getElementById('upload-bar').style.width='100%';
       await addDoc(collection(db,'montres'),{
-        nom,ref,prix:parseFloat(prix),description:desc,note,
+        nom,ref,prix:parseFloat(prix),description:desc,note,mouvement,
         images:urls,imageUrl:urls[0],
         statut:'disponible',vendue:false,reservation:null,
         createdAt:serverTimestamp()
@@ -350,6 +361,7 @@
 
   window.resetForm=function(){
     ['f-nom','f-ref','f-prix','f-desc'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('f-mouvement').value='';
     document.getElementById('f-note').value='0';
     noteSelectionnee=0;
     starsEl.forEach(x=>x.classList.remove('on'));

@@ -336,6 +336,82 @@
     }
     .theme-toggle:hover { border-color: var(--gold); color: var(--gold); }
     .theme-toggle svg { width: 15px; height: 15px; fill: currentColor; }
+      /* ── BOUTON BURGER ──────────────────────────── */
+    .burger-toggle {
+      display: none;
+      background: none;
+      border: 1px solid var(--border);
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      cursor: pointer;
+      padding: 0;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+      flex-shrink: 0;
+      transition: border-color var(--transition);
+    }
+    .burger-toggle:hover { border-color: var(--gold); }
+    .burger-toggle span {
+      display: block;
+      width: 16px; height: 1px;
+      background: var(--text);
+      transition: transform var(--transition), opacity var(--transition);
+      transform-origin: center;
+    }
+    .burger-toggle.open span:nth-child(1) { transform: translateY(5px) rotate(45deg); background: var(--gold); }
+    .burger-toggle.open span:nth-child(2) { opacity: 0; }
+    .burger-toggle.open span:nth-child(3) { transform: translateY(-5px) rotate(-45deg); background: var(--gold); }
+
+    /* ── PANNEAU MOBILE DÉROULANT ───────────────── */
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 72px; left: 0; right: 0;
+      background: var(--header-bg);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 99;
+    }
+    .mobile-menu.open { max-height: 400px; }
+    .mobile-menu ul {
+      list-style: none;
+      padding: 1.5rem 6vw;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+    .mobile-menu li { width: 100%; }
+    .mobile-menu a {
+      display: block;
+      padding: 1rem 0;
+      font-size: 1rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--text);
+      text-decoration: none;
+      border-bottom: 1px solid var(--border);
+      transition: color var(--transition);
+    }
+    .mobile-menu a:hover, .mobile-menu a:active { color: var(--gold); }
+    .mobile-menu li:last-child a { border-bottom: none; }
+
+    /* Empêcher le scroll du body quand le menu est ouvert */
+    body.menu-open { overflow: hidden; }
+
+    /* ── MOBILE ─────────────────────────────────── */
+    @media (max-width: 768px) {
+      .slogan { display: none; }
+      .nav-links { display: none; }
+      .burger-toggle { display: flex; }
+      .mobile-menu { display: block; }
+      nav { gap: 0.8rem; }
+    }
   </style>
 </head>
 <body>
@@ -355,8 +431,20 @@
         <svg id="iconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
         <svg id="iconSun"  viewBox="0 0 24 24" style="display:none"><path d="M12 4.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0112 4.5zm0 12a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zm7.5-7.5a.75.75 0 010 1.5h-1.5a.75.75 0 010-1.5h1.5zM6 12a.75.75 0 01-.75.75H3.75a.75.75 0 010-1.5H5.25A.75.75 0 016 12zm9.89-5.89a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM9.17 14.83a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm6.72 1.06a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06zM9.17 9.17a.75.75 0 01-1.06 0L7.05 8.11A.75.75 0 018.11 7.05l1.06 1.06a.75.75 0 010 1.06zM12 8a4 4 0 110 8 4 4 0 010-8z"/></svg>
       </button>
+          <button class="burger-toggle" id="burgerToggle" aria-label="Ouvrir le menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
     </nav>
   </header>
+
+  <!-- MENU MOBILE DÉROULANT -->
+  <div class="mobile-menu" id="mobileMenu">
+    <ul>
+      <li><a href="index.html">Accueil</a></li>
+      <li><a href="portfolio.html">Portfolio</a></li>
+      <li><a href="boutique.html">Boutique</a></li>
+    </ul>
+  </div>
 
   <main>
     <div class="page-header">
@@ -480,5 +568,26 @@
       if (!localStorage.getItem('theme')) applyTheme(e.matches);
     });
   </script>
+<script>
+  (function(){
+    const burger = document.getElementById('burgerToggle');
+    const mobileMenu = document.getElementById('mobileMenu');
+    if(!burger || !mobileMenu) return;
+    function closeMenu(){
+      burger.classList.remove('open');
+      mobileMenu.classList.remove('open');
+      burger.setAttribute('aria-expanded','false');
+      document.body.classList.remove('menu-open');
+    }
+    burger.addEventListener('click', () => {
+      const isOpen = burger.classList.toggle('open');
+      mobileMenu.classList.toggle('open', isOpen);
+      burger.setAttribute('aria-expanded', isOpen);
+      document.body.classList.toggle('menu-open', isOpen);
+    });
+    mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
+    window.addEventListener('resize', () => { if(window.innerWidth > 768) closeMenu(); });
+  })();
+</script>
 </body>
 </html>
