@@ -13,8 +13,7 @@
   <meta property="og:image" content="https://horlogerie-haratyk.fr/assets/H.png">
   <link rel="icon" href="assets/favicon.png" type="image/png">
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Jost:wght@300;400;500&family=Cinzel:wght@400;600&display=swap" rel="stylesheet">
-  <script src="https://js.stripe.com/v3/"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+
   <style>
     *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
     :root{--gold:#c9a84c;--gold-dim:#8a6e30;--black:#0a0a0a;--surface:#111111;--surface2:#181818;--border:rgba(201,168,76,0.18);--border2:rgba(201,168,76,0.35);--text:#e8e4dc;--text-muted:#8a8580;--text-soft:#b8b4ac;--transition:0.4s cubic-bezier(0.25,0.46,0.45,0.94);--header-bg:rgba(10,10,10,0.94);--logo-filter:invert(1)}
@@ -226,82 +225,33 @@
     .reveal-delay-1{transition-delay:.1s}
     .reveal-delay-2{transition-delay:.22s}
 
-    @media(max-width:768px){nav{gap:1rem}.slogan{display:none}.boutique-grid{grid-template-columns:1fr}.form-row{grid-template-columns:1fr}.page-header{padding:110px 5vw 40px}}
-      /* ── BOUTON BURGER ──────────────────────────── */
-    .burger-toggle {
-      display: none;
-      background: none;
-      border: 1px solid var(--border);
-      width: 36px; height: 36px;
-      border-radius: 50%;
-      cursor: pointer;
-      padding: 0;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 4px;
-      flex-shrink: 0;
-      transition: border-color var(--transition);
-    }
-    .burger-toggle:hover { border-color: var(--gold); }
-    .burger-toggle span {
-      display: block;
-      width: 16px; height: 1px;
-      background: var(--text);
-      transition: transform var(--transition), opacity var(--transition);
-      transform-origin: center;
-    }
-    .burger-toggle.open span:nth-child(1) { transform: translateY(5px) rotate(45deg); background: var(--gold); }
-    .burger-toggle.open span:nth-child(2) { opacity: 0; }
-    .burger-toggle.open span:nth-child(3) { transform: translateY(-5px) rotate(-45deg); background: var(--gold); }
+    /* ── BOUTON BURGER ──────────────────────────── */
+    .burger-toggle{display:none;background:none;border:1px solid var(--border);width:36px;height:36px;border-radius:50%;cursor:pointer;padding:0;flex-direction:column;align-items:center;justify-content:center;gap:4px;flex-shrink:0;transition:border-color .35s}
+    .burger-toggle:hover{border-color:var(--gold)}
+    .burger-toggle span{display:block;width:16px;height:1px;background:var(--text);transition:transform .35s,opacity .35s;transform-origin:center}
+    .burger-toggle.open span:nth-child(1){transform:translateY(5px) rotate(45deg);background:var(--gold)}
+    .burger-toggle.open span:nth-child(2){opacity:0}
+    .burger-toggle.open span:nth-child(3){transform:translateY(-5px) rotate(-45deg);background:var(--gold)}
 
     /* ── PANNEAU MOBILE DÉROULANT ───────────────── */
-    .mobile-menu {
-      display: none;
-      position: fixed;
-      top: 72px; left: 0; right: 0;
-      background: var(--header-bg);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border);
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-      z-index: 99;
-    }
-    .mobile-menu.open { max-height: 400px; }
-    .mobile-menu ul {
-      list-style: none;
-      padding: 1.5rem 6vw;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: 0.2rem;
-    }
-    .mobile-menu li { width: 100%; }
-    .mobile-menu a {
-      display: block;
-      padding: 1rem 0;
-      font-size: 1rem;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--text);
-      text-decoration: none;
-      border-bottom: 1px solid var(--border);
-      transition: color var(--transition);
-    }
-    .mobile-menu a:hover, .mobile-menu a:active { color: var(--gold); }
-    .mobile-menu li:last-child a { border-bottom: none; }
+    .mobile-menu{display:none;position:fixed;top:72px;left:0;right:0;background:var(--header-bg,rgba(10,10,10,0.92));backdrop-filter:blur(12px);border-bottom:1px solid var(--border);max-height:0;overflow:hidden;transition:max-height 0.4s cubic-bezier(0.4,0,0.2,1);z-index:99}
+    .mobile-menu.open{max-height:400px}
+    .mobile-menu ul{list-style:none;padding:1.5rem 6vw;margin:0;display:flex;flex-direction:column;gap:.2rem}
+    .mobile-menu li{width:100%}
+    .mobile-menu a{display:block;padding:1rem 0;font-size:1rem;letter-spacing:.18em;text-transform:uppercase;color:var(--text);text-decoration:none;border-bottom:1px solid var(--border);transition:color .35s}
+    .mobile-menu a:hover,.mobile-menu a:active{color:var(--gold)}
+    .mobile-menu li:last-child a{border-bottom:none}
+    body.menu-open{overflow:hidden}
 
-    /* Empêcher le scroll du body quand le menu est ouvert */
-    body.menu-open { overflow: hidden; }
-
-    /* ── MOBILE ─────────────────────────────────── */
-    @media (max-width: 768px) {
-      .slogan { display: none; }
-      .nav-links { display: none; }
-      .burger-toggle { display: flex; }
-      .mobile-menu { display: block; }
-      nav { gap: 0.8rem; }
+    @media(max-width:768px){
+      .slogan{display:none}
+      .nav-links{display:none}
+      .burger-toggle{display:flex}
+      .mobile-menu{display:block}
+      nav{gap:.8rem}
+      .boutique-grid{grid-template-columns:1fr}
+      .form-row{grid-template-columns:1fr}
+      .page-header{padding:110px 5vw 40px}
     }
   </style>
 </head>
@@ -322,20 +272,20 @@
       <svg id="iconMoon" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3a7 7 0 109.79 9.79z"/></svg>
       <svg id="iconSun" viewBox="0 0 24 24" style="display:none"><path d="M12 4.5a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5A.75.75 0 0112 4.5zm0 12a.75.75 0 01.75.75v1.5a.75.75 0 01-1.5 0v-1.5a.75.75 0 01.75-.75zm7.5-7.5a.75.75 0 010 1.5h-1.5a.75.75 0 010-1.5h1.5zM6 12a.75.75 0 01-.75.75H3.75a.75.75 0 010-1.5H5.25A.75.75 0 016 12zm9.89-5.89a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zM9.17 14.83a.75.75 0 010 1.06l-1.06 1.06a.75.75 0 01-1.06-1.06l1.06-1.06a.75.75 0 011.06 0zm6.72 1.06a.75.75 0 01-1.06 0l-1.06-1.06a.75.75 0 011.06-1.06l1.06 1.06a.75.75 0 010 1.06zM9.17 9.17a.75.75 0 01-1.06 0L7.05 8.11A.75.75 0 018.11 7.05l1.06 1.06a.75.75 0 010 1.06zM12 8a4 4 0 110 8 4 4 0 010-8z"/></svg>
     </button>
-        <button class="burger-toggle" id="burgerToggle" aria-label="Ouvrir le menu" aria-expanded="false">
-        <span></span><span></span><span></span>
-      </button>
-    </nav>
+    <button class="burger-toggle" id="burgerToggle" aria-label="Ouvrir le menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
 </header>
 
-  <!-- MENU MOBILE DÉROULANT -->
-  <div class="mobile-menu" id="mobileMenu">
-    <ul>
-      <li><a href="index.html">Accueil</a></li>
-      <li><a href="portfolio.html">Portfolio</a></li>
-      <li><a href="boutique.html">Boutique</a></li>
-    </ul>
-  </div>
+<!-- MENU MOBILE DÉROULANT -->
+<div class="mobile-menu" id="mobileMenu">
+  <ul>
+    <li><a href="index.html">Accueil</a></li>
+    <li><a href="portfolio.html">Portfolio</a></li>
+    <li><a href="boutique.html">Boutique</a></li>
+  </ul>
+</div>
 
 <main>
   <div class="page-header">
@@ -450,17 +400,17 @@
 
     <span class="order-section">Mode de livraison</span>
     <div class="livraison-opts">
-      <label class="livraison-opt selected" onclick="selectLivraison(this,0,'Retrait à Marcq-en-Barœul')">
+      <label class="livraison-opt selected" onclick="selectLivraison(this,0,'Retrait à Marcq-en-Barœul','retrait')">
         <input type="radio" name="liv" checked>
         <div class="lv-left"><div class="lv-dot"></div><div><div class="lv-label">Retrait à Marcq-en-Barœul</div><div class="lv-delay">Sur rendez-vous</div></div></div>
         <span class="lv-prix">Gratuit</span>
       </label>
-      <label class="livraison-opt" onclick="selectLivraison(this,8,'Colissimo suivi')">
+      <label class="livraison-opt" onclick="selectLivraison(this,8,'Colissimo suivi','colissimo')">
         <input type="radio" name="liv">
         <div class="lv-left"><div class="lv-dot"></div><div><div class="lv-label">Colissimo suivi</div><div class="lv-delay">2–3 jours ouvrés</div></div></div>
         <span class="lv-prix">8 €</span>
       </label>
-      <label class="livraison-opt" onclick="selectLivraison(this,15,'Chronopost express')">
+      <label class="livraison-opt" onclick="selectLivraison(this,15,'Chronopost express','chronopost')">
         <input type="radio" name="liv">
         <div class="lv-left"><div class="lv-dot"></div><div><div class="lv-label">Chronopost express</div><div class="lv-delay">24h ouvrées</div></div></div>
         <span class="lv-prix">15 €</span>
@@ -473,15 +423,13 @@
       <div class="price-line total"><span>Total TTC</span><span id="recap-total">—</span></div>
     </div>
 
-    <span class="order-section">Paiement sécurisé</span>
-    <div id="card-element"></div>
     <div id="card-errors"></div>
     <div class="cgv-wrap">
       <input type="checkbox" id="cgv-check">
       <label for="cgv-check">J'ai lu et j'accepte les <a href="cgv.html" target="_blank">Conditions Générales de Vente</a> et le droit de rétractation de 14 jours.</label>
     </div>
-    <button id="btn-pay" onclick="payerMontre()">Confirmer et payer</button>
-    <div class="stripe-info"><span>Paiement sécurisé par Stripe</span></div>
+    <button id="btn-pay" onclick="payerMontre()">Procéder au paiement sécurisé</button>
+    <div class="stripe-info"><span>Vous serez redirigé vers la page sécurisée Stripe pour saisir votre carte. Aucune donnée bancaire ne transite par notre site.</span></div>
   </div>
 </div>
 
@@ -580,10 +528,8 @@
     }).join('');
   }
 
-  // Gestion des clics sur les filtres : chaque groupe (statut/mouvement) reste indépendant
   document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>{
     if(b.dataset.statut){
-      // Désactive uniquement les boutons du même groupe
       b.parentElement.querySelectorAll('.filter-btn').forEach(x=>x.classList.remove('active'));
       b.classList.add('active');
       filterStatut=b.dataset.statut;
@@ -598,21 +544,9 @@
 </script>
 
 <script>
-  const EMAILJS_PUBLIC_KEY='REMPLACE_PAR_TON_PUBLIC_KEY';
-  const EMAILJS_SERVICE_ID='REMPLACE_PAR_TON_SERVICE_ID';
-  const EMAILJS_TEMPLATE_ID='REMPLACE_PAR_TON_TEMPLATE_ID';
-  emailjs.init(EMAILJS_PUBLIC_KEY);
-
-  let stripe,cardEl,cardMounted=false,montreEnCours=null;
-  let livraison={prix:0,label:'Retrait à Marcq-en-Barœul'};
+  let montreEnCours=null;
+  let livraison={mode:'retrait',prix:0,label:'Retrait à Marcq-en-Barœul'};
   let currentPhotoIndex=0,currentPhotos=[];
-
-  window.addEventListener('load',()=>{
-    stripe=Stripe('pk_test_51TP3XCFeb0zh8unmjtzScpdauc52xzZHHbCHhxYOVN8r1eFdZ165ghXtD4iegBk7LUWpkCrwGPf49ZFyu4IRBM06006iXcLDr4');
-    const els=stripe.elements();
-    cardEl=els.create('card',{style:{base:{color:'#e8e4dc',fontFamily:'"Jost",sans-serif',fontSize:'15px','::placeholder':{color:'#8a8580'}},invalid:{color:'#e05c5c'}}});
-    cardEl.on('change',e=>{document.getElementById('card-errors').textContent=e.error?e.error.message:'';});
-  });
 
   // ─── GALERIE ─────────────────────────────────────
   function setPhoto(index){
@@ -644,7 +578,6 @@
     document.getElementById('pm-nom').textContent=m.nom;
     document.getElementById('pm-prix').textContent=m.prix+' €';
     document.getElementById('pm-desc').textContent=m.description||'';
-    // Badge mouvement (caché si non renseigné)
     const mvtEl=document.getElementById('pm-mouvement');
     const mvtLabels={automatique:'Mouvement automatique',manuel:'Mécanique à remontage manuel',quartz:'Mouvement quartz'};
     if(m.mouvement && mvtLabels[m.mouvement]){
@@ -716,19 +649,20 @@
     closeProduct();
     document.getElementById('order-title').textContent=montreEnCours.nom;
     document.getElementById('order-ref').textContent=montreEnCours.ref?'Réf. '+montreEnCours.ref:'';
-    livraison={prix:0,label:'Retrait à Marcq-en-Barœul'};
+    livraison={mode:'retrait',prix:0,label:'Retrait à Marcq-en-Barœul'};
     document.querySelectorAll('.livraison-opt').forEach((o,i)=>o.classList.toggle('selected',i===0));
+    document.getElementById('card-errors').textContent='';
+    document.getElementById('cgv-check').checked=false;
     updateRecap();
     document.getElementById('order-modal').classList.add('open');
     document.body.style.overflow='hidden';
-    if(!cardMounted){cardEl.mount('#card-element');cardMounted=true;}
   };
 
   window.closeOrder=function(){document.getElementById('order-modal').classList.remove('open');document.body.style.overflow='';};
 
-  window.selectLivraison=function(el,prix,label){
+  window.selectLivraison=function(el,prix,label,mode){
     document.querySelectorAll('.livraison-opt').forEach(o=>o.classList.remove('selected'));
-    el.classList.add('selected');livraison={prix,label};updateRecap();
+    el.classList.add('selected');livraison={mode,prix,label};updateRecap();
   };
 
   function updateRecap(){
@@ -751,27 +685,50 @@
     const ville=document.getElementById('o-ville').value.trim();
     const cgv=document.getElementById('cgv-check').checked;
     const errEl=document.getElementById('card-errors');
-    if(!prenom||!nom||!email||!adresse||!cp||!ville){errEl.textContent='Merci de remplir tous les champs obligatoires.';return;}
+    errEl.textContent='';
+
+    if(!prenom||!nom||!email){errEl.textContent='Merci de remplir prénom, nom et email.';return;}
+    if(livraison.mode!=='retrait' && (!adresse||!cp||!ville)){
+      errEl.textContent='Adresse de livraison incomplète.';return;
+    }
+    if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){errEl.textContent='Email invalide.';return;}
     if(!cgv){errEl.textContent='Veuillez accepter les CGV.';return;}
+
     const btn=document.getElementById('btn-pay');
-    btn.disabled=true;btn.textContent='Traitement…';
-    const{paymentMethod,error}=await stripe.createPaymentMethod({type:'card',card:cardEl});
-    if(error){errEl.textContent=error.message;btn.disabled=false;btn.textContent='Confirmer et payer';return;}
-    const total=montreEnCours.prix+livraison.prix;
+    btn.disabled=true;btn.textContent='Redirection…';
+
     try{
-      await emailjs.send(EMAILJS_SERVICE_ID,EMAILJS_TEMPLATE_ID,{
-        montre_nom:montreEnCours.nom,montre_ref:montreEnCours.ref||'—',
-        montre_prix:montreEnCours.prix+' €',livraison_mode:livraison.label,
-        livraison_prix:livraison.prix===0?'Gratuit':livraison.prix+' €',
-        total:total+' €',client_prenom:prenom,client_nom:nom,
-        client_email:email,client_tel:tel||'—',
-        client_adresse:adresse+', '+cp+' '+ville,
+      const res=await fetch('/api/create-checkout-session',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          montreId:montreEnCours.id,
+          livraison:livraison.mode,
+          client:{prenom,nom,email,tel,adresse,cp,ville}
+        })
       });
-    }catch(e){console.warn('EmailJS:',e.message);}
-    closeOrder();
-    document.getElementById('success-msg').textContent=`Merci ${prenom} ! Votre commande pour « ${montreEnCours.nom} » (${total} €) est confirmée. Je vous contacterai à ${email} sous 24h.`;
-    document.getElementById('success-modal').classList.add('open');
-    btn.disabled=false;btn.textContent='Confirmer et payer';
+
+      const data=await res.json();
+
+      if(!res.ok){
+        errEl.textContent=data.error||'Erreur lors de la création du paiement.';
+        btn.disabled=false;btn.textContent='Procéder au paiement sécurisé';
+        return;
+      }
+
+      if(!data.url){
+        errEl.textContent='Réponse invalide du serveur.';
+        btn.disabled=false;btn.textContent='Procéder au paiement sécurisé';
+        return;
+      }
+
+      window.location.href=data.url;
+
+    }catch(e){
+      console.error('Erreur paiement:',e);
+      errEl.textContent='Impossible de joindre le serveur. Réessayez dans un instant.';
+      btn.disabled=false;btn.textContent='Procéder au paiement sécurisé';
+    }
   };
 
   window.closeSuccess=function(){document.getElementById('success-modal').classList.remove('open');document.body.style.overflow='';};
@@ -795,23 +752,23 @@
 </script>
 <script>
   (function(){
-    const burger = document.getElementById('burgerToggle');
-    const mobileMenu = document.getElementById('mobileMenu');
-    if(!burger || !mobileMenu) return;
+    const burger=document.getElementById('burgerToggle');
+    const mobileMenu=document.getElementById('mobileMenu');
+    if(!burger||!mobileMenu)return;
     function closeMenu(){
       burger.classList.remove('open');
       mobileMenu.classList.remove('open');
       burger.setAttribute('aria-expanded','false');
       document.body.classList.remove('menu-open');
     }
-    burger.addEventListener('click', () => {
-      const isOpen = burger.classList.toggle('open');
-      mobileMenu.classList.toggle('open', isOpen);
-      burger.setAttribute('aria-expanded', isOpen);
-      document.body.classList.toggle('menu-open', isOpen);
+    burger.addEventListener('click',()=>{
+      const isOpen=burger.classList.toggle('open');
+      mobileMenu.classList.toggle('open',isOpen);
+      burger.setAttribute('aria-expanded',isOpen);
+      document.body.classList.toggle('menu-open',isOpen);
     });
-    mobileMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', closeMenu));
-    window.addEventListener('resize', () => { if(window.innerWidth > 768) closeMenu(); });
+    mobileMenu.querySelectorAll('a').forEach(a=>a.addEventListener('click',closeMenu));
+    window.addEventListener('resize',()=>{if(window.innerWidth>768)closeMenu();});
   })();
 </script>
 </body>
