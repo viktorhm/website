@@ -21,6 +21,11 @@
   to = "/.netlify/functions/stripe-webhook"
   status = 200
 
+[[redirects]]
+  from = "/api/verify-session"
+  to = "/.netlify/functions/verify-session"
+  status = 200
+
 [[headers]]
   for = "/*"
   [headers.values]
