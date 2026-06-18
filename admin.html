@@ -104,12 +104,21 @@
     .reservation-box.expired .rb-label{color:var(--red)}
 
     .row-actions{display:flex;gap:.4rem;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;max-width:340px}
-    .btn-statut,.btn-suppr,.btn-liberer{padding:.38rem .75rem;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);color:var(--text-muted);transition:all .3s;font-family:'Jost',sans-serif;background:none;white-space:nowrap}
+    .btn-statut,.btn-suppr,.btn-liberer,.btn-edit{padding:.38rem .75rem;font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;border:1px solid var(--border);color:var(--text-muted);transition:all .3s;font-family:'Jost',sans-serif;background:none;white-space:nowrap}
     .btn-statut:hover{color:var(--text)}
     .btn-statut.active.st-disponible{border-color:rgba(46,155,99,0.6);color:#4dc789;background:rgba(46,155,99,0.08)}
     .btn-statut.active.st-reservee{border-color:rgba(208,138,42,0.6);color:#e8a94a;background:rgba(208,138,42,0.08)}
     .btn-statut.active.st-vendue{border-color:rgba(138,133,128,0.5);color:#b8b4ac;background:rgba(138,133,128,0.1)}
     .btn-suppr:hover{border-color:var(--red);color:var(--red)}
+    .btn-edit:hover{border-color:var(--gold);color:var(--gold)}
+
+    .edit-mode-banner{background:rgba(201,168,76,0.08);border:1px solid var(--gold);padding:0.9rem 1.1rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.8rem}
+    .edit-mode-banner span{color:var(--gold);font-size:.85rem}
+    .edit-mode-banner button{background:none;border:1px solid var(--gold);color:var(--gold);padding:.4rem .9rem;font-size:.7rem;letter-spacing:.1em;text-transform:uppercase;cursor:pointer;font-family:'Jost',sans-serif;transition:all .25s}
+    .edit-mode-banner button:hover{background:var(--gold);color:var(--black)}
+
+    .photo-thumb-wrap.existing{border:1px solid rgba(201,168,76,0.4)}
+    .photo-thumb-wrap.existing::before{content:'Existante';position:absolute;top:.3rem;left:.3rem;background:rgba(0,0,0,.7);color:var(--gold);font-size:.55rem;letter-spacing:.1em;text-transform:uppercase;padding:.15rem .4rem;z-index:2}
     .btn-liberer{border-color:rgba(208,138,42,0.4);color:#e8a94a}
     .btn-liberer:hover{background:rgba(208,138,42,0.1)}
 
@@ -137,8 +146,12 @@
     <button class="btn-logout" onclick="logout()">Déconnexion</button>
   </div>
 
-  <div class="form-section">
-    <h2>Ajouter une montre</h2>
+  <div class="form-section" id="form-section">
+    <h2 id="form-title">Ajouter une montre</h2>
+    <div class="edit-mode-banner" id="edit-mode-banner" style="display:none">
+      <span>✏️ Mode modification — vous éditez une annonce existante</span>
+      <button onclick="resetForm()">Annuler et revenir à l'ajout</button>
+    </div>
     <div class="form-grid">
       <div class="form-group">
         <label>Nom / Modèle *</label>
@@ -209,7 +222,7 @@
 
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-  import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, getDocs, deleteDoc, updateDoc, doc, getDoc, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
   import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
   const app=initializeApp({apiKey:"AIzaSyBdhXev9PvfrQIBKktIJJ58vEsP-Db-mpc",authDomain:"horlogerie-haratyk.firebaseapp.com",projectId:"horlogerie-haratyk",storageBucket:"horlogerie-haratyk.firebasestorage.app",messagingSenderId:"90184929449",appId:"1:90184929449:web:03bc08665e0577ac6399b8"});
@@ -221,6 +234,8 @@
 
   let pendingFiles=[];
   let noteSelectionnee=0;
+  let editingId=null;
+  let existingPhotos=[];
 
   // ─── AUTH ────────────────────────────────────────
   const loginScreen=document.getElementById('login-screen');
@@ -295,24 +310,40 @@
 
   // ─── GESTION PHOTOS ──────────────────────────────
   window.handlePhotos=function(files){
-    const newFiles=Array.from(files).slice(0,10-pendingFiles.length);
-    newFiles.forEach(f=>{if(pendingFiles.length<10)pendingFiles.push(f);});
+    const totalActuel=existingPhotos.length+pendingFiles.length;
+    const slots=10-totalActuel;
+    if(slots<=0){toast('Limite de 10 photos atteinte.',true);return;}
+    const newFiles=Array.from(files).slice(0,slots);
+    newFiles.forEach(f=>pendingFiles.push(f));
     renderPreviews();
   };
 
   function renderPreviews(){
     const preview=document.getElementById('photos-preview');
-    preview.innerHTML=pendingFiles.map((f,i)=>`
+    const existingHtml=existingPhotos.map((url,i)=>`
+      <div class="photo-thumb-wrap existing">
+        <img src="${url}" alt="">
+        ${i===0?'<span class="photo-thumb-main">Principal</span>':''}
+        <button class="photo-thumb-remove" onclick="removeExistingPhoto(${i})">✕</button>
+      </div>`).join('');
+    const newHtml=pendingFiles.map((f,i)=>`
       <div class="photo-thumb-wrap">
         <img src="${URL.createObjectURL(f)}" alt="">
-        ${i===0?'<span class="photo-thumb-main">Principal</span>':''}
+        ${existingPhotos.length===0&&i===0?'<span class="photo-thumb-main">Principal</span>':''}
         <button class="photo-thumb-remove" onclick="removePhoto(${i})">✕</button>
       </div>`).join('');
-    document.getElementById('upload-status').textContent=pendingFiles.length>0?`${pendingFiles.length} photo${pendingFiles.length>1?'s':''} sélectionnée${pendingFiles.length>1?'s':''}. Max 10.`:'';
+    preview.innerHTML=existingHtml+newHtml;
+    const total=existingPhotos.length+pendingFiles.length;
+    document.getElementById('upload-status').textContent=total>0?`${total} photo${total>1?'s':''} au total. Max 10.`:'';
   }
 
   window.removePhoto=function(idx){
     pendingFiles.splice(idx,1);renderPreviews();
+  };
+
+  window.removeExistingPhoto=function(idx){
+    if(!confirm('Retirer cette photo de l\'annonce ? Elle sera définitivement supprimée à l\'enregistrement.'))return;
+    existingPhotos.splice(idx,1);renderPreviews();
   };
 
   // ─── UPLOAD CLOUDINARY ────────────────────────────
@@ -328,7 +359,7 @@
     return (await r.json()).secure_url;
   }
 
-  // ─── AJOUTER ─────────────────────────────────────
+  // ─── AJOUTER / MODIFIER ──────────────────────────
   window.ajouterMontre=async function(){
     const nom=document.getElementById('f-nom').value.trim();
     const ref=document.getElementById('f-ref').value.trim();
@@ -336,27 +367,87 @@
     const desc=document.getElementById('f-desc').value.trim();
     const mouvement=document.getElementById('f-mouvement').value;
     const note=parseInt(document.getElementById('f-note').value)||0;
-    if(!nom||!prix||pendingFiles.length===0){toast('Nom, prix et au moins une photo sont obligatoires.',true);return;}
+    const totalPhotos=existingPhotos.length+pendingFiles.length;
+    if(!nom||!prix||totalPhotos===0){toast('Nom, prix et au moins une photo sont obligatoires.',true);return;}
     const btn=document.getElementById('btn-publier');
-    btn.disabled=true;btn.textContent='Publication…';
-    document.getElementById('upload-progress').style.display='block';
+    const isEdit=!!editingId;
+    btn.disabled=true;btn.textContent=isEdit?'Enregistrement…':'Publication…';
+    if(pendingFiles.length>0)document.getElementById('upload-progress').style.display='block';
     try{
-      const urls=[];
+      // Upload des nouvelles photos
+      const newUrls=[];
       for(let i=0;i<pendingFiles.length;i++){
         const url=await uploadPhoto(pendingFiles[i],i,pendingFiles.length);
-        urls.push(url);
+        newUrls.push(url);
       }
       document.getElementById('upload-bar').style.width='100%';
-      await addDoc(collection(db,'montres'),{
-        nom,ref,prix:parseFloat(prix),description:desc,note,mouvement,
-        images:urls,imageUrl:urls[0],
-        statut:'disponible',vendue:false,reservation:null,
-        createdAt:serverTimestamp()
-      });
-      toast('✓ Annonce publiée avec succès !');
+
+      // Combiner photos existantes + nouvelles
+      const allUrls=[...existingPhotos,...newUrls];
+
+      if(isEdit){
+        await updateDoc(doc(db,'montres',editingId),{
+          nom,ref,prix:parseFloat(prix),description:desc,note,mouvement,
+          images:allUrls,imageUrl:allUrls[0]
+        });
+        toast('✓ Annonce modifiée avec succès !');
+      }else{
+        await addDoc(collection(db,'montres'),{
+          nom,ref,prix:parseFloat(prix),description:desc,note,mouvement,
+          images:allUrls,imageUrl:allUrls[0],
+          statut:'disponible',vendue:false,reservation:null,
+          createdAt:serverTimestamp()
+        });
+        toast('✓ Annonce publiée avec succès !');
+      }
       resetForm();loadList();
     }catch(e){toast('Erreur : '+e.message,true);}
-    finally{btn.disabled=false;btn.textContent='Publier l\'annonce';document.getElementById('upload-progress').style.display='none';}
+    finally{
+      btn.disabled=false;
+      btn.textContent=editingId?'Enregistrer les modifications':'Publier l\'annonce';
+      document.getElementById('upload-progress').style.display='none';
+    }
+  };
+
+  // ─── MODIFIER ────────────────────────────────────
+  window.modifierMontre=async function(id){
+    try{
+      const snap=await getDoc(doc(db,'montres',id));
+      if(!snap.exists()){toast('Annonce introuvable.',true);return;}
+      const m=snap.data();
+
+      editingId=id;
+      existingPhotos=Array.isArray(m.images)&&m.images.length?[...m.images]:(m.imageUrl?[m.imageUrl]:[]);
+      pendingFiles=[];
+
+      document.getElementById('f-nom').value=m.nom||'';
+      document.getElementById('f-ref').value=m.ref||'';
+      document.getElementById('f-prix').value=m.prix||'';
+      document.getElementById('f-desc').value=m.description||'';
+      document.getElementById('f-mouvement').value=m.mouvement||'';
+      document.getElementById('f-note').value=m.note||0;
+      noteSelectionnee=m.note||0;
+
+      // Mettre à jour étoiles visuellement
+      starsEl.forEach(x=>{
+        x.classList.remove('on','hover');
+        if(parseInt(x.dataset.v)<=noteSelectionnee)x.classList.add('on');
+      });
+      document.getElementById('note-value').textContent=noteSelectionnee?`${noteSelectionnee}/5`:'Aucune note';
+
+      // UI mode édition
+      document.getElementById('form-title').textContent='Modifier l\'annonce';
+      document.getElementById('edit-mode-banner').style.display='flex';
+      document.getElementById('btn-publier').textContent='Enregistrer les modifications';
+
+      document.getElementById('f-photos').value='';
+      renderPreviews();
+      document.getElementById('upload-bar').style.width='0%';
+      document.getElementById('upload-progress').style.display='none';
+
+      // Scroll vers le formulaire
+      document.getElementById('form-section').scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(e){toast('Erreur : '+e.message,true);}
   };
 
   window.resetForm=function(){
@@ -367,10 +458,16 @@
     starsEl.forEach(x=>x.classList.remove('on'));
     document.getElementById('note-value').textContent='Aucune note';
     pendingFiles=[];
+    existingPhotos=[];
+    editingId=null;
     document.getElementById('f-photos').value='';
     renderPreviews();
     document.getElementById('upload-bar').style.width='0%';
     document.getElementById('upload-progress').style.display='none';
+    // Revenir au mode ajout
+    document.getElementById('form-title').textContent='Ajouter une montre';
+    document.getElementById('edit-mode-banner').style.display='none';
+    document.getElementById('btn-publier').textContent='Publier l\'annonce';
   };
 
   // ─── LISTE ───────────────────────────────────────
@@ -434,6 +531,7 @@
             <div class="row-prix">${m.prix} €</div>
           </div>
           <div class="row-actions">
+            <button class="btn-edit" onclick="modifierMontre('${d.id}')">✏️ Modifier</button>
             ${btnStatut('disponible','Disponible')}
             ${btnStatut('reservee','Réservée')}
             ${btnStatut('vendue','Vendue')}
