@@ -142,7 +142,7 @@
     .etat-dots span{width:11px;height:11px;border-radius:50%;border:1px solid var(--border2);background:transparent;display:inline-block}
     .etat-dots span.on{background:#3B8BD4;border-color:#3B8BD4}
 
-    .pm-desc{font-size:.92rem;color:var(--text-muted);line-height:1.85}
+    .pm-desc{font-size:.92rem;color:var(--text-muted);line-height:1.85;white-space:pre-line;word-wrap:break-word}
     .pm-mouvement{display:none;align-items:center;gap:.6rem;margin-top:.5rem;font-size:.7rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);font-family:'Jost',sans-serif}
     .pm-mouvement.show{display:inline-flex}
     .pm-mouvement::before{content:'';width:8px;height:8px;border:1px solid var(--gold);border-radius:50%;display:inline-block}
@@ -517,7 +517,7 @@
           <span class="montre-ref">Réf. ${m.ref||'—'}</span>
           <h2 class="montre-nom">${m.nom}</h2>
           ${note>0?`<div class="card-stars">${starsHtml(note,true)}</div>`:''}
-          <p class="montre-desc-short">${(m.description||'').substring(0,90)}${(m.description||'').length>90?'…':''}</p>
+          <p class="montre-desc-short">${((m.description||'').replace(/\s+/g,' ')).substring(0,90)}${(m.description||'').length>90?'…':''}</p>
           <span class="montre-garantie">✓ Révisée · Garantie 1 an</span>
         </div>
         <div class="montre-footer">
