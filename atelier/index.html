@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=1.5">
+<link rel="stylesheet" href="style.css?v=1.6">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#22282E">
 </head>
@@ -153,6 +153,21 @@
       </section>
 
       <section class="bloc">
+        <h2>Devis</h2>
+        <div id="fiche-devis" class="liste-pieces"></div>
+        <div class="grille-piece">
+          <input type="text" id="devis-designation" placeholder="Prestation (ex. révision complète)">
+          <span></span>
+          <input type="number" id="devis-prix" placeholder="Prix €" step="0.01" min="0">
+          <button id="btn-ajouter-devis" class="btn btn-secondaire">Ajouter</button>
+        </div>
+        <div class="notif-zone">
+          <button id="btn-envoyer-devis" class="btn btn-principal">✉ Envoyer le devis au client</button>
+          <span id="devis-info" class="notif-info"></span>
+        </div>
+      </section>
+
+      <section class="bloc">
         <h2>Pièces remplacées</h2>
         <div id="fiche-pieces" class="liste-pieces"></div>
         <div class="grille-piece">
@@ -207,6 +222,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=1.5"></script>
+<script type="module" src="app.js?v=1.6"></script>
 </body>
 </html>

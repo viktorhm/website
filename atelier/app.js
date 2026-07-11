@@ -82,7 +82,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 1.5");
+console.log("Atelier app.js chargé — version 1.6");
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
   if (el) el.textContent = "Erreur JS : " + e.message;
@@ -483,6 +483,9 @@ function rendreFiche() {
     `<a class="photo-item" href="${u}" target="_blank"><img src="${u.replace("/upload/", "/upload/w_200,h_200,c_fill/")}"></a>`
   ).join("");
 
+  // Devis
+  rendreDevis(t);
+
   // Pièces
   const pieces = t.pieces || [];
   const total = pieces.reduce((s, p) => s + (parseFloat(p.prix) || 0), 0);
@@ -537,6 +540,94 @@ $("#btn-ajouter-note").addEventListener("click", async () => {
     updatedAt: serverTimestamp()
   });
   $("#note-texte").value = "";
+});
+
+// ------------------------------------------------------------
+// Devis
+// ------------------------------------------------------------
+function rendreDevis(t) {
+  const devis = t.devis || { lignes: [] };
+  const lignes = devis.lignes || [];
+  const total = lignes.reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
+  $("#fiche-devis").innerHTML = lignes.map((l, i) => `
+    <div class="piece-ligne">
+      <span>${echap(l.designation)} <button class="btn-lien devis-suppr" data-i="${i}">✕</button></span>
+      <b>${(parseFloat(l.prix) || 0).toFixed(2)} €</b>
+    </div>
+  `).join("") + (lignes.length
+    ? `<div class="piece-ligne piece-total"><span>Total devis (TVA non applicable)</span><b>${total.toFixed(2)} €</b></div>`
+    : "<p class='liste-vide'>Aucune ligne de devis.</p>");
+
+  $$(".devis-suppr").forEach(b => b.addEventListener("click", async () => {
+    const nouvelles = lignes.filter((_, i) => i !== parseInt(b.dataset.i));
+    await updateDoc(doc(db, "tickets", t.id), {
+      "devis.lignes": nouvelles, updatedAt: serverTimestamp()
+    });
+  }));
+
+  const infos = {
+    envoye: "Devis envoyé le " + (devis.dateEnvoi ? fmtDate(devis.dateEnvoi) : ""),
+    accepte: "✓ Devis accepté par le client",
+    refuse: "✗ Devis refusé par le client"
+  };
+  $("#devis-info").textContent = infos[devis.statut] || "";
+  $("#btn-envoyer-devis").disabled = !lignes.length || !t.clientEmail;
+  $("#btn-envoyer-devis").textContent = !t.clientEmail
+    ? "Pas d'email client enregistré"
+    : (devis.statut === "envoye" ? "✉ Renvoyer le devis" : "✉ Envoyer le devis au client");
+}
+
+$("#btn-ajouter-devis").addEventListener("click", async () => {
+  const designation = $("#devis-designation").value.trim();
+  const prix = parseFloat($("#devis-prix").value) || 0;
+  if (!designation) return;
+  const t = ticketOuvert;
+  const lignes = [...((t.devis && t.devis.lignes) || []), { designation, prix }];
+  await updateDoc(doc(db, "tickets", t.id), {
+    "devis.lignes": lignes, updatedAt: serverTimestamp()
+  });
+  $("#devis-designation").value = ""; $("#devis-prix").value = "";
+});
+
+$("#btn-envoyer-devis").addEventListener("click", async () => {
+  const t = ticketOuvert;
+  const btn = $("#btn-envoyer-devis");
+  const lignes = (t.devis && t.devis.lignes) || [];
+  if (!lignes.length || !t.clientEmail) return;
+  btn.disabled = true;
+  btn.textContent = "Envoi…";
+  try {
+    // jeton unique pour les liens Accepter/Refuser du mail
+    const token = (t.devis && t.devis.token) || crypto.randomUUID();
+    const r = await fetch("/.netlify/functions/send-devis", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: t.clientEmail,
+        nom: t.clientNom,
+        numero: t.numero,
+        contremarque: t.contremarque || "",
+        objet: [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" "),
+        lignes,
+        token
+      })
+    });
+    if (!r.ok) throw new Error();
+    await updateDoc(doc(db, "tickets", t.id), {
+      "devis.statut": "envoye",
+      "devis.token": token,
+      "devis.dateEnvoi": new Date().toISOString(),
+      statut: "devis_envoye",
+      historique: arrayUnion({ statut: "devis_envoye", date: new Date().toISOString() }),
+      updatedAt: serverTimestamp()
+    });
+    toast("Devis envoyé ✓");
+  } catch {
+    toast("Échec de l'envoi du devis", true);
+    btn.disabled = false;
+  } finally {
+    btn.textContent = "✉ Envoyer le devis au client";
+  }
 });
 
 // ------------------------------------------------------------
