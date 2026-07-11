@@ -82,12 +82,29 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
+console.log("Atelier app.js chargé — version 1.1");
+window.addEventListener("error", e => {
+  const el = document.getElementById("login-erreur");
+  if (el) el.textContent = "Erreur JS : " + e.message;
+});
+
 $("#btn-login").addEventListener("click", async () => {
-  $("#login-erreur").textContent = "";
+  $("#login-erreur").textContent = "Connexion en cours…";
   try {
     await signInWithEmailAndPassword(auth, $("#login-email").value.trim(), $("#login-mdp").value);
+    $("#login-erreur").textContent = "";
   } catch (e) {
-    $("#login-erreur").textContent = "Identifiants incorrects.";
+    console.error("Erreur de connexion :", e.code, e.message);
+    const messages = {
+      "auth/invalid-credential": "Email ou mot de passe incorrect.",
+      "auth/wrong-password": "Mot de passe incorrect.",
+      "auth/user-not-found": "Aucun compte avec cet email.",
+      "auth/invalid-email": "Format d'email invalide.",
+      "auth/too-many-requests": "Trop de tentatives, réessaie dans quelques minutes.",
+      "auth/network-request-failed": "Pas de connexion réseau vers Firebase.",
+      "auth/invalid-api-key": "Config Firebase invalide (ancien fichier en cache ?)."
+    };
+    $("#login-erreur").textContent = messages[e.code] || ("Erreur : " + (e.code || e.message));
   }
 });
 $("#login-mdp").addEventListener("keydown", e => { if (e.key === "Enter") $("#btn-login").click(); });
