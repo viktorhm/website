@@ -82,7 +82,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 1.3");
+console.log("Atelier app.js chargé — version 1.5");
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
   if (el) el.textContent = "Erreur JS : " + e.message;
@@ -127,13 +127,26 @@ onAuthStateChanged(auth, user => {
 // ------------------------------------------------------------
 // Navigation
 // ------------------------------------------------------------
+let modePro = false; // vue tickets : false = clients atelier, true = pros
+
 function montrerVue(nom) {
   $$(".vue").forEach(v => (v.hidden = true));
   $("#vue-" + nom).hidden = false;
-  $$(".nav-btn").forEach(b => b.classList.toggle("actif", b.dataset.vue === nom));
+  $$(".nav-btn").forEach(b => {
+    const actif = b.dataset.vue === nom &&
+      (nom !== "tickets" || (b.dataset.pro === "1") === modePro);
+    b.classList.toggle("actif", actif);
+  });
+  if (nom === "tickets") {
+    $("#tickets-titre").textContent = modePro ? "Tickets professionnels" : "Tickets atelier client";
+    rendreListe();
+  }
   window.scrollTo(0, 0);
 }
-$$(".nav-btn").forEach(b => b.addEventListener("click", () => montrerVue(b.dataset.vue)));
+$$(".nav-btn").forEach(b => b.addEventListener("click", () => {
+  if (b.dataset.vue === "tickets") modePro = b.dataset.pro === "1";
+  montrerVue(b.dataset.vue);
+}));
 $("#btn-retour").addEventListener("click", () => montrerVue("tickets"));
 
 // ------------------------------------------------------------
@@ -163,6 +176,23 @@ const pastillesVals = id => $$("#" + id + " .pastille.actif").map(p => p.dataset
 // Recherche client existant
 // ------------------------------------------------------------
 let clientChoisi = null;
+
+// Fermer les suggestions dès qu'on clique/tape ailleurs
+document.addEventListener("click", e => {
+  if (!e.target.closest(".champ")) $("#client-suggestions").hidden = true;
+});
+document.addEventListener("focusin", e => {
+  if (!e.target.closest(".champ")) $("#client-suggestions").hidden = true;
+});
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") $("#client-suggestions").hidden = true;
+});
+
+// Afficher SIRET + contremarque quand "professionnel" est coché
+$("#client-pro").addEventListener("change", e => {
+  $("#client-siret").hidden = !e.target.checked;
+  $("#champ-contremarque").hidden = !e.target.checked;
+});
 
 $("#client-recherche").addEventListener("input", async e => {
   const q$ = e.target.value.trim().toLowerCase();
@@ -195,11 +225,13 @@ function choisirClient(c) {
   $("#client-nouveau").hidden = true;
   $("#client-choisi").hidden = false;
   $("#client-choisi-nom").textContent = c.nom + (c.tel ? " — " + c.tel : "") + (c.pro ? " · PRO" : "");
+  $("#champ-contremarque").hidden = !c.pro;
 }
 $("#btn-client-changer").addEventListener("click", () => {
   clientChoisi = null;
   $("#client-choisi").hidden = true;
   $("#client-nouveau").hidden = false;
+  $("#champ-contremarque").hidden = !$("#client-pro").checked;
 });
 
 // ------------------------------------------------------------
@@ -254,6 +286,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
       nom, tel,
       email: $("#client-email").value.trim(),
       pro: $("#client-pro").checked,
+      siret: $("#client-pro").checked ? $("#client-siret").value.trim() : "",
       nomMin: nom.toLowerCase()
     };
   }
@@ -286,6 +319,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
       clientTel: client.tel,
       clientEmail: client.email || "",
       clientPro: !!client.pro,
+      contremarque: client.pro ? $("#ticket-contremarque").value.trim() : "",
       typeObjet,
       marque: $("#objet-marque").value.trim(),
       modele: $("#objet-modele").value.trim(),
@@ -332,6 +366,8 @@ function reinitFormDepot() {
   $$("#form-depot textarea").forEach(t => (t.value = ""));
   $$("#form-depot .pastille").forEach(p => p.classList.remove("actif"));
   $("#client-pro").checked = false;
+  $("#client-siret").hidden = true;
+  $("#champ-contremarque").hidden = true;
   $("#photos-apercu").innerHTML = "";
   photosDepot = [];
   clientChoisi = null;
@@ -351,10 +387,13 @@ function demarrerEcouteTickets() {
     tousTickets = [];
     snap.forEach(d => tousTickets.push({ id: d.id, ...d.data() }));
     rendreListe();
-    const enCours = tousTickets.filter(t => !["rendu"].includes(t.statut)).length;
-    const badge = $("#badge-encours");
-    badge.textContent = enCours;
-    badge.hidden = enCours === 0;
+    const actifs = t => !["rendu"].includes(t.statut);
+    const nClient = tousTickets.filter(t => !t.clientPro && actifs(t)).length;
+    const nPro = tousTickets.filter(t => t.clientPro && actifs(t)).length;
+    $("#badge-client").textContent = nClient;
+    $("#badge-client").hidden = nClient === 0;
+    $("#badge-pro").textContent = nPro;
+    $("#badge-pro").hidden = nPro === 0;
     // rafraîchir la fiche ouverte si besoin
     if (ticketOuvert) {
       const maj = tousTickets.find(t => t.id === ticketOuvert.id);
@@ -373,14 +412,15 @@ $("#tickets-recherche").addEventListener("input", rendreListe);
 
 function rendreListe() {
   const rech = $("#tickets-recherche").value.trim().toLowerCase();
-  let liste = tousTickets;
+  let liste = tousTickets.filter(t => !!t.clientPro === modePro);
   if (filtreActif === "actifs") liste = liste.filter(t => !["pret", "rendu"].includes(t.statut));
   else if (filtreActif !== "tous") liste = liste.filter(t => t.statut === filtreActif);
   if (rech) {
     liste = liste.filter(t =>
       String(t.numero).includes(rech) ||
       (t.clientNom || "").toLowerCase().includes(rech) ||
-      (t.marque || "").toLowerCase().includes(rech)
+      (t.marque || "").toLowerCase().includes(rech) ||
+      (t.contremarque || "").toLowerCase().includes(rech)
     );
   }
   $("#liste-tickets").innerHTML = liste.map(t => `
@@ -388,7 +428,7 @@ function rendreListe() {
       <div class="tc-num">N° ${t.numero}</div>
       <div class="tc-corps">
         <div class="tc-client">${echap(t.clientNom)}${t.clientPro ? ' <span class="tag-pro">PRO</span>' : ""}</div>
-        <div class="tc-objet">${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</div>
+        <div class="tc-objet">${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}${t.contremarque ? " · CM " + echap(t.contremarque) : ""}</div>
       </div>
       <div class="tc-statut statut-${t.statut}">${statutLabel(t.statut)}</div>
     </div>
@@ -430,6 +470,7 @@ function rendreFiche() {
   // Infos
   $("#fiche-infos").innerHTML = `
     <div><span>Client</span><b>${echap(t.clientNom)}${t.clientPro ? " · PRO" : ""}</b></div>
+    ${t.contremarque ? `<div><span>Contremarque</span><b>${echap(t.contremarque)}</b></div>` : ""}
     <div><span>Téléphone</span><b>${echap(t.clientTel)}</b></div>
     ${t.clientEmail ? `<div><span>Email</span><b>${echap(t.clientEmail)}</b></div>` : ""}
     <div><span>Objet</span><b>${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</b></div>
@@ -534,6 +575,7 @@ $("#btn-imprimer").addEventListener("click", () => { if (ticketOuvert) imprimerT
 
 function imprimerTicket(t) {
   $("#pt-num").textContent = "N° " + t.numero;
+  $("#pt-contremarque").textContent = t.contremarque ? "Contremarque : " + t.contremarque : "";
   const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || Date.now());
   $("#pt-date").textContent = "Déposé le " + d.toLocaleDateString("fr-FR");
   $("#pt-client").textContent = t.clientNom;

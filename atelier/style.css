@@ -132,8 +132,9 @@ textarea { resize: vertical; margin-top: 10px; }
 .suggestions {
   position: absolute; left: 0; right: 0; top: 100%; z-index: 5;
   background: var(--blanc); border: 1.5px solid #D8D5CD; border-radius: 8px;
-  box-shadow: 0 6px 16px rgba(34,40,46,.15); overflow: hidden;
+  box-shadow: 0 6px 16px rgba(34,40,46,.15); overflow-y: auto; max-height: 240px;
 }
+.champ-contremarque { margin-top: 12px; }
 .suggestion { padding: 13px 14px; cursor: pointer; border-bottom: 1px solid #EFEDE7; }
 .suggestion:last-child { border-bottom: none; }
 .suggestion:active { background: var(--ivoire); }
@@ -258,4 +259,10 @@ textarea { resize: vertical; margin-top: 10px; }
     border-top: 1.5pt solid #000; margin-top: 3mm; padding-top: 2.5mm;
     text-align: center; font-size: 7.5pt;
   }
+}
+
+/* ---------- Titre vue tickets ---------- */
+.tickets-titre {
+  font-size: 1.1rem; margin: 0 0 14px;
+  text-transform: uppercase; letter-spacing: .08em;
 }
