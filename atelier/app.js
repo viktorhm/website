@@ -82,7 +82,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 1.6");
+console.log("Atelier app.js chargé — version 1.7");
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
   if (el) el.textContent = "Erreur JS : " + e.message;

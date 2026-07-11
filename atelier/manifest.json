@@ -3,8 +3,8 @@
   "short_name": "Atelier",
   "start_url": "/atelier/",
   "display": "standalone",
-  "background_color": "#22282E",
-  "theme_color": "#22282E",
+  "background_color": "#0F1418",
+  "theme_color": "#0F1418",
   "orientation": "portrait",
   "icons": [
     {
