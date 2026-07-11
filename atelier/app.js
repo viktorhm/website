@@ -82,7 +82,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 1.1");
+console.log("Atelier app.js chargé — version 1.3");
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
   if (el) el.textContent = "Erreur JS : " + e.message;
@@ -111,9 +111,17 @@ $("#login-mdp").addEventListener("keydown", e => { if (e.key === "Enter") $("#bt
 $("#btn-logout").addEventListener("click", () => signOut(auth));
 
 onAuthStateChanged(auth, user => {
-  $("#ecran-login").hidden = !!user;
-  $("#app").hidden = !user;
-  if (user) demarrerEcouteTickets();
+  const login = $("#ecran-login");
+  const appEl = $("#app");
+  login.hidden = !!user;
+  appEl.hidden = !user;
+  // Forçage direct (contourne tout conflit CSS/cache)
+  login.style.display = user ? "none" : "flex";
+  appEl.style.display = user ? "block" : "none";
+  if (user) {
+    console.log("Connecté :", user.email);
+    demarrerEcouteTickets();
+  }
 });
 
 // ------------------------------------------------------------
