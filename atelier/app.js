@@ -19,12 +19,12 @@ import {
 // (le même projet Firebase — même Firestore)
 // ------------------------------------------------------------
 const firebaseConfig = {
-  apiKey: "TA_CLE_API",
-  authDomain: "TON_PROJET.firebaseapp.com",
-  projectId: "TON_PROJET",
-  storageBucket: "TON_PROJET.appspot.com",
-  messagingSenderId: "XXXX",
-  appId: "XXXX"
+  apiKey: "AIzaSyBdhXev9PvfrQIBKktIJJ58vEsP-Db-mpc",
+  authDomain: "horlogerie-haratyk.firebaseapp.com",
+  projectId: "horlogerie-haratyk",
+  storageBucket: "horlogerie-haratyk.firebasestorage.app",
+  messagingSenderId: "90184929449",
+  appId: "1:90184929449:web:03bc08665e0577ac6399b8"
 };
 
 const CLOUDINARY_CLOUD = "dhdgbhuq8";
