@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Horlogerie Haratyk</title>
+<link rel="stylesheet" href="style.css">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#22282E">
+</head>
+<body>
+
+<!-- ============ ÉCRAN LOGIN ============ -->
+<div id="ecran-login" class="ecran-login">
+  <div class="login-carte">
+    <div class="login-logo">HORLOGERIE<br>HARATYK</div>
+    <p class="login-sous-titre">Gestion d'atelier</p>
+    <input type="email" id="login-email" placeholder="Email" autocomplete="username">
+    <input type="password" id="login-mdp" placeholder="Mot de passe" autocomplete="current-password">
+    <button id="btn-login" class="btn btn-principal">Se connecter</button>
+    <p id="login-erreur" class="login-erreur"></p>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div id="app" class="app" hidden>
+
+  <header class="entete">
+    <div class="entete-titre">Atelier</div>
+    <nav class="entete-nav">
+      <button class="nav-btn actif" data-vue="depot">Nouveau dépôt</button>
+      <button class="nav-btn" data-vue="tickets">Tickets <span id="badge-encours" class="badge" hidden></span></button>
+    </nav>
+    <button id="btn-logout" class="btn-logout" title="Déconnexion">⏻</button>
+  </header>
+
+  <!-- ============ VUE : NOUVEAU DÉPÔT ============ -->
+  <main id="vue-depot" class="vue">
+    <form id="form-depot" class="formulaire" onsubmit="return false;">
+
+      <section class="bloc">
+        <h2>Client</h2>
+        <div class="champ">
+          <input type="text" id="client-recherche" placeholder="Rechercher un client (nom ou téléphone)…" autocomplete="off">
+          <div id="client-suggestions" class="suggestions" hidden></div>
+        </div>
+        <div id="client-choisi" class="client-choisi" hidden>
+          <span id="client-choisi-nom"></span>
+          <button type="button" id="btn-client-changer" class="btn-lien">changer</button>
+        </div>
+        <div id="client-nouveau" class="grille-2">
+          <input type="text" id="client-nom" placeholder="Nom / raison sociale *">
+          <input type="tel" id="client-tel" placeholder="Téléphone *">
+          <input type="email" id="client-email" placeholder="Email (pour notification)">
+          <label class="case-pro"><input type="checkbox" id="client-pro"> Client professionnel</label>
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>Objet déposé</h2>
+        <div class="pastilles" id="type-objet">
+          <button type="button" class="pastille" data-val="Montre quartz">Montre quartz</button>
+          <button type="button" class="pastille" data-val="Montre mécanique">Montre mécanique</button>
+          <button type="button" class="pastille" data-val="Montre automatique">Montre automatique</button>
+          <button type="button" class="pastille" data-val="Pendule">Pendule</button>
+          <button type="button" class="pastille" data-val="Autre">Autre</button>
+        </div>
+        <div class="grille-2">
+          <input type="text" id="objet-marque" placeholder="Marque">
+          <input type="text" id="objet-modele" placeholder="Modèle / référence">
+          <input type="text" id="objet-serie" placeholder="N° de série (si visible)">
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>État constaté au dépôt</h2>
+        <div class="pastilles pastilles-multi" id="etat-objet">
+          <button type="button" class="pastille" data-val="Verre rayé">Verre rayé</button>
+          <button type="button" class="pastille" data-val="Verre fêlé/cassé">Verre fêlé</button>
+          <button type="button" class="pastille" data-val="Boîte rayée">Boîte rayée</button>
+          <button type="button" class="pastille" data-val="Bracelet usé">Bracelet usé</button>
+          <button type="button" class="pastille" data-val="Bracelet absent">Bracelet absent</button>
+          <button type="button" class="pastille" data-val="Couronne absente">Couronne absente</button>
+          <button type="button" class="pastille" data-val="Ne fonctionne pas">Ne fonctionne pas</button>
+          <button type="button" class="pastille" data-val="Traces d'oxydation">Oxydation</button>
+        </div>
+        <textarea id="etat-texte" rows="2" placeholder="Autres remarques sur l'état…"></textarea>
+        <div class="photos-zone">
+          <label for="photo-input" class="btn btn-secondaire">📷 Ajouter des photos</label>
+          <input type="file" id="photo-input" accept="image/*" capture="environment" multiple hidden>
+          <div id="photos-apercu" class="photos-apercu"></div>
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>Demande du client</h2>
+        <div class="pastilles" id="demande-client">
+          <button type="button" class="pastille" data-val="Révision complète">Révision complète</button>
+          <button type="button" class="pastille" data-val="Changement de pile">Pile</button>
+          <button type="button" class="pastille" data-val="Réparation">Réparation</button>
+          <button type="button" class="pastille" data-val="Devis / diagnostic">Devis / diagnostic</button>
+          <button type="button" class="pastille" data-val="Bracelet">Bracelet</button>
+        </div>
+        <textarea id="demande-texte" rows="2" placeholder="Précisions…"></textarea>
+      </section>
+
+      <div class="actions-bas">
+        <button type="button" id="btn-creer-ticket" class="btn btn-principal btn-large">Créer le ticket de dépôt</button>
+      </div>
+    </form>
+  </main>
+
+  <!-- ============ VUE : LISTE TICKETS ============ -->
+  <main id="vue-tickets" class="vue" hidden>
+    <div class="filtres">
+      <button class="filtre actif" data-statut="actifs">En cours</button>
+      <button class="filtre" data-statut="pret">Prêts</button>
+      <button class="filtre" data-statut="rendu">Rendus</button>
+      <button class="filtre" data-statut="tous">Tous</button>
+      <input type="search" id="tickets-recherche" placeholder="N°, client, marque…">
+    </div>
+    <div id="liste-tickets" class="liste-tickets"></div>
+  </main>
+
+  <!-- ============ VUE : FICHE TICKET ============ -->
+  <main id="vue-fiche" class="vue" hidden>
+    <div class="fiche-entete">
+      <button id="btn-retour" class="btn-lien">← Retour</button>
+      <div class="fiche-numero" id="fiche-numero"></div>
+      <button id="btn-imprimer" class="btn btn-secondaire">🖨 Ticket A6</button>
+    </div>
+
+    <div class="fiche-corps">
+      <section class="bloc">
+        <h2>Statut</h2>
+        <div class="pastilles" id="fiche-statuts"></div>
+        <div id="fiche-notif" class="notif-zone" hidden>
+          <button id="btn-notifier" class="btn btn-principal">✉ Prévenir le client (montre prête)</button>
+          <span id="notif-info" class="notif-info"></span>
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>Client &amp; objet</h2>
+        <div id="fiche-infos" class="fiche-infos"></div>
+        <div id="fiche-photos" class="photos-apercu"></div>
+      </section>
+
+      <section class="bloc">
+        <h2>Pièces remplacées</h2>
+        <div id="fiche-pieces" class="liste-pieces"></div>
+        <div class="grille-piece">
+          <input type="text" id="piece-designation" placeholder="Désignation (ex. glace Ø29,5 mm)">
+          <input type="text" id="piece-ref" placeholder="Réf.">
+          <input type="number" id="piece-prix" placeholder="Prix €" step="0.01" min="0">
+          <button id="btn-ajouter-piece" class="btn btn-secondaire">Ajouter</button>
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>Notes techniques</h2>
+        <div id="fiche-notes" class="liste-notes"></div>
+        <div class="grille-note">
+          <textarea id="note-texte" rows="2" placeholder="Observation, mesure, intervention…"></textarea>
+          <button id="btn-ajouter-note" class="btn btn-secondaire">Ajouter</button>
+        </div>
+      </section>
+
+      <section class="bloc">
+        <h2>Historique</h2>
+        <div id="fiche-historique" class="historique"></div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- ============ TICKET A6 (impression uniquement) ============ -->
+<div id="print-ticket" class="print-ticket">
+  <div class="pt-entete">
+    <div class="pt-marque">HORLOGERIE HARATYK</div>
+    <div class="pt-coord">43 rue du Vieux Four · 59700 Marcq-en-Barœul<br>07 85 85 10 80 · horlogerie-haratyk.fr</div>
+  </div>
+  <div class="pt-numero">TICKET DE DÉPÔT <span id="pt-num"></span></div>
+  <div class="pt-date" id="pt-date"></div>
+  <div class="pt-section">
+    <div class="pt-ligne"><span>Client</span><b id="pt-client"></b></div>
+    <div class="pt-ligne"><span>Téléphone</span><b id="pt-tel"></b></div>
+  </div>
+  <div class="pt-section">
+    <div class="pt-ligne"><span>Objet</span><b id="pt-objet"></b></div>
+    <div class="pt-ligne"><span>État constaté</span><span id="pt-etat"></span></div>
+    <div class="pt-ligne"><span>Demande</span><span id="pt-demande"></span></div>
+  </div>
+  <div class="pt-pied">
+    À présenter lors du retrait.<br>
+    Ouvert mercredi &amp; jeudi 10h–18h, samedi 10h–14h.<br>
+    Paiement : espèces ou chèque.
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script type="module" src="app.js"></script>
+</body>
+</html>
