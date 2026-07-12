@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=3.7">
+<link rel="stylesheet" href="style.css?v=3.9">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -26,6 +26,7 @@
 <div id="app" class="app" hidden>
 
   <header class="entete">
+    <img src="/logo.svg" alt="Horlogerie Haratyk" class="entete-logo">
     <div class="entete-titre">Atelier</div>
     <nav class="entete-nav">
       <button class="nav-btn actif" data-vue="depot">Nouveau dépôt</button>
@@ -33,7 +34,7 @@
       <button class="nav-btn" data-vue="tickets" data-pro="1">Tickets pro <span id="badge-pro" class="badge" hidden></span></button>
       <button class="nav-btn" data-vue="bilan">Bilan</button>
     </nav>
-    <button id="btn-logout" class="btn-logout" title="Déconnexion">⏻</button>
+    <button id="btn-logout" class="btn-deco">Déconnexion</button>
   </header>
 
   <!-- ============ VUE : NOUVEAU DÉPÔT ============ -->
@@ -171,8 +172,7 @@
 
     <section class="bloc">
       <h2>Encaissé par mois (tickets rendus)</h2>
-      <div id="bilan-graphique"></div>
-      <div id="bilan-courbe" style="margin-top:18px"></div>
+      <div id="bilan-courbe"></div>
     </section>
 
     <section class="bloc">
@@ -332,6 +332,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=3.7"></script>
+<script type="module" src="app.js?v=3.9"></script>
 </body>
 </html>

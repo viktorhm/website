@@ -461,3 +461,19 @@ textarea { resize: vertical; margin-top: 10px; }
   font-weight: 600; cursor: pointer; white-space: nowrap;
 }
 .btn-facture:hover { background: rgba(76,175,119,.12); }
+
+/* En-tête : logo + déconnexion */
+.entete-logo {
+  height: 58px; width: auto;
+  filter: invert(1);
+  margin: -8px 0 -8px -10px;
+  opacity: .95;
+}
+.btn-deco {
+  background: var(--carte-2); color: var(--texte-2);
+  border: 1px solid var(--ligne); border-radius: 999px;
+  padding: 9px 18px; font: inherit; font-size: .88rem; font-weight: 600;
+  cursor: pointer; transition: all .15s; white-space: nowrap;
+}
+.btn-deco:hover { color: var(--emauxrouge); border-color: var(--emauxrouge); }
+@media (max-width: 640px) { .entete-logo { display: none; } }
