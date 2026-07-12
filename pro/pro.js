@@ -185,13 +185,11 @@ function majSolde() {
   const nDu = rendusNonFactures.length;
   const zone = $("#pro-solde");
   if (!zone) return;
-  if (du > 0) {
-    zone.hidden = false;
-    $("#solde-du").textContent = du.toFixed(2) + " €";
-    $("#solde-du-detail").textContent = nDu + " montre" + (nDu > 1 ? "s" : "") + " rendue" + (nDu > 1 ? "s" : "") + " — facture à venir";
-  } else {
-    zone.hidden = true;
-  }
+  zone.hidden = false;
+  $("#solde-du").textContent = du.toFixed(2) + " €";
+  $("#solde-du-detail").textContent = nDu
+    ? nDu + " montre" + (nDu > 1 ? "s" : "") + " rendue" + (nDu > 1 ? "s" : "") + " — facture à venir"
+    : "aucune montre en attente de facturation";
 }
 
 function majCompteurs() {
