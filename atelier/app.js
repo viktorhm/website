@@ -83,7 +83,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 3.0");
+console.log("Atelier app.js chargé — version 3.4");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -205,18 +205,26 @@ $("#client-pro").addEventListener("change", e => {
   $("#client-email2").hidden = !e.target.checked;
 });
 
+// Cache clients : une seule lecture Firestore par session,
+// la recherche filtre ensuite en mémoire (0 lecture par frappe)
+let cacheClients = null;
+async function chargerClients() {
+  if (cacheClients) return cacheClients;
+  const snap = await getDocs(query(collection(db, "clients"), orderBy("nomMin"), limit(1000)));
+  cacheClients = [];
+  snap.forEach(d => cacheClients.push({ id: d.id, ...d.data() }));
+  return cacheClients;
+}
+
 $("#client-recherche").addEventListener("input", async e => {
   const q$ = e.target.value.trim().toLowerCase();
   const box = $("#client-suggestions");
   if (q$.length < 2) { box.hidden = true; return; }
-  const snap = await getDocs(query(collection(db, "clients"), orderBy("nomMin"), limit(300)));
-  const resultats = [];
-  snap.forEach(d => {
-    const c = d.data();
-    if ((c.nomMin || "").includes(q$) || (c.tel || "").replace(/\s/g, "").includes(q$.replace(/\s/g, ""))) {
-      resultats.push({ id: d.id, ...c });
-    }
-  });
+  const clients = await chargerClients();
+  const resultats = clients.filter(c =>
+    (c.nomMin || "").includes(q$) ||
+    (c.tel || "").replace(/\s/g, "").includes(q$.replace(/\s/g, ""))
+  );
   box.innerHTML = resultats.slice(0, 8).map(c =>
     `<div class="suggestion" data-id="${c.id}">${echap(c.nom)} — ${echap(c.tel || "")}${c.pro ? " · PRO" : ""}</div>`
   ).join("") || `<div class="suggestion suggestion-vide">Aucun client trouvé</div>`;
@@ -358,10 +366,12 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
         ...client, createdAt: serverTimestamp()
       });
       clientId = ref.id;
+      cacheClients = null; // recharger au prochain usage
     } else if (client.pro && (client.email !== clientChoisi.email || client.email2 !== clientChoisi.email2)) {
       await updateDoc(doc(db, "clients", clientId), {
         email: client.email || "", email2: client.email2 || ""
       });
+      cacheClients = null;
     }
 
     // Numéro de ticket via compteur transactionnel
@@ -535,6 +545,7 @@ function rendreFiche() {
     <div><span>État au dépôt</span><b>${echap([...(t.etat || []), t.etatTexte].filter(Boolean).join(", ") || "RAS")}</b></div>
     <div><span>Demande</span><b>${echap([t.demande, t.demandeTexte].filter(Boolean).join(" — "))}</b></div>
     <div><span>Déposé le</span><b>${fmtDate(t.createdAt)}</b></div>
+    ${t.facture ? `<div><span>Facturation</span><b style="color:var(--emauxvert)">✓ Facturé le ${fmtDate(t.factureDate)}</b></div>` : ""}
   `;
   $("#fiche-photos").innerHTML = (t.photos || []).map(u =>
     `<a class="photo-item" href="${u}" target="_blank"><img src="${u.replace("/upload/", "/upload/w_200,h_200,c_fill/")}"></a>`
@@ -848,36 +859,56 @@ function rendreBilan() {
   $("#stat-ca-n").textContent = rendusMois.length + " ticket" + (rendusMois.length > 1 ? "s" : "") + " rendu" + (rendusMois.length > 1 ? "s" : "");
 
   // --- Dû par les clients pro ---
-  // En cours : devis accepté, pas encore rendu. À facturer : rendu dans le mois choisi.
+  // En atelier : devis accepté, pas encore rendu.
+  // À facturer : rendu et pas encore facturé (solde cumulé, tous mois confondus).
   const proTickets = tousTickets.filter(t => t.clientPro && montantTicket(t) > 0 && t.devis && t.devis.statut === "accepte");
   const parClient = {};
   proTickets.forEach(t => {
-    const c = parClient[t.clientNom] || (parClient[t.clientNom] = { enCours: 0, nEnCours: 0, rendu: 0, nRendu: 0 });
+    const c = parClient[t.clientNom] || (parClient[t.clientNom] = { enCours: 0, nEnCours: 0, du: 0, nDu: 0, tickets: [] });
     if (t.statut === "rendu") {
-      if (dansLeMois(dateStatut(t, "rendu"))) { c.rendu += montantTicket(t); c.nRendu++; }
+      if (!t.facture) { c.du += montantTicket(t); c.nDu++; c.tickets.push(t); }
     } else {
       c.enCours += montantTicket(t); c.nEnCours++;
     }
   });
   const noms = Object.keys(parClient).sort();
-  let totalEnCours = 0, totalRendu = 0;
+  let totalEnCours = 0, totalDu = 0;
   $("#bilan-pro").innerHTML = noms.length ? `
-    <div class="bilan-ligne bilan-ligne-titre">
-      <span>Client</span><span>En atelier</span><span>Rendu ${MOIS_FR[mois - 1]}</span>
+    <div class="bilan-ligne bilan-ligne-pro bilan-ligne-titre">
+      <span>Client</span><span>En atelier</span><span>À facturer</span><span></span>
     </div>
-    ${noms.map(n => {
+    ${noms.map((n, idx) => {
       const c = parClient[n];
-      totalEnCours += c.enCours; totalRendu += c.rendu;
-      return `<div class="bilan-ligne">
+      totalEnCours += c.enCours; totalDu += c.du;
+      return `<div class="bilan-ligne bilan-ligne-pro">
         <span>${echap(n)}</span>
         <span>${c.nEnCours ? eur(c.enCours) + " (" + c.nEnCours + ")" : "—"}</span>
-        <span>${c.nRendu ? eur(c.rendu) + " (" + c.nRendu + ")" : "—"}</span>
+        <span>${c.nDu ? eur(c.du) + " (" + c.nDu + ")" : "—"}</span>
+        <span>${c.nDu ? `<button class="btn-facture" data-client="${echap(n)}">✓ Facturé</button>` : ""}</span>
       </div>`;
     }).join("")}
-    <div class="bilan-ligne bilan-ligne-total">
-      <span>Total</span><span>${eur(totalEnCours)}</span><span>${eur(totalRendu)}</span>
+    <div class="bilan-ligne bilan-ligne-pro bilan-ligne-total">
+      <span>Total</span><span>${eur(totalEnCours)}</span><span>${eur(totalDu)}</span><span></span>
     </div>`
     : "<p class='liste-vide'>Aucun devis pro accepté pour l'instant.</p>";
+
+  // Bouton "Facturé" : remet le solde du client à zéro (marque les tickets rendus comme facturés)
+  $$(".btn-facture").forEach(b => b.addEventListener("click", async () => {
+    const nom = b.dataset.client;
+    const c = parClient[nom];
+    if (!c || !c.tickets.length) return;
+    if (!confirm(`Marquer comme facturés les ${c.nDu} ticket(s) de ${nom} (${eur(c.du)}) ?\nLe solde "À facturer" repassera à zéro.`)) return;
+    const dateFacture = new Date().toISOString();
+    try {
+      await Promise.all(c.tickets.map(t => updateDoc(doc(db, "tickets", t.id), {
+        facture: true, factureDate: dateFacture, updatedAt: serverTimestamp()
+      })));
+      toast(`${nom} : ${eur(c.du)} marqués facturés ✓`);
+    } catch (e) {
+      console.error(e);
+      toast("Erreur lors du marquage", true);
+    }
+  }));
 
   // --- Tickets validés ---
   const valides = tousTickets
