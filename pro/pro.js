@@ -102,17 +102,40 @@ let ticketOuvertId = null;
 
 function demarrerEcoute(email) {
   // La requête DOIT filtrer sur l'email : c'est la condition de la règle Firestore
-  const q$ = query(collection(db, "tickets"), where("clientEmail", "==", email));
-  arretEcoute = onSnapshot(q$, snap => {
-    mesTickets = [];
-    snap.forEach(d => mesTickets.push({ id: d.id, ...d.data() }));
-    // tri : plus récents d'abord
+  const em = email.toLowerCase();
+  const qNouveaux = query(collection(db, "tickets"), where("clientEmails", "array-contains", em));
+  const qAnciens = query(collection(db, "tickets"), where("clientEmail", "==", email));
+  const resultats = { a: [], b: [] };
+
+  const fusionner = () => {
+    const vus = new Set();
+    mesTickets = [...resultats.a, ...resultats.b].filter(t => {
+      if (vus.has(t.id)) return false;
+      vus.add(t.id);
+      return true;
+    });
     mesTickets.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
     rendreListe();
+  };
+
+  const arretA = onSnapshot(qNouveaux, snap => {
+    resultats.a = [];
+    snap.forEach(d => resultats.a.push({ id: d.id, ...d.data() }));
+    fusionner();
+  }, err => console.error(err));
+
+  const arretB = onSnapshot(qAnciens, snap => {
+    resultats.b = [];
+    snap.forEach(d => resultats.b.push({ id: d.id, ...d.data() }));
+    fusionner();
   }, err => {
     console.error(err);
-    $("#liste-tickets").innerHTML = `<p class="pro-vide">Accès refusé ou erreur de chargement.<br>Contactez l'atelier au 07 85 85 10 80.</p>`;
+    if (!resultats.a.length) {
+      $("#liste-tickets").innerHTML = `<p class="pro-vide">Accès refusé ou erreur de chargement.<br>Contactez l'atelier au 07 85 85 10 80.</p>`;
+    }
   });
+
+  arretEcoute = () => { arretA(); arretB(); };
 }
 
 $$(".filtre").forEach(f => f.addEventListener("click", () => {

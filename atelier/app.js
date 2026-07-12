@@ -82,7 +82,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 1.9");
+console.log("Atelier app.js chargé — version 2.1");
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
   if (el) el.textContent = "Erreur JS : " + e.message;
@@ -110,7 +110,16 @@ $("#btn-login").addEventListener("click", async () => {
 $("#login-mdp").addEventListener("keydown", e => { if (e.key === "Enter") $("#btn-login").click(); });
 $("#btn-logout").addEventListener("click", () => signOut(auth));
 
+const EMAIL_ADMIN = "haratykviktor@gmail.com";
+
 onAuthStateChanged(auth, user => {
+  // L'atelier est réservé au compte admin : tout autre compte est éjecté
+  if (user && user.email !== EMAIL_ADMIN) {
+    signOut(auth);
+    const err = $("#login-erreur");
+    if (err) err.textContent = "Accès réservé à l'atelier. Espace pro : horlogerie-haratyk.fr/pro/";
+    return;
+  }
   const login = $("#ecran-login");
   const appEl = $("#app");
   login.hidden = !!user;
@@ -191,6 +200,7 @@ document.addEventListener("keydown", e => {
 // Afficher SIRET quand "professionnel" est coché
 $("#client-pro").addEventListener("change", e => {
   $("#client-siret").hidden = !e.target.checked;
+  $("#client-email2").hidden = !e.target.checked;
 });
 
 $("#client-recherche").addEventListener("input", async e => {
@@ -282,6 +292,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
     client = {
       nom, tel,
       email: $("#client-email").value.trim(),
+      email2: $("#client-pro").checked ? $("#client-email2").value.trim() : "",
       pro: $("#client-pro").checked,
       siret: $("#client-pro").checked ? $("#client-siret").value.trim() : "",
       nomMin: nom.toLowerCase()
@@ -315,6 +326,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
       clientNom: client.nom,
       clientTel: client.tel,
       clientEmail: client.email || "",
+      clientEmails: [client.email, client.email2].filter(Boolean).map(e => e.toLowerCase()),
       clientPro: !!client.pro,
       typeObjet,
       marque: $("#objet-marque").value.trim(),
@@ -363,6 +375,7 @@ function reinitFormDepot() {
   $$("#form-depot .pastille").forEach(p => p.classList.remove("actif"));
   $("#client-pro").checked = false;
   $("#client-siret").hidden = true;
+  $("#client-email2").hidden = true;
   $("#photos-apercu").innerHTML = "";
   photosDepot = [];
   clientChoisi = null;
@@ -467,7 +480,7 @@ function rendreFiche() {
     <div><span>Client</span><b>${echap(t.clientNom)}${t.clientPro ? " · PRO" : ""}</b></div>
     ${t.contremarque ? `<div><span>Contremarque</span><b>${echap(t.contremarque)}</b></div>` : ""}
     <div><span>Téléphone</span><b>${echap(t.clientTel)}</b></div>
-    ${t.clientEmail ? `<div><span>Email</span><b>${echap(t.clientEmail)}</b></div>` : ""}
+    ${(t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).filter(Boolean).map(e => `<div><span>Email</span><b>${echap(e)}</b></div>`).join("")}
     <div><span>Objet</span><b>${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</b></div>
     ${t.numSerie ? `<div><span>N° série</span><b>${echap(t.numSerie)}</b></div>` : ""}
     <div><span>État au dépôt</span><b>${echap([...(t.etat || []), t.etatTexte].filter(Boolean).join(", ") || "RAS")}</b></div>
@@ -605,7 +618,7 @@ $("#btn-envoyer-devis").addEventListener("click", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: t.clientEmail,
+        email: (t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).join(", "),
         nom: t.clientNom,
         numero: t.numero,
         contremarque: t.contremarque || "",
@@ -645,7 +658,7 @@ $("#btn-notifier").addEventListener("click", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        email: t.clientEmail,
+        email: (t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).join(", "),
         nom: t.clientNom,
         numero: t.numero,
         objet: [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" ")
