@@ -82,7 +82,8 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 2.1");
+console.log("Atelier app.js chargé — version 2.2");
+const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
   if (el) el.textContent = "Erreur JS : " + e.message;
@@ -91,8 +92,8 @@ window.addEventListener("error", e => {
 $("#btn-login").addEventListener("click", async () => {
   $("#login-erreur").textContent = "Connexion en cours…";
   try {
-    await signInWithEmailAndPassword(auth, $("#login-email").value.trim(), $("#login-mdp").value);
-    $("#login-erreur").textContent = "";
+    const cred = await signInWithEmailAndPassword(auth, $("#login-email").value.trim(), $("#login-mdp").value);
+    if (cred.user.email === EMAIL_ADMIN) $("#login-erreur").textContent = "";
   } catch (e) {
     console.error("Erreur de connexion :", e.code, e.message);
     const messages = {
@@ -110,14 +111,12 @@ $("#btn-login").addEventListener("click", async () => {
 $("#login-mdp").addEventListener("keydown", e => { if (e.key === "Enter") $("#btn-login").click(); });
 $("#btn-logout").addEventListener("click", () => signOut(auth));
 
-const EMAIL_ADMIN = "haratykviktor@gmail.com";
-
 onAuthStateChanged(auth, user => {
   // L'atelier est réservé au compte admin : tout autre compte est éjecté
   if (user && user.email !== EMAIL_ADMIN) {
     signOut(auth);
     const err = $("#login-erreur");
-    if (err) err.textContent = "Accès réservé à l'atelier. Espace pro : horlogerie-haratyk.fr/pro/";
+    if (err) err.innerHTML = "Ce compte est un compte client professionnel.<br>Cet espace est r\u00e9serv\u00e9 \u00e0 l'atelier.<br>Votre espace de suivi : <a href='/pro/' style='color:var(--laiton)'>horlogerie-haratyk.fr/pro/</a>";
     return;
   }
   const login = $("#ecran-login");
@@ -246,7 +245,7 @@ $("#btn-client-changer").addEventListener("click", () => {
 // ------------------------------------------------------------
 let photosDepot = [];
 
-$("#photo-input").addEventListener("change", async e => {
+async function traiterPhotos(e) {
   for (const fichier of e.target.files) {
     const apercu = document.createElement("div");
     apercu.className = "photo-item photo-chargement";
@@ -263,7 +262,9 @@ $("#photo-input").addEventListener("change", async e => {
     }
   }
   e.target.value = "";
-});
+}
+$("#photo-camera").addEventListener("change", traiterPhotos);
+$("#photo-input").addEventListener("change", traiterPhotos);
 
 async function uploadCloudinary(fichier) {
   const fd = new FormData();
@@ -586,11 +587,23 @@ function rendreDevis(t) {
     refuse: "✗ Devis refusé par le client"
   };
   $("#devis-info").textContent = infos[devis.statut] || "";
-  $("#btn-envoyer-devis").disabled = !lignes.length || !t.clientEmail;
-  $("#btn-envoyer-devis").textContent = !t.clientEmail
-    ? "Pas d'email client enregistré"
-    : (devis.statut === "envoye" ? "✉ Renvoyer le devis" : "✉ Envoyer le devis au client");
+  if (t.clientPro) {
+    $("#btn-envoyer-devis").disabled = !lignes.length;
+    $("#btn-envoyer-devis").textContent = devis.statut === "envoye"
+      ? "↻ Republier le devis (espace pro)" : "▸ Publier le devis sur l'espace pro";
+  } else {
+    $("#btn-envoyer-devis").disabled = !lignes.length || !t.clientEmail;
+    $("#btn-envoyer-devis").textContent = !t.clientEmail
+      ? "Pas d'email client enregistré"
+      : (devis.statut === "envoye" ? "✉ Renvoyer le devis" : "✉ Envoyer le devis au client");
+  }
 }
+
+$$("#devis-presets .pastille").forEach(p => p.addEventListener("click", () => {
+  $("#devis-designation").value = p.dataset.des;
+  if (p.dataset.prix) $("#devis-prix").value = p.dataset.prix;
+  $("#devis-prix").focus();
+}));
 
 $("#btn-ajouter-devis").addEventListener("click", async () => {
   const designation = $("#devis-designation").value.trim();
@@ -608,26 +621,32 @@ $("#btn-envoyer-devis").addEventListener("click", async () => {
   const t = ticketOuvert;
   const btn = $("#btn-envoyer-devis");
   const lignes = (t.devis && t.devis.lignes) || [];
-  if (!lignes.length || !t.clientEmail) return;
+  if (!lignes.length) return;
+  if (!t.clientPro && !t.clientEmail) return;
   btn.disabled = true;
-  btn.textContent = "Envoi…";
+  btn.textContent = t.clientPro ? "Publication…" : "Envoi…";
   try {
-    // jeton unique pour les liens Accepter/Refuser du mail
     const token = (t.devis && t.devis.token) || crypto.randomUUID();
-    const r = await fetch("/.netlify/functions/send-devis", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: (t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).join(", "),
-        nom: t.clientNom,
-        numero: t.numero,
-        contremarque: t.contremarque || "",
-        objet: [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" "),
-        lignes,
-        token
-      })
-    });
-    if (!r.ok) throw new Error();
+
+    // Particulier : email avec boutons Accepter/Refuser.
+    // Pro : PAS d'email — le devis apparaît sur l'espace pro, tu le préviens toi-même.
+    if (!t.clientPro) {
+      const r = await fetch("/.netlify/functions/send-devis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: (t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).join(", "),
+          nom: t.clientNom,
+          numero: t.numero,
+          contremarque: t.contremarque || "",
+          objet: [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" "),
+          lignes,
+          token
+        })
+      });
+      if (!r.ok) throw new Error();
+    }
+
     await updateDoc(doc(db, "tickets", t.id), {
       "devis.statut": "envoye",
       "devis.token": token,
@@ -636,12 +655,10 @@ $("#btn-envoyer-devis").addEventListener("click", async () => {
       historique: arrayUnion({ statut: "devis_envoye", date: new Date().toISOString() }),
       updatedAt: serverTimestamp()
     });
-    toast("Devis envoyé ✓");
+    toast(t.clientPro ? "Devis publié sur l'espace pro ✓" : "Devis envoyé par email ✓");
   } catch {
     toast("Échec de l'envoi du devis", true);
     btn.disabled = false;
-  } finally {
-    btn.textContent = "✉ Envoyer le devis au client";
   }
 });
 

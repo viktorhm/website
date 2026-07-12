@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=2.1">
+<link rel="stylesheet" href="style.css?v=2.2">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -89,8 +89,10 @@
         </div>
         <textarea id="etat-texte" rows="2" placeholder="Autres remarques sur l'état…"></textarea>
         <div class="photos-zone">
-          <label for="photo-input" class="btn btn-secondaire">📷 Ajouter des photos</label>
-          <input type="file" id="photo-input" accept="image/*" capture="environment" multiple hidden>
+          <label for="photo-camera" class="btn btn-secondaire">📷 Prendre une photo</label>
+          <label for="photo-input" class="btn btn-secondaire">🖼 Galerie</label>
+          <input type="file" id="photo-camera" accept="image/*" capture="environment" hidden>
+          <input type="file" id="photo-input" accept="image/*" multiple hidden>
           <div id="photos-apercu" class="photos-apercu"></div>
         </div>
       </section>
@@ -152,6 +154,13 @@
 
       <section class="bloc">
         <h2>Devis</h2>
+        <div class="pastilles" id="devis-presets">
+          <button type="button" class="pastille" data-des="Révision complète mouvement mécanique (démontage, nettoyage, lubrification, réglage)" data-prix="130">Révision méca</button>
+          <button type="button" class="pastille" data-des="Révision complète mouvement automatique (démontage, nettoyage, lubrification, réglage)" data-prix="140">Révision auto</button>
+          <button type="button" class="pastille" data-des="Remplacement mouvement quartz (fourniture + pose)" data-prix="">Mouvement quartz</button>
+          <button type="button" class="pastille" data-des="Remplacement du verre (fourniture + pose)" data-prix="">Verre</button>
+          <button type="button" class="pastille" data-des="Changement de pile + contrôle" data-prix="">Pile</button>
+        </div>
         <div id="fiche-devis" class="liste-pieces"></div>
         <div class="grille-piece">
           <input type="text" id="devis-designation" placeholder="Prestation (ex. révision complète)">
@@ -263,6 +272,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=2.1"></script>
+<script type="module" src="app.js?v=2.2"></script>
 </body>
 </html>
