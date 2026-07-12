@@ -230,6 +230,12 @@ function rendreListe() {
 
       ${ouvert ? `
       <div class="pro-carte-detail">
+        ${(t.photos && t.photos.length) ? `
+          <div style="font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;color:var(--laiton);margin-bottom:10px;">Photos au dépôt</div>
+          <div class="photos-apercu" style="margin:0 0 16px;">
+            ${t.photos.map(u => `<a class="photo-item" href="${u}" target="_blank" rel="noopener" title="Agrandir">
+              <img src="${u.replace("/upload/", "/upload/w_200,h_200,c_fill/")}" alt="photo du dépôt" loading="lazy"></a>`).join("")}
+          </div>` : ""}
         ${lignes.length ? `
           <div style="font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;color:var(--laiton);margin-bottom:10px;">Devis</div>
           ${lignes.map((l, i) => ligneDevisHtml(t, l, i)).join("")}
