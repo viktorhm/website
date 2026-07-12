@@ -92,7 +92,7 @@
   .ticket-carte.ouvert { border-color: var(--laiton-fonce); }
 
   /* Bandeau solde */
-  .pro-solde { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .pro-solde { margin-bottom: 18px; }
   .solde-carte {
     background: var(--carte); border: 1px solid var(--ligne);
     border-radius: var(--rayon); padding: 16px 18px;
@@ -166,14 +166,9 @@
     <main class="pro-contenu">
       <div id="pro-solde" class="pro-solde" hidden>
         <div class="solde-carte solde-du-carte">
-          <div class="solde-libelle">Montant dû</div>
+          <div class="solde-libelle">Montant dû — montres rendues</div>
           <div class="solde-valeur" id="solde-du">—</div>
           <div class="solde-detail" id="solde-du-detail"></div>
-        </div>
-        <div class="solde-carte">
-          <div class="solde-libelle">En atelier (devis acceptés)</div>
-          <div class="solde-valeur" id="solde-encours">—</div>
-          <div class="solde-detail">à venir sur une prochaine facture</div>
         </div>
       </div>
       <div id="liste-tickets" class="liste-tickets">
@@ -190,6 +185,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="pro.js?v=3.5"></script>
+<script type="module" src="pro.js?v=3.7"></script>
 </body>
 </html>

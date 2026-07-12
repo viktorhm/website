@@ -180,21 +180,15 @@ $$(".filtre").forEach(f => f.addEventListener("click", () => {
 }));
 
 function majSolde() {
-  const acceptes = mesTickets.filter(t => t.devis && t.devis.statut === "accepte");
-  const du = acceptes.filter(t => t.statut === "rendu" && !t.facture)
-    .reduce((s, t) => s + totalDevis(t), 0);
-  const nDu = acceptes.filter(t => t.statut === "rendu" && !t.facture).length;
-  const enCours = acceptes.filter(t => t.statut !== "rendu")
-    .reduce((s, t) => s + totalDevis(t), 0);
+  const rendusNonFactures = mesTickets.filter(t => t.statut === "rendu" && !t.facture && totalDevis(t) > 0);
+  const du = rendusNonFactures.reduce((s, t) => s + totalDevis(t), 0);
+  const nDu = rendusNonFactures.length;
   const zone = $("#pro-solde");
   if (!zone) return;
-  if (du > 0 || enCours > 0) {
+  if (du > 0) {
     zone.hidden = false;
     $("#solde-du").textContent = du.toFixed(2) + " €";
-    $("#solde-du-detail").textContent = nDu
-      ? nDu + " réparation" + (nDu > 1 ? "s" : "") + " rendue" + (nDu > 1 ? "s" : "") + " — facture à venir"
-      : "aucune réparation en attente de facturation";
-    $("#solde-encours").textContent = enCours.toFixed(2) + " €";
+    $("#solde-du-detail").textContent = nDu + " montre" + (nDu > 1 ? "s" : "") + " rendue" + (nDu > 1 ? "s" : "") + " — facture à venir";
   } else {
     zone.hidden = true;
   }

@@ -83,7 +83,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 3.5");
+console.log("Atelier app.js chargé — version 3.7");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -596,11 +596,19 @@ function rendreFiche() {
 
 async function changerStatut(nouveau) {
   if (!ticketOuvert || ticketOuvert.statut === nouveau) return;
-  await updateDoc(doc(db, "tickets", ticketOuvert.id), {
+  const maj = {
     statut: nouveau,
     historique: arrayUnion({ statut: nouveau, date: new Date().toISOString() }),
     updatedAt: serverTimestamp()
-  });
+  };
+  // Accord/refus donné de vive voix : synchroniser l'état du devis
+  const d = ticketOuvert.devis;
+  if (["accepte", "refuse"].includes(nouveau) && d && d.lignes && d.lignes.length
+      && !["accepte", "refuse"].includes(d.statut)) {
+    maj["devis.statut"] = nouveau;
+    maj["devis.dateReponse"] = new Date().toISOString();
+  }
+  await updateDoc(doc(db, "tickets", ticketOuvert.id), maj);
   toast("Statut : " + statutLabel(nouveau));
 }
 
@@ -859,16 +867,16 @@ function rendreBilan() {
   $("#stat-ca-n").textContent = rendusMois.length + " ticket" + (rendusMois.length > 1 ? "s" : "") + " rendu" + (rendusMois.length > 1 ? "s" : "");
 
   // --- Dû par les clients pro ---
-  // En atelier : devis accepté, pas encore rendu.
-  // À facturer : rendu et pas encore facturé (solde cumulé, tous mois confondus).
-  const proTickets = tousTickets.filter(t => t.clientPro && montantTicket(t) > 0 && t.devis && t.devis.statut === "accepte");
+  // À facturer : UNIQUEMENT les montres rendues (non facturées), devis validé ou accord oral.
+  // En atelier : travail engagé (accepté / en réparation / prêt), pas encore rendu.
+  const proTickets = tousTickets.filter(t => t.clientPro && montantTicket(t) > 0);
   const parClient = {};
   proTickets.forEach(t => {
     const c = parClient[t.clientNom] || (parClient[t.clientNom] = { enCours: 0, nEnCours: 0, du: 0, nDu: 0, cumul: 0, nCumul: 0, tickets: [] });
     if (t.statut === "rendu") {
       if (!t.facture) { c.du += montantTicket(t); c.nDu++; c.tickets.push(t); }
       else { c.cumul += montantTicket(t); c.nCumul++; }
-    } else {
+    } else if (["accepte", "en_cours", "pret"].includes(t.statut)) {
       c.enCours += montantTicket(t); c.nEnCours++;
     }
   });
