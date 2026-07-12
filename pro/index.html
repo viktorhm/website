@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Espace professionnel — Horlogerie Haratyk</title>
+<link rel="stylesheet" href="../atelier/style.css?v=1.9">
+<style>
+  /* Ajustements propres au portail pro */
+  .pro-entete-client { color: var(--texte-2); font-size: .95rem; }
+  .pro-carte-detail { border-top: 1px solid var(--ligne); margin-top: 14px; padding-top: 14px; }
+  .pro-devis-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .btn-accepter { background: linear-gradient(180deg, #4CAF77, #3E7A4E); color: #fff; }
+  .btn-refuser { background: var(--carte-2); color: var(--texte-2); border: 1px solid var(--ligne); }
+  .pro-vide { text-align: center; color: var(--texte-2); padding: 60px 20px; }
+  .ticket-carte.ouvert { border-color: var(--laiton-fonce); }
+  .pro-aide { text-align:center; color: var(--texte-2); font-size: .85rem; margin-top: 32px; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div id="ecran-login" class="ecran-login">
+  <div class="login-carte">
+    <div class="login-logo">HORLOGERIE<br>HARATYK</div>
+    <p class="login-sous-titre">Espace professionnel</p>
+    <input type="email" id="login-email" placeholder="Email" autocomplete="username">
+    <input type="password" id="login-mdp" placeholder="Mot de passe" autocomplete="current-password">
+    <button id="btn-login" class="btn btn-principal">Se connecter</button>
+    <p id="login-erreur" class="login-erreur"></p>
+  </div>
+</div>
+
+<!-- ============ PORTAIL ============ -->
+<div id="app" class="app" hidden>
+  <header class="entete">
+    <div class="entete-titre">Espace pro</div>
+    <div class="pro-entete-client" id="pro-nom" style="flex:1"></div>
+    <button id="btn-logout" class="btn-logout" title="Déconnexion">⏻</button>
+  </header>
+
+  <main class="vue">
+    <div class="filtres">
+      <button class="filtre actif" data-statut="actifs">En cours</button>
+      <button class="filtre" data-statut="devis">Devis à valider</button>
+      <button class="filtre" data-statut="pret">Prêts</button>
+      <button class="filtre" data-statut="tous">Tous</button>
+    </div>
+    <div id="liste-tickets" class="liste-tickets">
+      <p class="pro-vide">Chargement…</p>
+    </div>
+    <p class="pro-aide">
+      Une question sur un dépôt ? Viktor Haratyk — 07 85 85 10 80<br>
+      Mercredi &amp; jeudi 10h–18h, samedi 10h–14h · 43 rue du Vieux Four, Marcq-en-Barœul
+    </p>
+  </main>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script type="module" src="pro.js?v=1.9"></script>
+</body>
+</html>

@@ -82,7 +82,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 1.7");
+console.log("Atelier app.js chargé — version 1.9");
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
   if (el) el.textContent = "Erreur JS : " + e.message;
@@ -188,10 +188,9 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") $("#client-suggestions").hidden = true;
 });
 
-// Afficher SIRET + contremarque quand "professionnel" est coché
+// Afficher SIRET quand "professionnel" est coché
 $("#client-pro").addEventListener("change", e => {
   $("#client-siret").hidden = !e.target.checked;
-  $("#champ-contremarque").hidden = !e.target.checked;
 });
 
 $("#client-recherche").addEventListener("input", async e => {
@@ -225,13 +224,11 @@ function choisirClient(c) {
   $("#client-nouveau").hidden = true;
   $("#client-choisi").hidden = false;
   $("#client-choisi-nom").textContent = c.nom + (c.tel ? " — " + c.tel : "") + (c.pro ? " · PRO" : "");
-  $("#champ-contremarque").hidden = !c.pro;
 }
 $("#btn-client-changer").addEventListener("click", () => {
   clientChoisi = null;
   $("#client-choisi").hidden = true;
   $("#client-nouveau").hidden = false;
-  $("#champ-contremarque").hidden = !$("#client-pro").checked;
 });
 
 // ------------------------------------------------------------
@@ -319,7 +316,6 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
       clientTel: client.tel,
       clientEmail: client.email || "",
       clientPro: !!client.pro,
-      contremarque: client.pro ? $("#ticket-contremarque").value.trim() : "",
       typeObjet,
       marque: $("#objet-marque").value.trim(),
       modele: $("#objet-modele").value.trim(),
@@ -367,7 +363,6 @@ function reinitFormDepot() {
   $$("#form-depot .pastille").forEach(p => p.classList.remove("actif"));
   $("#client-pro").checked = false;
   $("#client-siret").hidden = true;
-  $("#champ-contremarque").hidden = true;
   $("#photos-apercu").innerHTML = "";
   photosDepot = [];
   clientChoisi = null;
@@ -485,6 +480,13 @@ function rendreFiche() {
 
   // Devis
   rendreDevis(t);
+
+  // Contrôle final
+  const c = t.controle || {};
+  $("#ctrl-marche").value = c.marche || "";
+  $("#ctrl-amplitude").value = c.amplitude || "";
+  $("#ctrl-reserve").value = c.reserve || "";
+  $("#ctrl-remarque").value = c.remarque || "";
 
   // Pièces
   const pieces = t.pieces || [];
@@ -657,6 +659,53 @@ $("#btn-notifier").addEventListener("click", async () => {
   } finally {
     btn.textContent = "✉ Prévenir le client (montre prête)";
   }
+});
+
+// ------------------------------------------------------------
+// Contrôle final + certificat de révision
+// ------------------------------------------------------------
+$("#btn-sauver-controle").addEventListener("click", async () => {
+  const t = ticketOuvert;
+  await updateDoc(doc(db, "tickets", t.id), {
+    controle: {
+      marche: $("#ctrl-marche").value.trim(),
+      amplitude: $("#ctrl-amplitude").value.trim(),
+      reserve: $("#ctrl-reserve").value.trim(),
+      remarque: $("#ctrl-remarque").value.trim(),
+      date: new Date().toISOString()
+    },
+    updatedAt: serverTimestamp()
+  });
+  toast("Contrôle enregistré ✓");
+});
+
+$("#btn-certificat").addEventListener("click", () => {
+  const t = ticketOuvert;
+  const c = t.controle || {
+    marche: $("#ctrl-marche").value.trim(),
+    amplitude: $("#ctrl-amplitude").value.trim(),
+    reserve: $("#ctrl-reserve").value.trim(),
+    remarque: $("#ctrl-remarque").value.trim()
+  };
+  $("#pc-ref").textContent = "Ticket n° " + t.numero + " — le " + new Date().toLocaleDateString("fr-FR");
+  $("#pc-objet").textContent = [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · ");
+  $("#pc-serie").textContent = t.numSerie || "";
+  $("#pc-serie-ligne").style.display = t.numSerie ? "" : "none";
+  $("#pc-client").textContent = t.clientNom;
+  const interventions = (t.pieces || []).map(p => p.designation);
+  $("#pc-interventions").textContent = interventions.length
+    ? "Révision complète — " + interventions.join(", ")
+    : "Révision complète (démontage, nettoyage, lubrification, réglage)";
+  $("#pc-marche").textContent = c.marche || "—";
+  $("#pc-amplitude").textContent = c.amplitude || "—";
+  $("#pc-reserve").textContent = c.reserve || "";
+  $("#pc-reserve-ligne").style.display = c.reserve ? "" : "none";
+  $("#pc-remarque").textContent = c.remarque || "";
+  $("#pc-remarque-ligne").style.display = c.remarque ? "" : "none";
+  $("#pc-date-garantie").textContent = new Date().toLocaleDateString("fr-FR");
+  document.body.classList.add("mode-certif");
+  window.print();
+  document.body.classList.remove("mode-certif");
 });
 
 // ------------------------------------------------------------

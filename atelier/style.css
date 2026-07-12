@@ -323,21 +323,27 @@ textarea { resize: vertical; margin-top: 10px; }
 /* ============================================================
    TICKET A6 — impression uniquement (noir sur blanc)
    ============================================================ */
-.print-ticket { display: none; }
+.print-ticket, .print-certif { display: none; }
 
 @media print {
   @page { size: A6 portrait; margin: 7mm; }
 
   body * { visibility: hidden; }
-  .print-ticket, .print-ticket * { visibility: visible; }
 
-  .print-ticket {
-    display: block;
+  /* Par défaut : ticket de dépôt. En mode-certif : certificat. */
+  body:not(.mode-certif) .print-ticket,
+  body:not(.mode-certif) .print-ticket * { visibility: visible; }
+  body.mode-certif .print-certif,
+  body.mode-certif .print-certif * { visibility: visible; }
+
+  .print-ticket, .print-certif {
     position: fixed; inset: 0;
     font-family: Georgia, "Times New Roman", serif;
     color: #000; font-size: 9.5pt; line-height: 1.45;
     background: #fff;
   }
+  body:not(.mode-certif) .print-ticket { display: block; }
+  body.mode-certif .print-certif { display: block; }
   .pt-entete { text-align: center; border-bottom: 1.5pt solid #000; padding-bottom: 3mm; }
   .pt-marque { font-weight: 700; letter-spacing: .18em; font-size: 11pt; }
   .pt-coord { font-size: 7.5pt; margin-top: 1mm; }

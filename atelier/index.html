@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=1.7">
+<link rel="stylesheet" href="style.css?v=1.9">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -55,9 +55,6 @@
           <input type="email" id="client-email" placeholder="Email (pour notification)">
           <label class="case-pro"><input type="checkbox" id="client-pro"> Client professionnel</label>
           <input type="text" id="client-siret" placeholder="SIRET" hidden>
-        </div>
-        <div id="champ-contremarque" class="champ-contremarque" hidden>
-          <input type="text" id="ticket-contremarque" placeholder="N° de contremarque (référence du client pro)">
         </div>
       </section>
 
@@ -188,6 +185,20 @@
       </section>
 
       <section class="bloc">
+        <h2>Contrôle final</h2>
+        <div class="grille-2">
+          <input type="text" id="ctrl-marche" placeholder="Marche (ex. +4 s/j)">
+          <input type="text" id="ctrl-amplitude" placeholder="Amplitude (ex. 285°)">
+          <input type="text" id="ctrl-reserve" placeholder="Réserve de marche (ex. 42 h)">
+          <input type="text" id="ctrl-remarque" placeholder="Remarque (ex. réglé 5 positions)">
+        </div>
+        <div class="notif-zone">
+          <button id="btn-sauver-controle" class="btn btn-secondaire">Enregistrer le contrôle</button>
+          <button id="btn-certificat" class="btn btn-principal">🖨 Certificat de révision A6</button>
+        </div>
+      </section>
+
+      <section class="bloc">
         <h2>Historique</h2>
         <div id="fiche-historique" class="historique"></div>
       </section>
@@ -220,8 +231,37 @@
   </div>
 </div>
 
+<!-- ============ CERTIFICAT DE RÉVISION A6 (impression uniquement) ============ -->
+<div id="print-certif" class="print-certif">
+  <div class="pt-entete">
+    <div class="pt-marque">HORLOGERIE HARATYK</div>
+    <div class="pt-coord">43 rue du Vieux Four · 59700 Marcq-en-Barœul<br>07 85 85 10 80 · horlogerie-haratyk.fr · SIRET 988 378 378</div>
+  </div>
+  <div class="pt-numero">CERTIFICAT DE RÉVISION</div>
+  <div class="pt-date" id="pc-ref"></div>
+  <div class="pt-section">
+    <div class="pt-ligne"><span>Objet</span><b id="pc-objet"></b></div>
+    <div class="pt-ligne" id="pc-serie-ligne"><span>N° série</span><b id="pc-serie"></b></div>
+    <div class="pt-ligne"><span>Client</span><b id="pc-client"></b></div>
+  </div>
+  <div class="pt-section">
+    <div class="pt-ligne"><span>Interventions</span><span id="pc-interventions"></span></div>
+  </div>
+  <div class="pt-section">
+    <div class="pt-ligne"><span>Marche</span><b id="pc-marche"></b></div>
+    <div class="pt-ligne"><span>Amplitude</span><b id="pc-amplitude"></b></div>
+    <div class="pt-ligne" id="pc-reserve-ligne"><span>Réserve</span><b id="pc-reserve"></b></div>
+    <div class="pt-ligne" id="pc-remarque-ligne"><span>Remarque</span><span id="pc-remarque"></span></div>
+  </div>
+  <div class="pt-pied">
+    Révision garantie <b>1 an</b> à compter du <span id="pc-date-garantie"></span><br>
+    (hors chocs, oxydation et usure du bracelet).<br>
+    Viktor Haratyk — Artisan horloger, CAP Horlogerie
+  </div>
+</div>
+
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=1.7"></script>
+<script type="module" src="app.js?v=1.9"></script>
 </body>
 </html>

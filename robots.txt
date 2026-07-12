@@ -2,5 +2,6 @@ User-agent: *
 Allow: /
 Disallow: /mentions-legales.html
 Disallow: /atelier/
+Disallow: /pro/
 
 Sitemap: https://horlogerie-haratyk.fr/sitemap.xml

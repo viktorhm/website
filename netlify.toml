@@ -36,6 +36,12 @@
     Strict-Transport-Security = "max-age=31536000; includeSubDomains"
 
 [[headers]]
+  for = "/pro/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    Cache-Control = "no-store, no-cache, must-revalidate"
+
+[[headers]]
   for = "/atelier/*"
   [headers.values]
     X-Robots-Tag = "noindex, nofollow"
