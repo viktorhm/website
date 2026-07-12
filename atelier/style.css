@@ -454,7 +454,7 @@ textarea { resize: vertical; margin-top: 10px; }
 .btn-danger:hover { background: rgba(199,91,73,.12); }
 
 /* Suivi facturation pro */
-.bilan-ligne-pro { grid-template-columns: 1fr auto auto auto; }
+.bilan-ligne-pro { grid-template-columns: 1fr auto auto auto auto; }
 .btn-facture {
   background: none; border: 1px solid var(--emauxvert); color: var(--emauxvert);
   border-radius: 999px; padding: 5px 13px; font: inherit; font-size: .82rem;

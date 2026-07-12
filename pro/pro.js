@@ -143,8 +143,9 @@ function demarrerEcoute(email) {
       return true;
     });
     mesTickets.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-    if (mesTickets.length) $("#pro-societe").textContent = mesTickets[0].clientNom || "";
+    if (mesTickets.length && !$("#pro-societe").textContent) $("#pro-societe").textContent = mesTickets[0].clientNom || "";
     majCompteurs();
+    majSolde();
     rendreListe();
   };
 
@@ -177,6 +178,27 @@ $$(".filtre").forEach(f => f.addEventListener("click", () => {
   filtreActif = f.dataset.statut;
   rendreListe();
 }));
+
+function majSolde() {
+  const acceptes = mesTickets.filter(t => t.devis && t.devis.statut === "accepte");
+  const du = acceptes.filter(t => t.statut === "rendu" && !t.facture)
+    .reduce((s, t) => s + totalDevis(t), 0);
+  const nDu = acceptes.filter(t => t.statut === "rendu" && !t.facture).length;
+  const enCours = acceptes.filter(t => t.statut !== "rendu")
+    .reduce((s, t) => s + totalDevis(t), 0);
+  const zone = $("#pro-solde");
+  if (!zone) return;
+  if (du > 0 || enCours > 0) {
+    zone.hidden = false;
+    $("#solde-du").textContent = du.toFixed(2) + " €";
+    $("#solde-du-detail").textContent = nDu
+      ? nDu + " réparation" + (nDu > 1 ? "s" : "") + " rendue" + (nDu > 1 ? "s" : "") + " — facture à venir"
+      : "aucune réparation en attente de facturation";
+    $("#solde-encours").textContent = enCours.toFixed(2) + " €";
+  } else {
+    zone.hidden = true;
+  }
+}
 
 function majCompteurs() {
   const n = f => mesTickets.filter(f).length;

@@ -91,6 +91,22 @@
   .pro-vide { text-align: center; color: var(--texte-2); padding: 60px 20px; }
   .ticket-carte.ouvert { border-color: var(--laiton-fonce); }
 
+  /* Bandeau solde */
+  .pro-solde { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+  .solde-carte {
+    background: var(--carte); border: 1px solid var(--ligne);
+    border-radius: var(--rayon); padding: 16px 18px;
+  }
+  .solde-du-carte { border-top: 3px solid var(--laiton); }
+  .solde-libelle { font-size: .74rem; text-transform: uppercase; letter-spacing: .12em; color: var(--texte-2); }
+  .solde-valeur {
+    font-family: "JetBrains Mono", monospace; font-size: 1.6rem; font-weight: 700;
+    margin-top: 4px; color: var(--laiton);
+  }
+  .solde-carte:not(.solde-du-carte) .solde-valeur { color: var(--texte); }
+  .solde-detail { font-size: .8rem; color: var(--texte-2); margin-top: 3px; }
+  @media (max-width: 560px) { .pro-solde { grid-template-columns: 1fr; } }
+
   /* La question / aide : toujours en fin de page */
   .pro-aide {
     text-align: center; color: var(--texte-2); font-size: .85rem;
@@ -148,6 +164,18 @@
     </aside>
 
     <main class="pro-contenu">
+      <div id="pro-solde" class="pro-solde" hidden>
+        <div class="solde-carte solde-du-carte">
+          <div class="solde-libelle">Montant dû</div>
+          <div class="solde-valeur" id="solde-du">—</div>
+          <div class="solde-detail" id="solde-du-detail"></div>
+        </div>
+        <div class="solde-carte">
+          <div class="solde-libelle">En atelier (devis acceptés)</div>
+          <div class="solde-valeur" id="solde-encours">—</div>
+          <div class="solde-detail">à venir sur une prochaine facture</div>
+        </div>
+      </div>
       <div id="liste-tickets" class="liste-tickets">
         <p class="pro-vide">Chargement…</p>
       </div>
@@ -162,6 +190,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="pro.js?v=3.3"></script>
+<script type="module" src="pro.js?v=3.5"></script>
 </body>
 </html>

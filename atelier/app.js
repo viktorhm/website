@@ -83,7 +83,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 3.4");
+console.log("Atelier app.js chargé — version 3.5");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -864,31 +864,33 @@ function rendreBilan() {
   const proTickets = tousTickets.filter(t => t.clientPro && montantTicket(t) > 0 && t.devis && t.devis.statut === "accepte");
   const parClient = {};
   proTickets.forEach(t => {
-    const c = parClient[t.clientNom] || (parClient[t.clientNom] = { enCours: 0, nEnCours: 0, du: 0, nDu: 0, tickets: [] });
+    const c = parClient[t.clientNom] || (parClient[t.clientNom] = { enCours: 0, nEnCours: 0, du: 0, nDu: 0, cumul: 0, nCumul: 0, tickets: [] });
     if (t.statut === "rendu") {
       if (!t.facture) { c.du += montantTicket(t); c.nDu++; c.tickets.push(t); }
+      else { c.cumul += montantTicket(t); c.nCumul++; }
     } else {
       c.enCours += montantTicket(t); c.nEnCours++;
     }
   });
   const noms = Object.keys(parClient).sort();
-  let totalEnCours = 0, totalDu = 0;
+  let totalEnCours = 0, totalDu = 0, totalCumul = 0;
   $("#bilan-pro").innerHTML = noms.length ? `
     <div class="bilan-ligne bilan-ligne-pro bilan-ligne-titre">
-      <span>Client</span><span>En atelier</span><span>À facturer</span><span></span>
+      <span>Client</span><span>En atelier</span><span>À facturer</span><span>Facturé (cumul)</span><span></span>
     </div>
     ${noms.map((n, idx) => {
       const c = parClient[n];
-      totalEnCours += c.enCours; totalDu += c.du;
+      totalEnCours += c.enCours; totalDu += c.du; totalCumul += c.cumul;
       return `<div class="bilan-ligne bilan-ligne-pro">
         <span>${echap(n)}</span>
         <span>${c.nEnCours ? eur(c.enCours) + " (" + c.nEnCours + ")" : "—"}</span>
         <span>${c.nDu ? eur(c.du) + " (" + c.nDu + ")" : "—"}</span>
+        <span>${c.nCumul ? eur(c.cumul) : "—"}</span>
         <span>${c.nDu ? `<button class="btn-facture" data-client="${echap(n)}">✓ Facturé</button>` : ""}</span>
       </div>`;
     }).join("")}
     <div class="bilan-ligne bilan-ligne-pro bilan-ligne-total">
-      <span>Total</span><span>${eur(totalEnCours)}</span><span>${eur(totalDu)}</span><span></span>
+      <span>Total</span><span>${eur(totalEnCours)}</span><span>${eur(totalDu)}</span><span>${eur(totalCumul)}</span><span></span>
     </div>`
     : "<p class='liste-vide'>Aucun devis pro accepté pour l'instant.</p>";
 
