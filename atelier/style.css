@@ -445,3 +445,10 @@ textarea { resize: vertical; margin-top: 10px; }
 @media (max-width: 560px) {
   .grille-devis, .grille-piece-cmd { grid-template-columns: 1fr 1fr; }
 }
+
+/* Bouton suppression */
+.btn-danger {
+  background: none; color: var(--emauxrouge);
+  border: 1px solid var(--emauxrouge); padding: 13px 16px;
+}
+.btn-danger:hover { background: rgba(199,91,73,.12); }

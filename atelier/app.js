@@ -9,7 +9,7 @@ import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, addDoc, getDoc, getDocs, updateDoc,
+  getFirestore, collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, where, orderBy, limit, onSnapshot, runTransaction,
   serverTimestamp, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -83,7 +83,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 2.7");
+console.log("Atelier app.js chargé — version 3.0");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -279,9 +279,32 @@ async function traiterPhotos(e) {
 $("#photo-camera").addEventListener("change", traiterPhotos);
 $("#photo-input").addEventListener("change", traiterPhotos);
 
+// Compression avant envoi : max 1600px, JPEG qualité 80 %
+// (une photo de tablette passe de ~4 Mo à ~300 Ko, largement
+// suffisant pour documenter l'état d'une montre)
+async function compresserImage(fichier, maxCote = 1600, qualite = 0.8) {
+  try {
+    const bitmap = await createImageBitmap(fichier);
+    const ratio = Math.min(1, maxCote / Math.max(bitmap.width, bitmap.height));
+    const larg = Math.round(bitmap.width * ratio);
+    const haut = Math.round(bitmap.height * ratio);
+    const canvas = document.createElement("canvas");
+    canvas.width = larg;
+    canvas.height = haut;
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, larg, haut);
+    bitmap.close();
+    const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg", qualite));
+    // si la compression échoue ou n'apporte rien, garder l'original
+    return (blob && blob.size < fichier.size) ? blob : fichier;
+  } catch {
+    return fichier; // format non géré (HEIC exotique…) : envoi tel quel
+  }
+}
+
 async function uploadCloudinary(fichier) {
+  const image = await compresserImage(fichier);
   const fd = new FormData();
-  fd.append("file", fichier);
+  fd.append("file", image);
   fd.append("upload_preset", CLOUDINARY_PRESET);
   const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/image/upload`, { method: "POST", body: fd });
   if (!r.ok) throw new Error("upload");
@@ -711,6 +734,25 @@ $("#btn-envoyer-devis").addEventListener("click", async () => {
   } catch {
     toast("Échec de l'envoi du devis", true);
     btn.disabled = false;
+  }
+});
+
+// ------------------------------------------------------------
+// Suppression de ticket
+// ------------------------------------------------------------
+$("#btn-supprimer").addEventListener("click", async () => {
+  const t = ticketOuvert;
+  if (!t) return;
+  if (!confirm(`Supprimer définitivement le ticket n° ${t.numero} (${t.clientNom}) ?`)) return;
+  if (!confirm("Cette action est irréversible. Confirmer la suppression ?")) return;
+  try {
+    await deleteDoc(doc(db, "tickets", t.id));
+    ticketOuvert = null;
+    toast(`Ticket n° ${t.numero} supprimé`);
+    montrerVue("tickets");
+  } catch (e) {
+    console.error(e);
+    toast("Échec de la suppression", true);
   }
 });
 
