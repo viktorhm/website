@@ -82,7 +82,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 2.4");
+console.log("Atelier app.js chargé — version 2.5");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -175,6 +175,7 @@ function initPastilles(conteneurId, multi = false) {
   });
 }
 initPastilles("type-objet");
+initPastilles("client-civilite");
 initPastilles("etat-objet", true);
 initPastilles("demande-client");
 
@@ -307,6 +308,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
     if (!nom || !tel) return toast("Nom et téléphone du client obligatoires", true);
     client = {
       nom, tel,
+      civilite: pastilleVal("client-civilite"),
       email: $("#client-email").value.trim(),
       email2: $("#client-pro").checked ? $("#client-email2").value.trim() : "",
       pro: $("#client-pro").checked,
@@ -344,6 +346,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
       numero,
       clientId,
       clientNom: client.nom,
+      clientCivilite: client.civilite || "",
       clientTel: client.tel,
       clientEmail: client.email || "",
       clientEmails: [client.email, client.email2].filter(Boolean).map(e => e.toLowerCase()),
@@ -498,7 +501,7 @@ function rendreFiche() {
 
   // Infos
   $("#fiche-infos").innerHTML = `
-    <div><span>Client</span><b>${echap(t.clientNom)}${t.clientPro ? " · PRO" : ""}</b></div>
+    <div><span>Client</span><b>${echap((t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom)}${t.clientPro ? " · PRO" : ""}</b></div>
     ${t.contremarque ? `<div><span>Contremarque</span><b>${echap(t.contremarque)}</b></div>` : ""}
     <div><span>Téléphone</span><b>${echap(t.clientTel)}</b></div>
     ${(t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).filter(Boolean).map(e => `<div><span>Email</span><b>${echap(e)}</b></div>`).join("")}
@@ -814,6 +817,55 @@ function rendreBilan() {
     </div>
   `).join("") || "<p class='liste-vide'>Aucun ticket validé.</p>";
   $$("#bilan-valides .ticket-carte").forEach(c => c.addEventListener("click", () => ouvrirFiche(c.dataset.id)));
+
+  rendreGraphique();
+}
+
+function rendreGraphique() {
+  // 6 derniers mois : total des tickets rendus par mois
+  const maintenant = new Date();
+  const moisListe = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(maintenant.getFullYear(), maintenant.getMonth() - i, 1);
+    moisListe.push({ a: d.getFullYear(), m: d.getMonth(), total: 0 });
+  }
+  tousTickets.filter(t => t.statut === "rendu").forEach(t => {
+    const d = dateStatut(t, "rendu");
+    if (!d) return;
+    const cible = moisListe.find(x => x.a === d.getFullYear() && x.m === d.getMonth());
+    if (cible) cible.total += montantTicket(t);
+  });
+
+  const max = Math.max(...moisListe.map(x => x.total), 1);
+  const L = 600, H = 200, basY = 160, largBarre = 56, pas = L / 6;
+
+  const barres = moisListe.map((x, i) => {
+    const h = Math.round((x.total / max) * 120);
+    const bx = Math.round(i * pas + (pas - largBarre) / 2);
+    const by = basY - h;
+    const label = MOIS_FR[x.m].slice(0, 4) + ".";
+    const montant = x.total ? Math.round(x.total) + " €" : "";
+    return `
+      <rect x="${bx}" y="${by}" width="${largBarre}" height="${h}" rx="5"
+            fill="${x.total ? "url(#degLaiton)" : "none"}" stroke="${x.total ? "none" : "var(--ligne)"}"/>
+      <text x="${bx + largBarre / 2}" y="${by - 8}" text-anchor="middle"
+            font-family="JetBrains Mono, monospace" font-size="13" font-weight="700"
+            fill="var(--laiton)">${montant}</text>
+      <text x="${bx + largBarre / 2}" y="${basY + 22}" text-anchor="middle"
+            font-size="13" fill="var(--texte-2)">${label}</text>`;
+  }).join("");
+
+  $("#bilan-graphique").innerHTML = `
+    <svg viewBox="0 0 ${L} ${H}" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="degLaiton" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#C9A55C"/>
+          <stop offset="1" stop-color="#8A6B30"/>
+        </linearGradient>
+      </defs>
+      <line x1="0" y1="${basY}" x2="${L}" y2="${basY}" stroke="var(--ligne)" stroke-width="1"/>
+      ${barres}
+    </svg>`;
 }
 
 // ------------------------------------------------------------
@@ -846,7 +898,7 @@ $("#btn-certificat").addEventListener("click", () => {
   $("#pc-objet").textContent = [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · ");
   $("#pc-serie").textContent = t.numSerie || "";
   $("#pc-serie-ligne").style.display = t.numSerie ? "" : "none";
-  $("#pc-client").textContent = t.clientNom;
+  $("#pc-client").textContent = (t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom;
   const interventions = (t.pieces || []).map(p => p.designation);
   $("#pc-interventions").textContent = interventions.length
     ? "Révision complète — " + interventions.join(", ")
@@ -873,7 +925,7 @@ function imprimerTicket(t) {
   $("#pt-contremarque").textContent = t.contremarque ? "Contremarque : " + t.contremarque : "";
   const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || Date.now());
   $("#pt-date").textContent = "Déposé le " + d.toLocaleDateString("fr-FR");
-  $("#pt-client").textContent = t.clientNom;
+  $("#pt-client").textContent = (t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom;
   $("#pt-tel").textContent = t.clientTel;
   $("#pt-objet").textContent = [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · ");
   $("#pt-etat").textContent = [...(t.etat || []), t.etatTexte].filter(Boolean).join(", ") || "RAS";

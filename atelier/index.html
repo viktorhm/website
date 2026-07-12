@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=2.4">
+<link rel="stylesheet" href="style.css?v=2.5">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -53,6 +53,10 @@
         <div id="client-choisi-emails" class="grille-2" style="margin-top:12px" hidden>
           <input type="email" id="client-choisi-email1" placeholder="Email 1">
           <input type="email" id="client-choisi-email2" placeholder="Email 2 (associé / collègue)">
+        </div>
+        <div class="pastilles" id="client-civilite" style="margin-bottom:10px">
+          <button type="button" class="pastille" data-val="M.">M.</button>
+          <button type="button" class="pastille" data-val="Mme">Mme</button>
         </div>
         <div id="client-nouveau" class="grille-2">
           <input type="text" id="client-nom" placeholder="Nom / raison sociale *">
@@ -162,6 +166,11 @@
         <div class="stat-sous" id="stat-ca-n"></div>
       </div>
     </div>
+
+    <section class="bloc">
+      <h2>Encaissé par mois (tickets rendus)</h2>
+      <div id="bilan-graphique"></div>
+    </section>
 
     <section class="bloc">
       <h2>Dû par les clients pro</h2>
@@ -318,6 +327,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=2.4"></script>
+<script type="module" src="app.js?v=2.5"></script>
 </body>
 </html>
