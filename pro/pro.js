@@ -77,6 +77,18 @@ $("#btn-logout").addEventListener("click", () => signOut(auth));
 
 let arretEcoute = null;
 
+// ------------------------------------------------------------
+// LED d'état (connexion / serveur)
+// ------------------------------------------------------------
+function etatLigne(ok, texte) {
+  const led = $("#led");
+  if (!led) return;
+  led.classList.toggle("led-rouge", !ok);
+  $("#led-texte").textContent = texte || (ok ? "En ligne" : "Hors ligne");
+}
+window.addEventListener("online", () => etatLigne(true));
+window.addEventListener("offline", () => etatLigne(false, "Pas de connexion"));
+
 onAuthStateChanged(auth, user => {
   const login = $("#ecran-login");
   const appEl = $("#app");
@@ -86,6 +98,8 @@ onAuthStateChanged(auth, user => {
   appEl.style.display = user ? "block" : "none";
   if (user) {
     $("#pro-nom").textContent = user.email;
+    $("#pro-societe").textContent = "";
+    etatLigne(navigator.onLine, navigator.onLine ? "Connexion…" : "Pas de connexion");
     demarrerEcoute(user.email);
   } else if (arretEcoute) {
     arretEcoute();
@@ -115,21 +129,26 @@ function demarrerEcoute(email) {
       return true;
     });
     mesTickets.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+    if (mesTickets.length) $("#pro-societe").textContent = mesTickets[0].clientNom || "";
+    majCompteurs();
     rendreListe();
   };
 
   const arretA = onSnapshot(qNouveaux, snap => {
     resultats.a = [];
     snap.forEach(d => resultats.a.push({ id: d.id, ...d.data() }));
+    etatLigne(true);
     fusionner();
-  }, err => console.error(err));
+  }, err => { console.error(err); etatLigne(false, "Erreur serveur"); });
 
   const arretB = onSnapshot(qAnciens, snap => {
     resultats.b = [];
     snap.forEach(d => resultats.b.push({ id: d.id, ...d.data() }));
+    etatLigne(true);
     fusionner();
   }, err => {
     console.error(err);
+    etatLigne(false, "Erreur serveur");
     if (!resultats.a.length) {
       $("#liste-tickets").innerHTML = `<p class="pro-vide">Accès refusé ou erreur de chargement.<br>Contactez l'atelier au 07 85 85 10 80.</p>`;
     }
@@ -144,6 +163,14 @@ $$(".filtre").forEach(f => f.addEventListener("click", () => {
   filtreActif = f.dataset.statut;
   rendreListe();
 }));
+
+function majCompteurs() {
+  const n = f => mesTickets.filter(f).length;
+  $("#cpt-actifs").textContent = n(t => !["rendu", "refuse"].includes(t.statut)) || "";
+  $("#cpt-devis").textContent = n(t => t.statut === "devis_envoye") || "";
+  $("#cpt-pret").textContent = n(t => t.statut === "pret") || "";
+  $("#cpt-tous").textContent = mesTickets.length || "";
+}
 
 function rendreListe() {
   let liste = mesTickets;

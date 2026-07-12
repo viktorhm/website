@@ -5,9 +5,84 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <title>Espace professionnel — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="../atelier/style.css?v=2.6">
+<link rel="stylesheet" href="../atelier/style.css?v=3.2">
 <style>
-  /* Ajustements propres au portail pro */
+  /* ============ Portail pro ============ */
+  .entete-pro {
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(15,20,24,.88);
+    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--ligne);
+    display: flex; align-items: center; gap: 18px;
+    padding: 12px 20px;
+  }
+  .marque-bloc { line-height: 1.25; }
+  .marque-nom {
+    font-weight: 800; letter-spacing: .2em; font-size: .95rem;
+    color: var(--laiton); text-transform: uppercase;
+  }
+  .marque-sous {
+    font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
+    color: var(--texte-2);
+  }
+  .pro-identite { flex: 1; text-align: right; line-height: 1.3; min-width: 0; }
+  .pro-societe {
+    font-weight: 700; font-size: 1.02rem; color: var(--texte);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .pro-email { font-size: .78rem; color: var(--texte-2); font-family: "JetBrains Mono", monospace; }
+
+  /* LED d'état de connexion */
+  .etat-ligne {
+    display: flex; align-items: center; gap: 8px;
+    font-size: .78rem; color: var(--texte-2); white-space: nowrap;
+  }
+  .led {
+    width: 11px; height: 11px; border-radius: 50%;
+    background: var(--emauxvert);
+    box-shadow: 0 0 8px var(--emauxvert);
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+  .led-rouge {
+    background: var(--emauxrouge);
+    box-shadow: 0 0 8px var(--emauxrouge);
+    animation: pulse .9s ease-in-out infinite;
+  }
+  @keyframes pulse { 50% { opacity: .45; } }
+
+  .btn-deco {
+    background: var(--carte-2); color: var(--texte-2);
+    border: 1px solid var(--ligne); border-radius: 999px;
+    padding: 9px 18px; font: inherit; font-size: .88rem; font-weight: 600;
+    cursor: pointer; transition: all .15s; white-space: nowrap;
+  }
+  .btn-deco:hover { color: var(--emauxrouge); border-color: var(--emauxrouge); }
+
+  /* Disposition : menu latéral + contenu */
+  .pro-layout {
+    display: flex; gap: 20px; max-width: 1020px;
+    margin: 0 auto; padding: 24px 16px 40px;
+    min-height: calc(100vh - 70px);
+    align-items: flex-start;
+  }
+  .pro-side {
+    position: sticky; top: 86px;
+    display: flex; flex-direction: column; gap: 6px;
+    width: 190px; flex-shrink: 0;
+  }
+  .pro-side .filtre {
+    text-align: left; border-radius: var(--rayon-s);
+    padding: 12px 16px; width: 100%;
+  }
+  .pro-side .filtre .compte {
+    float: right; font-family: "JetBrains Mono", monospace;
+    font-size: .8rem; color: var(--texte-2);
+  }
+  .pro-side .filtre.actif .compte { color: var(--laiton); }
+
+  .pro-contenu { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 60vh; }
+  .pro-contenu .liste-tickets { flex: 1; }
+
   .pro-entete-client { color: var(--texte-2); font-size: .95rem; }
   .pro-carte-detail { border-top: 1px solid var(--ligne); margin-top: 14px; padding-top: 14px; }
   .pro-devis-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
@@ -15,7 +90,24 @@
   .btn-refuser { background: var(--carte-2); color: var(--texte-2); border: 1px solid var(--ligne); }
   .pro-vide { text-align: center; color: var(--texte-2); padding: 60px 20px; }
   .ticket-carte.ouvert { border-color: var(--laiton-fonce); }
-  .pro-aide { text-align:center; color: var(--texte-2); font-size: .85rem; margin-top: 32px; line-height: 1.7; }
+
+  /* La question / aide : toujours en fin de page */
+  .pro-aide {
+    text-align: center; color: var(--texte-2); font-size: .85rem;
+    line-height: 1.7; margin-top: auto; padding-top: 40px;
+  }
+  .pro-aide b { color: var(--texte); }
+
+  @media (max-width: 700px) {
+    .pro-layout { flex-direction: column; }
+    .pro-side {
+      position: static; width: 100%;
+      flex-direction: row; flex-wrap: wrap;
+    }
+    .pro-side .filtre { width: auto; flex: 1; text-align: center; }
+    .pro-side .filtre .compte { float: none; margin-left: 6px; }
+    .pro-identite { display: none; }
+  }
 </style>
 </head>
 <body>
@@ -34,31 +126,42 @@
 
 <!-- ============ PORTAIL ============ -->
 <div id="app" class="app" hidden>
-  <header class="entete">
-    <div class="entete-titre">Espace pro</div>
-    <div class="pro-entete-client" id="pro-nom" style="flex:1"></div>
-    <button id="btn-logout" class="btn-logout" title="Déconnexion">⏻</button>
+  <header class="entete-pro">
+    <div class="marque-bloc">
+      <div class="marque-nom">Horlogerie Haratyk</div>
+      <div class="marque-sous">Espace professionnel</div>
+    </div>
+    <div class="pro-identite">
+      <div class="pro-societe" id="pro-societe"></div>
+      <div class="pro-email" id="pro-nom"></div>
+    </div>
+    <div class="etat-ligne"><span class="led" id="led"></span><span id="led-texte">En ligne</span></div>
+    <button id="btn-logout" class="btn-deco">Déconnexion</button>
   </header>
 
-  <main class="vue">
-    <div class="filtres">
-      <button class="filtre actif" data-statut="actifs">En cours</button>
-      <button class="filtre" data-statut="devis">Devis à valider</button>
-      <button class="filtre" data-statut="pret">Prêts</button>
-      <button class="filtre" data-statut="tous">Tous</button>
-    </div>
-    <div id="liste-tickets" class="liste-tickets">
-      <p class="pro-vide">Chargement…</p>
-    </div>
-    <p class="pro-aide">
-      Une question sur un dépôt ? Viktor Haratyk — 07 85 85 10 80<br>
-      Mercredi &amp; jeudi 10h–18h, samedi 10h–14h · 43 rue du Vieux Four, Marcq-en-Barœul
-    </p>
-  </main>
+  <div class="pro-layout">
+    <aside class="pro-side">
+      <button class="filtre actif" data-statut="actifs">En cours <span class="compte" id="cpt-actifs"></span></button>
+      <button class="filtre" data-statut="devis">Devis à valider <span class="compte" id="cpt-devis"></span></button>
+      <button class="filtre" data-statut="pret">Prêts <span class="compte" id="cpt-pret"></span></button>
+      <button class="filtre" data-statut="tous">Tous <span class="compte" id="cpt-tous"></span></button>
+    </aside>
+
+    <main class="pro-contenu">
+      <div id="liste-tickets" class="liste-tickets">
+        <p class="pro-vide">Chargement…</p>
+      </div>
+      <p class="pro-aide">
+        Une question sur un dépôt ?<br>
+        <b>Viktor Haratyk — 07 85 85 10 80</b><br>
+        Mercredi &amp; jeudi 10h–18h, samedi 10h–14h · 43 rue du Vieux Four, Marcq-en-Barœul
+      </p>
+    </main>
+  </div>
 </div>
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="pro.js?v=2.8"></script>
+<script type="module" src="pro.js?v=3.2"></script>
 </body>
 </html>
