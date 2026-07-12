@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=2.5">
+<link rel="stylesheet" href="style.css?v=2.6">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -54,7 +54,7 @@
           <input type="email" id="client-choisi-email1" placeholder="Email 1">
           <input type="email" id="client-choisi-email2" placeholder="Email 2 (associé / collègue)">
         </div>
-        <div class="pastilles" id="client-civilite" style="margin-bottom:10px">
+        <div class="pastilles" id="client-civilite" style="margin:16px 0 12px">
           <button type="button" class="pastille" data-val="M.">M.</button>
           <button type="button" class="pastille" data-val="Mme">Mme</button>
         </div>
@@ -113,6 +113,8 @@
           <button type="button" class="pastille" data-val="Changement de pile">Pile</button>
           <button type="button" class="pastille" data-val="Réparation">Réparation</button>
           <button type="button" class="pastille" data-val="Devis / diagnostic">Devis / diagnostic</button>
+          <button type="button" class="pastille" data-val="Remplacement de mouvement">Remplacement mouvement</button>
+          <button type="button" class="pastille" data-val="Remplacement du verre">Verre</button>
           <button type="button" class="pastille" data-val="Bracelet">Bracelet</button>
         </div>
         <textarea id="demande-texte" rows="2" placeholder="Précisions…"></textarea>
@@ -170,6 +172,7 @@
     <section class="bloc">
       <h2>Encaissé par mois (tickets rendus)</h2>
       <div id="bilan-graphique"></div>
+      <div id="bilan-courbe" style="margin-top:18px"></div>
     </section>
 
     <section class="bloc">
@@ -217,10 +220,10 @@
           <button type="button" class="pastille" data-des="Changement de pile + contrôle" data-prix="">Pile</button>
         </div>
         <div id="fiche-devis" class="liste-pieces"></div>
-        <div class="grille-piece">
+        <div class="grille-piece grille-devis">
           <input type="text" id="devis-designation" placeholder="Prestation (ex. révision complète)">
-          <span></span>
           <input type="number" id="devis-prix" placeholder="Prix €" step="0.01" min="0">
+          <label class="case-option" title="Le client pourra accepter ou refuser cette ligne"><input type="checkbox" id="devis-option"> option</label>
           <button id="btn-ajouter-devis" class="btn btn-secondaire">Ajouter</button>
         </div>
         <div class="notif-zone">
@@ -232,10 +235,11 @@
       <section class="bloc">
         <h2>Pièces remplacées</h2>
         <div id="fiche-pieces" class="liste-pieces"></div>
-        <div class="grille-piece">
-          <input type="text" id="piece-designation" placeholder="Désignation (ex. glace Ø29,5 mm)">
-          <input type="text" id="piece-ref" placeholder="Réf.">
+        <div class="grille-piece grille-piece-cmd">
+          <input type="text" id="piece-designation" placeholder="Désignation (ex. glace Ø29,5 mm, bracelet cuir 18mm)">
+          <input type="text" id="piece-ref" placeholder="Réf. à commander">
           <input type="number" id="piece-prix" placeholder="Prix €" step="0.01" min="0">
+          <label class="case-option"><input type="checkbox" id="piece-commander"> à commander</label>
           <button id="btn-ajouter-piece" class="btn btn-secondaire">Ajouter</button>
         </div>
       </section>
@@ -327,6 +331,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=2.5"></script>
+<script type="module" src="app.js?v=2.6"></script>
 </body>
 </html>

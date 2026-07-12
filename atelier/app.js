@@ -82,7 +82,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 2.5");
+console.log("Atelier app.js chargé — version 2.6");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -528,12 +528,24 @@ function rendreFiche() {
   // Pièces
   const pieces = t.pieces || [];
   const total = pieces.reduce((s, p) => s + (parseFloat(p.prix) || 0), 0);
-  $("#fiche-pieces").innerHTML = pieces.map(p => `
+  $("#fiche-pieces").innerHTML = pieces.map((p, i) => `
     <div class="piece-ligne">
-      <span>${echap(p.designation)}${p.ref ? ` <em>(${echap(p.ref)})</em>` : ""}</span>
+      <span>${echap(p.designation)}${p.ref ? ` <em>(${echap(p.ref)})</em>` : ""}
+        ${p.aCommander ? `<button class="tag-option tag-cmd piece-cmd" data-i="${i}" title="Marquer comme reçue">📦 à commander</button>` : ""}
+      </span>
       <b>${(parseFloat(p.prix) || 0).toFixed(2)} €</b>
     </div>
   `).join("") + (pieces.length ? `<div class="piece-ligne piece-total"><span>Total pièces</span><b>${total.toFixed(2)} €</b></div>` : "<p class='liste-vide'>Aucune pièce pour l'instant.</p>");
+
+  $$(".piece-cmd").forEach(b => b.addEventListener("click", async () => {
+    const nouvelles = pieces.map((p, i) => {
+      if (i !== parseInt(b.dataset.i)) return p;
+      const { aCommander, ...reste } = p;
+      return reste;
+    });
+    await updateDoc(doc(db, "tickets", t.id), { pieces: nouvelles, updatedAt: serverTimestamp() });
+    toast("Pièce marquée comme reçue ✓");
+  }));
 
   // Notes
   $("#fiche-notes").innerHTML = (t.notes || []).map(n =>
@@ -559,16 +571,19 @@ async function changerStatut(nouveau) {
 $("#btn-ajouter-piece").addEventListener("click", async () => {
   const designation = $("#piece-designation").value.trim();
   if (!designation) return;
+  const piece = {
+    designation,
+    ref: $("#piece-ref").value.trim(),
+    prix: parseFloat($("#piece-prix").value) || 0,
+    date: new Date().toISOString()
+  };
+  if ($("#piece-commander").checked) piece.aCommander = true;
   await updateDoc(doc(db, "tickets", ticketOuvert.id), {
-    pieces: arrayUnion({
-      designation,
-      ref: $("#piece-ref").value.trim(),
-      prix: parseFloat($("#piece-prix").value) || 0,
-      date: new Date().toISOString()
-    }),
+    pieces: arrayUnion(piece),
     updatedAt: serverTimestamp()
   });
   $("#piece-designation").value = ""; $("#piece-ref").value = ""; $("#piece-prix").value = "";
+  $("#piece-commander").checked = false;
 });
 
 $("#btn-ajouter-note").addEventListener("click", async () => {
@@ -587,14 +602,24 @@ $("#btn-ajouter-note").addEventListener("click", async () => {
 function rendreDevis(t) {
   const devis = t.devis || { lignes: [] };
   const lignes = devis.lignes || [];
-  const total = lignes.reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
-  $("#fiche-devis").innerHTML = lignes.map((l, i) => `
-    <div class="piece-ligne">
-      <span>${echap(l.designation)} <button class="btn-lien devis-suppr" data-i="${i}">✕</button></span>
+  const repondu = ["accepte", "refuse"].includes(devis.statut);
+  const totalBase = lignes.filter(l => !l.optionnelle).reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
+  const totalOptions = lignes.filter(l => l.optionnelle && !(repondu && l.refusee)).reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
+
+  $("#fiche-devis").innerHTML = lignes.map((l, i) => {
+    const refusee = l.optionnelle && repondu && l.refusee;
+    const tag = l.optionnelle
+      ? (repondu ? (refusee ? '<span class="tag-option tag-refuse">option refusée</span>' : '<span class="tag-option tag-ok">option acceptée</span>')
+                 : '<span class="tag-option">option</span>')
+      : "";
+    return `
+    <div class="piece-ligne ${refusee ? "ligne-refusee" : ""}">
+      <span>${echap(l.designation)} ${tag} <button class="btn-lien devis-suppr" data-i="${i}">✕</button></span>
       <b>${(parseFloat(l.prix) || 0).toFixed(2)} €</b>
-    </div>
-  `).join("") + (lignes.length
-    ? `<div class="piece-ligne piece-total"><span>Total devis (TVA non applicable)</span><b>${total.toFixed(2)} €</b></div>`
+    </div>`;
+  }).join("") + (lignes.length
+    ? `<div class="piece-ligne piece-total"><span>Total ${repondu ? "retenu" : "base"} (TVA non applicable)</span><b>${(totalBase + (repondu ? totalOptions : 0)).toFixed(2)} €</b></div>`
+      + (!repondu && totalOptions ? `<div class="piece-ligne"><span style="color:var(--texte-2)">dont options proposées</span><b style="color:var(--texte-2)">+ ${totalOptions.toFixed(2)} €</b></div>` : "")
     : "<p class='liste-vide'>Aucune ligne de devis.</p>");
 
   $$(".devis-suppr").forEach(b => b.addEventListener("click", async () => {
@@ -633,11 +658,13 @@ $("#btn-ajouter-devis").addEventListener("click", async () => {
   const prix = parseFloat($("#devis-prix").value) || 0;
   if (!designation) return;
   const t = ticketOuvert;
-  const lignes = [...((t.devis && t.devis.lignes) || []), { designation, prix }];
+  const ligne = { designation, prix };
+  if ($("#devis-option").checked) ligne.optionnelle = true;
+  const lignes = [...((t.devis && t.devis.lignes) || []), ligne];
   await updateDoc(doc(db, "tickets", t.id), {
     "devis.lignes": lignes, updatedAt: serverTimestamp()
   });
-  $("#devis-designation").value = ""; $("#devis-prix").value = "";
+  $("#devis-designation").value = ""; $("#devis-prix").value = ""; $("#devis-option").checked = false;
 });
 
 $("#btn-envoyer-devis").addEventListener("click", async () => {
@@ -721,8 +748,14 @@ $("#btn-notifier").addEventListener("click", async () => {
 const MOIS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
 
 function montantTicket(t) {
-  const lignes = (t.devis && t.devis.lignes) || [];
-  if (lignes.length) return lignes.reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
+  const devis = t.devis || {};
+  const lignes = devis.lignes || [];
+  if (lignes.length) {
+    const accepte = devis.statut === "accepte";
+    return lignes
+      .filter(l => !l.optionnelle || (accepte && !l.refusee))
+      .reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
+  }
   return (t.pieces || []).reduce((s, p) => s + (parseFloat(p.prix) || 0), 0);
 }
 
@@ -865,6 +898,56 @@ function rendreGraphique() {
       </defs>
       <line x1="0" y1="${basY}" x2="${L}" y2="${basY}" stroke="var(--ligne)" stroke-width="1"/>
       ${barres}
+    </svg>`;
+
+  rendreCourbe();
+}
+
+function rendreCourbe() {
+  // Courbe : encaissé mensuel sur 12 mois
+  const maintenant = new Date();
+  const points = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(maintenant.getFullYear(), maintenant.getMonth() - i, 1);
+    points.push({ a: d.getFullYear(), m: d.getMonth(), total: 0 });
+  }
+  tousTickets.filter(t => t.statut === "rendu").forEach(t => {
+    const d = dateStatut(t, "rendu");
+    if (!d) return;
+    const cible = points.find(x => x.a === d.getFullYear() && x.m === d.getMonth());
+    if (cible) cible.total += montantTicket(t);
+  });
+
+  const L = 600, H = 190, basY = 150, hautY = 24;
+  const max = Math.max(...points.map(p => p.total), 1);
+  const px = i => Math.round(20 + i * (L - 40) / 11);
+  const py = v => Math.round(basY - (v / max) * (basY - hautY));
+
+  const chemin = points.map((p, i) => (i ? "L" : "M") + px(i) + "," + py(p.total)).join(" ");
+  const aire = chemin + ` L${px(11)},${basY} L${px(0)},${basY} Z`;
+
+  const cercles = points.map((p, i) =>
+    `<circle cx="${px(i)}" cy="${py(p.total)}" r="4" fill="#C9A55C"/>` +
+    (p.total ? `<text x="${px(i)}" y="${py(p.total) - 10}" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--laiton)">${Math.round(p.total)}</text>` : "")
+  ).join("");
+
+  const labels = points.map((p, i) =>
+    `<text x="${px(i)}" y="${basY + 20}" text-anchor="middle" font-size="11" fill="var(--texte-2)">${MOIS_FR[p.m].slice(0, 3)}${p.m === 0 ? " " + String(p.a).slice(2) : ""}</text>`
+  ).join("");
+
+  $("#bilan-courbe").innerHTML = `
+    <svg viewBox="0 0 ${L} ${H}" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="degAire" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#C9A55C" stop-opacity=".35"/>
+          <stop offset="1" stop-color="#C9A55C" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <line x1="0" y1="${basY}" x2="${L}" y2="${basY}" stroke="var(--ligne)" stroke-width="1"/>
+      <path d="${aire}" fill="url(#degAire)"/>
+      <path d="${chemin}" fill="none" stroke="#C9A55C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+      ${cercles}
+      ${labels}
     </svg>`;
 }
 

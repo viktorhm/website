@@ -27,12 +27,86 @@ function page(titre, message, ok = true) {
 </div></body></html>`;
 }
 
-export async function handler(event) {
-  const { token, reponse } = event.queryStringParameters || {};
+async function pageChoix(token) {
+  const snap = await db.collection("tickets").where("devis.token", "==", token).limit(1).get();
+  if (snap.empty) {
+    return { statusCode: 404, headers: { "Content-Type": "text/html; charset=utf-8" },
+      body: page("Devis introuvable", "Ce lien ne correspond à aucun devis en cours. Contactez-moi au 07 85 85 10 80.", false) };
+  }
+  const t = snap.docs[0].data();
+  if (["accepte", "refuse"].includes(t.devis?.statut)) {
+    const deja = t.devis.statut === "accepte" ? "accepté" : "refusé";
+    return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" },
+      body: page("Réponse déjà enregistrée", `Ce devis a déjà été ${deja}. Pour modifier votre réponse, appelez-moi au 07 85 85 10 80.`) };
+  }
 
-  if (!token || !["accepte", "refuse"].includes(reponse)) {
+  const lignes = t.devis?.lignes || [];
+  const ech = s => String(s ?? "").replace(/</g, "&lt;");
+  const base = lignes.filter(l => !l.optionnelle);
+  const totalBase = base.reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
+
+  const lignesHtml = lignes.map((l, i) => {
+    const prix = (parseFloat(l.prix) || 0).toFixed(2);
+    if (!l.optionnelle) {
+      return `<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #E5E2DA;">
+        <span>${ech(l.designation)}</span><b style="white-space:nowrap">${prix} €</b></div>`;
+    }
+    return `<label style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #E5E2DA;cursor:pointer;align-items:center;">
+      <span style="display:flex;gap:10px;align-items:center;">
+        <input type="checkbox" class="opt" data-i="${i}" data-prix="${parseFloat(l.prix) || 0}" style="width:20px;height:20px;accent-color:#A8823C;">
+        <span>${ech(l.designation)} <em style="color:#A8823C;font-style:normal;font-size:.85em;">(en option)</em></span>
+      </span><b style="white-space:nowrap">+ ${prix} €</b></label>`;
+  }).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Devis n° ${t.numero} — Horlogerie Haratyk</title></head>
+<body style="margin:0;background:#F2F0EA;font-family:Georgia,serif;padding:24px 12px;">
+<div style="background:#fff;border-radius:10px;padding:32px 28px;max-width:520px;margin:0 auto;">
+  <div style="font-weight:bold;letter-spacing:5px;border-top:3px solid #A8823C;border-bottom:3px solid #A8823C;padding:12px 0;margin-bottom:20px;text-align:center;">HORLOGERIE HARATYK</div>
+  <h1 style="font-size:19px;color:#22282E;margin:0 0 6px;">Devis — ticket n° ${t.numero}</h1>
+  <p style="color:#3A434B;margin:0 0 18px;">${ech([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</p>
+  ${lignesHtml}
+  <div style="display:flex;justify-content:space-between;padding:14px 0;font-weight:bold;border-top:2px solid #22282E;font-size:1.1em;">
+    <span>Total</span><b><span id="total">${totalBase.toFixed(2)}</span> €</b>
+  </div>
+  <p style="font-size:12px;color:#8A8F94;margin:4px 0 20px;">TVA non applicable, art. 293 B du CGI. Cochez les options souhaitées.</p>
+  <button id="ok" style="width:100%;padding:15px;background:#3E7A4E;color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:bold;font-family:Georgia,serif;cursor:pointer;">✓ J'accepte le devis</button>
+  <button id="non" style="width:100%;padding:13px;background:none;color:#8A8F94;border:1px solid #D8D5CD;border-radius:8px;font-size:14px;font-family:Georgia,serif;cursor:pointer;margin-top:10px;">✗ Je refuse le devis</button>
+  <p style="text-align:center;font-size:12px;color:#8A8F94;margin-top:18px;">Une question ? 07 85 85 10 80</p>
+</div>
+<script>
+  var base = ${totalBase};
+  function maj(){var t=base;document.querySelectorAll(".opt:checked").forEach(function(c){t+=parseFloat(c.dataset.prix)||0});document.getElementById("total").textContent=t.toFixed(2)}
+  document.querySelectorAll(".opt").forEach(function(c){c.addEventListener("change",maj)});
+  document.getElementById("ok").addEventListener("click",function(){
+    var ids=[].map.call(document.querySelectorAll(".opt:checked"),function(c){return c.dataset.i}).join(",");
+    location.href="?token=${encodeURIComponent(token)}&reponse=accepte&opts="+ids;
+  });
+  document.getElementById("non").addEventListener("click",function(){
+    if(confirm("Confirmer le refus du devis ?"))location.href="?token=${encodeURIComponent(token)}&reponse=refuse";
+  });
+</script>
+</body></html>`;
+  return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" }, body: html };
+}
+
+export async function handler(event) {
+  const { token, reponse, opts } = event.queryStringParameters || {};
+
+  if (!token) {
     return { statusCode: 400, headers: { "Content-Type": "text/html; charset=utf-8" },
       body: page("Lien invalide", "Ce lien de réponse au devis est incomplet ou invalide.", false) };
+  }
+
+  // Sans paramètre "reponse" : afficher la page de choix (options cochables)
+  if (!reponse) {
+    return pageChoix(token);
+  }
+
+  if (!["accepte", "refuse"].includes(reponse)) {
+    return { statusCode: 400, headers: { "Content-Type": "text/html; charset=utf-8" },
+      body: page("Lien invalide", "Ce lien de réponse au devis est invalide.", false) };
   }
 
   try {
@@ -53,13 +127,22 @@ export async function handler(event) {
         body: page("Réponse déjà enregistrée", `Ce devis a déjà été ${deja}. Si vous souhaitez modifier votre réponse, appelez-moi au 07 85 85 10 80.`) };
     }
 
-    await docRef.update({
+    // Options : marquer refusées celles non cochées
+    const misesAJour = {
       "devis.statut": reponse,
       "devis.dateReponse": new Date().toISOString(),
       statut: reponse,
       historique: admin.firestore.FieldValue.arrayUnion({ statut: reponse, date: new Date().toISOString() }),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    };
+    if (reponse === "accepte" && Array.isArray(ticket.devis?.lignes)) {
+      const acceptees = new Set((opts || "").split(",").filter(Boolean).map(Number));
+      misesAJour["devis.lignes"] = ticket.devis.lignes.map((l, i) => {
+        if (!l.optionnelle) return l;
+        return acceptees.has(i) ? { ...l, refusee: false } : { ...l, refusee: true };
+      });
+    }
+    await docRef.update(misesAJour);
 
     if (reponse === "accepte") {
       return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" },

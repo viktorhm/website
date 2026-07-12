@@ -177,12 +177,8 @@ function rendreListe() {
       <div class="pro-carte-detail">
         ${lignes.length ? `
           <div style="font-size:.8rem;letter-spacing:.15em;text-transform:uppercase;color:var(--laiton);margin-bottom:10px;">Devis</div>
-          ${lignes.map(l => `
-            <div class="piece-ligne">
-              <span>${echap(l.designation)}</span>
-              <b>${(parseFloat(l.prix) || 0).toFixed(2)} €</b>
-            </div>`).join("")}
-          <div class="piece-ligne piece-total"><span>Total (TVA non applicable)</span><b>${total.toFixed(2)} €</b></div>
+          ${lignes.map((l, i) => ligneDevisHtml(t, l, i)).join("")}
+          <div class="piece-ligne piece-total"><span>Total (TVA non applicable)</span><b class="total-devis" data-id="${t.id}">${totalDevis(t).toFixed(2)} €</b></div>
           ${devisActions(t)}
         ` : `<p class="liste-vide" style="margin:0;">Diagnostic en cours — le devis apparaîtra ici.</p>`}
       </div>` : ""}
@@ -195,7 +191,49 @@ function rendreListe() {
     rendreListe();
   }));
 
-  $$(".btn-devis-reponse").forEach(b => b.addEventListener("click", () => repondreDevis(b.dataset.token, b.dataset.reponse)));
+  $$(".opt-devis").forEach(c => c.addEventListener("change", () => {
+    const t = mesTickets.find(x => x.id === c.dataset.ticket);
+    if (!t) return;
+    let total = totalDevis(t);
+    $$(`.opt-devis[data-ticket="${t.id}"]:checked`).forEach(x => total += parseFloat(x.dataset.prix) || 0);
+    const cible = document.querySelector(`.total-devis[data-id="${t.id}"]`);
+    if (cible) cible.textContent = total.toFixed(2) + " €";
+  }));
+
+  $$(".btn-devis-reponse").forEach(b => b.addEventListener("click", () => {
+    const opts = $$(`.opt-devis[data-ticket="${b.closest(".ticket-carte").dataset.id}"]:checked`).map(c => c.dataset.i).join(",");
+    repondreDevis(b.dataset.token, b.dataset.reponse, opts);
+  }));
+}
+
+function totalDevis(t) {
+  const devis = t.devis || {};
+  const lignes = devis.lignes || [];
+  const repondu = ["accepte", "refuse"].includes(devis.statut);
+  return lignes
+    .filter(l => !l.optionnelle || (repondu ? !l.refusee : false))
+    .reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
+}
+
+function ligneDevisHtml(t, l, i) {
+  const prix = (parseFloat(l.prix) || 0).toFixed(2);
+  const repondu = ["accepte", "refuse"].includes((t.devis || {}).statut);
+  if (!l.optionnelle) {
+    return `<div class="piece-ligne"><span>${echap(l.designation)}</span><b>${prix} €</b></div>`;
+  }
+  if (repondu) {
+    const refusee = l.refusee;
+    return `<div class="piece-ligne" style="${refusee ? "opacity:.45;text-decoration:line-through;" : ""}">
+      <span>${echap(l.designation)} <em style="color:var(--laiton);font-style:normal;font-size:.85em;">(option ${refusee ? "refusée" : "acceptée"})</em></span>
+      <b>${prix} €</b></div>`;
+  }
+  return `<label class="piece-ligne" style="cursor:pointer;align-items:center;">
+    <span style="display:flex;gap:10px;align-items:center;">
+      <input type="checkbox" class="opt-devis" data-ticket="${t.id}" data-i="${i}" data-prix="${parseFloat(l.prix) || 0}"
+             style="width:20px;height:20px;accent-color:var(--laiton);">
+      <span>${echap(l.designation)} <em style="color:var(--laiton);font-style:normal;font-size:.85em;">(en option)</em></span>
+    </span>
+    <b>+ ${prix} €</b></label>`;
 }
 
 function devisActions(t) {
@@ -210,10 +248,10 @@ function devisActions(t) {
   return "";
 }
 
-async function repondreDevis(token, reponse) {
+async function repondreDevis(token, reponse, opts) {
   if (reponse === "refuse" && !confirm("Confirmer le refus de ce devis ?")) return;
   try {
-    const r = await fetch(`/.netlify/functions/devis-reponse?token=${encodeURIComponent(token)}&reponse=${reponse}`);
+    const r = await fetch(`/.netlify/functions/devis-reponse?token=${encodeURIComponent(token)}&reponse=${reponse}&opts=${encodeURIComponent(opts || "")}`);
     if (!r.ok) throw new Error();
     toast(reponse === "accepte" ? "Devis accepté ✓ — les travaux vont démarrer" : "Refus enregistré");
   } catch {

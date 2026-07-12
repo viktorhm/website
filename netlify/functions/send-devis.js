@@ -18,15 +18,16 @@ export async function handler(event) {
       return { statusCode: 400, body: JSON.stringify({ error: "Données incomplètes" }) };
     }
 
-    const total = lignes.reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
+    const total = lignes.filter(l => !l.optionnelle).reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
 
     const lignesHtml = lignes.map(l => `
       <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #EFEDE7;">${String(l.designation).replace(/</g, "&lt;")}</td>
-        <td style="padding:10px 0;border-bottom:1px solid #EFEDE7;text-align:right;white-space:nowrap;">${(parseFloat(l.prix) || 0).toFixed(2)} €</td>
+        <td style="padding:10px 0;border-bottom:1px solid #EFEDE7;">${String(l.designation).replace(/</g, "&lt;")}${l.optionnelle ? ' <em style="color:#A8823C;font-style:normal;font-size:.85em;">(en option)</em>' : ""}</td>
+        <td style="padding:10px 0;border-bottom:1px solid #EFEDE7;text-align:right;white-space:nowrap;">${l.optionnelle ? "+ " : ""}${(parseFloat(l.prix) || 0).toFixed(2)} €</td>
       </tr>`).join("");
 
     const urlBase = `${SITE}/.netlify/functions/devis-reponse?token=${encodeURIComponent(token)}`;
+    const aOptions = lignes.some(l => l.optionnelle);
 
     const corps = `
       <p style="margin:0 0 16px;">Bonjour${nom ? " " + String(nom).replace(/</g, "&lt;") : ""},</p>
@@ -42,8 +43,10 @@ export async function handler(event) {
       </table>
 
       <p style="margin:24px 0 12px;text-align:center;color:#3A434B;">Pour donner suite &agrave; ce devis&nbsp;:</p>
-      ${boutonEmail("✓ &nbsp;J'accepte le devis", urlBase + "&reponse=accepte", "#3E7A4E")}
-      ${boutonEmail("✗ &nbsp;Je refuse le devis", urlBase + "&reponse=refuse", "#8A8F94")}
+      ${aOptions
+        ? boutonEmail("▸ &nbsp;Voir le devis et choisir mes options", urlBase, "#A8823C")
+        : boutonEmail("✓ &nbsp;J'accepte le devis", urlBase + "&reponse=accepte", "#3E7A4E")
+          + boutonEmail("✗ &nbsp;Je refuse le devis", urlBase + "&reponse=refuse", "#8A8F94")}
       <p style="margin:20px 0 0;font-size:13px;color:#8A8F94;text-align:center;">
         Un simple clic suffit, aucune cr&eacute;ation de compte n&eacute;cessaire.<br>
         Vous pouvez aussi r&eacute;pondre &agrave; cet email ou m'appeler au 07&nbsp;85&nbsp;85&nbsp;10&nbsp;80.
