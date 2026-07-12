@@ -9,7 +9,7 @@ import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, query, where, onSnapshot
+  getFirestore, collection, query, where, onSnapshot, getDocs, limit
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -100,12 +100,26 @@ onAuthStateChanged(auth, user => {
     $("#pro-nom").textContent = user.email;
     $("#pro-societe").textContent = "";
     etatLigne(navigator.onLine, navigator.onLine ? "Connexion…" : "Pas de connexion");
+    chargerSociete(user.email);
     demarrerEcoute(user.email);
   } else if (arretEcoute) {
     arretEcoute();
     arretEcoute = null;
   }
 });
+
+// ------------------------------------------------------------
+// Nom de la société (fiche client, dès la connexion)
+// ------------------------------------------------------------
+async function chargerSociete(email) {
+  try {
+    let snap = await getDocs(query(collection(db, "clients"), where("email", "==", email), limit(1)));
+    if (snap.empty) snap = await getDocs(query(collection(db, "clients"), where("email2", "==", email), limit(1)));
+    if (!snap.empty) $("#pro-societe").textContent = snap.docs[0].data().nom || "";
+  } catch (e) {
+    console.warn("Fiche client non accessible (règle Firestore manquante ?)", e);
+  }
+}
 
 // ------------------------------------------------------------
 // Tickets du client connecté (temps réel)
