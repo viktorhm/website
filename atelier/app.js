@@ -47,7 +47,8 @@ const STATUTS = [
   { id: "accepte",      label: "Devis accepté" },
   { id: "en_cours",     label: "En réparation" },
   { id: "pret",         label: "Prêt" },
-  { id: "rendu",        label: "Rendu" }
+  { id: "rendu",        label: "Rendu" },
+  { id: "refuse",       label: "Devis refusé" }
 ];
 const statutLabel = id => (STATUTS.find(s => s.id === id) || {}).label || id;
 
@@ -82,7 +83,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 2.6");
+console.log("Atelier app.js chargé — version 2.7");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -177,7 +178,7 @@ function initPastilles(conteneurId, multi = false) {
 initPastilles("type-objet");
 initPastilles("client-civilite");
 initPastilles("etat-objet", true);
-initPastilles("demande-client");
+initPastilles("demande-client", true);
 
 const pastilleVal = id => $("#" + id + " .pastille.actif")?.dataset.val || "";
 const pastillesVals = id => $$("#" + id + " .pastille.actif").map(p => p.dataset.val);
@@ -319,8 +320,9 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
 
   const typeObjet = pastilleVal("type-objet");
   if (!typeObjet) return toast("Choisis le type d'objet", true);
-  const demande = pastilleVal("demande-client");
-  if (!demande) return toast("Choisis la demande du client", true);
+  const demandes = pastillesVals("demande-client");
+  if (!demandes.length) return toast("Choisis la demande du client", true);
+  const demande = demandes.join(", ");
 
   btn.disabled = true;
   btn.textContent = "Création…";

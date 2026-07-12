@@ -12,17 +12,27 @@ if (!admin.apps.length) {
 }
 const db = admin.firestore();
 
-function page(titre, message, ok = true) {
+const LOGO_HTML = `<img src="https://horlogerie-haratyk.fr/logo.svg" alt="Horlogerie Haratyk"
+  style="height:120px;display:block;margin:-10px auto 4px;">`;
+
+function page(titre, message, icone = "ok") {
+  const symboles = {
+    ok:     '<div style="font-size:46px;margin-bottom:12px;color:#3E7A4E;">✓</div>',
+    refus:  '<div style="font-size:46px;margin-bottom:12px;color:#C0392B;font-weight:bold;">✗</div>',
+    erreur: '<div style="font-size:46px;margin-bottom:12px;color:#C0392B;font-weight:bold;">✗</div>'
+  };
   return `<!DOCTYPE html>
 <html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${titre} — Horlogerie Haratyk</title></head>
 <body style="margin:0;background:#F2F0EA;font-family:Georgia,serif;display:flex;align-items:center;justify-content:center;min-height:100vh;">
-<div style="background:#fff;border-radius:10px;padding:40px 36px;max-width:440px;text-align:center;margin:16px;">
+<div style="background:#fff;border-radius:10px;padding:32px 36px 40px;max-width:460px;text-align:center;margin:16px;">
+  ${LOGO_HTML}
   <div style="font-weight:bold;letter-spacing:5px;border-top:3px solid #A8823C;border-bottom:3px solid #A8823C;padding:12px 0;margin-bottom:24px;">HORLOGERIE HARATYK</div>
-  <div style="font-size:44px;margin-bottom:12px;">${ok ? "✓" : "✗"}</div>
+  ${symboles[icone] || symboles.ok}
   <h1 style="font-size:20px;margin:0 0 12px;color:#22282E;">${titre}</h1>
-  <p style="color:#3A434B;line-height:1.6;margin:0;">${message}</p>
-  <p style="margin-top:24px;font-size:13px;color:#8A8F94;">Horlogerie Haratyk · 07 85 85 10 80<br>
+  <p style="color:#3A434B;line-height:1.7;margin:0;">${message}</p>
+  <p style="margin-top:26px;font-size:13px;color:#8A8F94;">Horlogerie Haratyk — Viktor Haratyk, artisan horloger<br>
+  43 rue du Vieux Four, 59700 Marcq-en-Barœul · 07 85 85 10 80<br>
   Mercredi &amp; jeudi 10h–18h, samedi 10h–14h</p>
 </div></body></html>`;
 }
@@ -31,13 +41,13 @@ async function pageChoix(token) {
   const snap = await db.collection("tickets").where("devis.token", "==", token).limit(1).get();
   if (snap.empty) {
     return { statusCode: 404, headers: { "Content-Type": "text/html; charset=utf-8" },
-      body: page("Devis introuvable", "Ce lien ne correspond à aucun devis en cours. Contactez-moi au 07 85 85 10 80.", false) };
+      body: page("Devis introuvable", "Ce lien ne correspond à aucun devis en cours. Contactez-moi au 07 85 85 10 80.", "erreur") };
   }
   const t = snap.docs[0].data();
   if (["accepte", "refuse"].includes(t.devis?.statut)) {
     const deja = t.devis.statut === "accepte" ? "accepté" : "refusé";
     return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" },
-      body: page("Réponse déjà enregistrée", `Ce devis a déjà été ${deja}. Pour modifier votre réponse, appelez-moi au 07 85 85 10 80.`) };
+      body: page("Réponse déjà enregistrée", `Ce devis a déjà été ${deja}. Pour modifier votre réponse, nous vous invitons à contacter l'atelier au 07 85 85 10 80.`) };
   }
 
   const lignes = t.devis?.lignes || [];
@@ -62,7 +72,8 @@ async function pageChoix(token) {
 <html lang="fr"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Devis n° ${t.numero} — Horlogerie Haratyk</title></head>
 <body style="margin:0;background:#F2F0EA;font-family:Georgia,serif;padding:24px 12px;">
-<div style="background:#fff;border-radius:10px;padding:32px 28px;max-width:520px;margin:0 auto;">
+<div style="background:#fff;border-radius:10px;padding:26px 28px 32px;max-width:520px;margin:0 auto;">
+  ${LOGO_HTML}
   <div style="font-weight:bold;letter-spacing:5px;border-top:3px solid #A8823C;border-bottom:3px solid #A8823C;padding:12px 0;margin-bottom:20px;text-align:center;">HORLOGERIE HARATYK</div>
   <h1 style="font-size:19px;color:#22282E;margin:0 0 6px;">Devis — ticket n° ${t.numero}</h1>
   <p style="color:#3A434B;margin:0 0 18px;">${ech([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</p>
@@ -96,7 +107,7 @@ export async function handler(event) {
 
   if (!token) {
     return { statusCode: 400, headers: { "Content-Type": "text/html; charset=utf-8" },
-      body: page("Lien invalide", "Ce lien de réponse au devis est incomplet ou invalide.", false) };
+      body: page("Lien invalide", "Ce lien de réponse au devis est incomplet ou invalide.", "erreur") };
   }
 
   // Sans paramètre "reponse" : afficher la page de choix (options cochables)
@@ -106,7 +117,7 @@ export async function handler(event) {
 
   if (!["accepte", "refuse"].includes(reponse)) {
     return { statusCode: 400, headers: { "Content-Type": "text/html; charset=utf-8" },
-      body: page("Lien invalide", "Ce lien de réponse au devis est invalide.", false) };
+      body: page("Lien invalide", "Ce lien de réponse au devis est invalide.", "erreur") };
   }
 
   try {
@@ -114,7 +125,7 @@ export async function handler(event) {
 
     if (snap.empty) {
       return { statusCode: 404, headers: { "Content-Type": "text/html; charset=utf-8" },
-        body: page("Devis introuvable", "Ce lien ne correspond à aucun devis en cours. Contactez-moi au 07 85 85 10 80.", false) };
+        body: page("Devis introuvable", "Ce lien ne correspond à aucun devis en cours. Contactez-moi au 07 85 85 10 80.", "erreur") };
     }
 
     const docRef = snap.docs[0].ref;
@@ -124,7 +135,7 @@ export async function handler(event) {
     if (["accepte", "refuse"].includes(ticket.devis?.statut)) {
       const deja = ticket.devis.statut === "accepte" ? "accepté" : "refusé";
       return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" },
-        body: page("Réponse déjà enregistrée", `Ce devis a déjà été ${deja}. Si vous souhaitez modifier votre réponse, appelez-moi au 07 85 85 10 80.`) };
+        body: page("Réponse déjà enregistrée", `Ce devis a déjà été ${deja}. Si vous souhaitez modifier votre réponse, nous vous invitons à contacter l'atelier au 07 85 85 10 80.`) };
     }
 
     // Options : marquer refusées celles non cochées
@@ -146,14 +157,16 @@ export async function handler(event) {
 
     if (reponse === "accepte") {
       return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" },
-        body: page("Devis accepté", `Merci ! Votre accord pour le ticket n° ${ticket.numero} est bien enregistré. Je commence les travaux et je vous préviens dès que c'est prêt.`) };
+        body: page("Accord enregistré",
+          `Nous vous remercions de votre confiance.<br><br>Votre accord concernant le devis du ticket n° <b>${ticket.numero}</b> a bien été enregistré ce jour. Les travaux seront réalisés dans les meilleurs délais, et vous serez informé(e) dès que votre objet sera prêt à être retiré.`, "ok") };
     }
     return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" },
-      body: page("Devis refusé", `Votre refus pour le ticket n° ${ticket.numero} est bien enregistré. Votre objet reste disponible à l'atelier — passez le récupérer aux horaires d'ouverture.`) };
+      body: page("Refus enregistré",
+        `Votre refus concernant le devis du ticket n° <b>${ticket.numero}</b> a bien été enregistré.<br><br>Votre objet reste à votre disposition à l'atelier ; nous vous invitons à le récupérer aux horaires d'ouverture. Nous restons à votre écoute pour toute question.`, "refus") };
 
   } catch (e) {
     console.error(e);
     return { statusCode: 500, headers: { "Content-Type": "text/html; charset=utf-8" },
-      body: page("Erreur", "Une erreur est survenue. Réessayez ou contactez-moi au 07 85 85 10 80.", false) };
+      body: page("Erreur", "Une erreur est survenue. Réessayez ou contactez-moi au 07 85 85 10 80.", "erreur") };
   }
 }
