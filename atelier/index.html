@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=2.2">
+<link rel="stylesheet" href="style.css?v=2.4">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -31,6 +31,7 @@
       <button class="nav-btn actif" data-vue="depot">Nouveau dépôt</button>
       <button class="nav-btn" data-vue="tickets" data-pro="0">Tickets client <span id="badge-client" class="badge" hidden></span></button>
       <button class="nav-btn" data-vue="tickets" data-pro="1">Tickets pro <span id="badge-pro" class="badge" hidden></span></button>
+      <button class="nav-btn" data-vue="bilan">Bilan</button>
     </nav>
     <button id="btn-logout" class="btn-logout" title="Déconnexion">⏻</button>
   </header>
@@ -48,6 +49,10 @@
         <div id="client-choisi" class="client-choisi" hidden>
           <span id="client-choisi-nom"></span>
           <button type="button" id="btn-client-changer" class="btn-lien">changer</button>
+        </div>
+        <div id="client-choisi-emails" class="grille-2" style="margin-top:12px" hidden>
+          <input type="email" id="client-choisi-email1" placeholder="Email 1">
+          <input type="email" id="client-choisi-email2" placeholder="Email 2 (associé / collègue)">
         </div>
         <div id="client-nouveau" class="grille-2">
           <input type="text" id="client-nom" placeholder="Nom / raison sociale *">
@@ -126,6 +131,47 @@
       <input type="search" id="tickets-recherche" placeholder="N°, client, marque…">
     </div>
     <div id="liste-tickets" class="liste-tickets"></div>
+  </main>
+
+  <!-- ============ VUE : BILAN ============ -->
+  <main id="vue-bilan" class="vue" hidden>
+    <div class="bilan-entete">
+      <h1 class="tickets-titre" style="margin:0">Bilan</h1>
+      <select id="bilan-mois" class="bilan-select"></select>
+    </div>
+
+    <div class="stats-grille">
+      <div class="stat-carte stat-attente">
+        <div class="stat-libelle">Devis en attente</div>
+        <div class="stat-valeur" id="stat-attente-n">—</div>
+        <div class="stat-sous" id="stat-attente-eur"></div>
+      </div>
+      <div class="stat-carte stat-atelier">
+        <div class="stat-libelle">En atelier (acceptés)</div>
+        <div class="stat-valeur" id="stat-atelier-n">—</div>
+        <div class="stat-sous" id="stat-atelier-eur"></div>
+      </div>
+      <div class="stat-carte stat-pret">
+        <div class="stat-libelle">Prêts à retirer</div>
+        <div class="stat-valeur" id="stat-pret-n">—</div>
+        <div class="stat-sous" id="stat-pret-eur"></div>
+      </div>
+      <div class="stat-carte stat-ca">
+        <div class="stat-libelle" id="stat-ca-libelle">Encaissé (rendus)</div>
+        <div class="stat-valeur" id="stat-ca-eur">—</div>
+        <div class="stat-sous" id="stat-ca-n"></div>
+      </div>
+    </div>
+
+    <section class="bloc">
+      <h2>Dû par les clients pro</h2>
+      <div id="bilan-pro"></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Tickets validés (devis acceptés)</h2>
+      <div id="bilan-valides" class="liste-tickets"></div>
+    </section>
   </main>
 
   <!-- ============ VUE : FICHE TICKET ============ -->
@@ -272,6 +318,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=2.2"></script>
+<script type="module" src="app.js?v=2.4"></script>
 </body>
 </html>

@@ -82,7 +82,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 2.2");
+console.log("Atelier app.js chargé — version 2.4");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -149,6 +149,7 @@ function montrerVue(nom) {
     $("#tickets-titre").textContent = modePro ? "Tickets professionnels" : "Tickets atelier client";
     rendreListe();
   }
+  if (nom === "bilan") rendreBilan();
   window.scrollTo(0, 0);
 }
 $$(".nav-btn").forEach(b => b.addEventListener("click", () => {
@@ -233,10 +234,20 @@ function choisirClient(c) {
   $("#client-nouveau").hidden = true;
   $("#client-choisi").hidden = false;
   $("#client-choisi-nom").textContent = c.nom + (c.tel ? " — " + c.tel : "") + (c.pro ? " · PRO" : "");
+  // Client pro : permettre de voir/compléter le 2e email (fiche mise à jour à la création)
+  const zone = $("#client-choisi-emails");
+  if (c.pro) {
+    zone.hidden = false;
+    $("#client-choisi-email1").value = c.email || "";
+    $("#client-choisi-email2").value = c.email2 || "";
+  } else {
+    zone.hidden = true;
+  }
 }
 $("#btn-client-changer").addEventListener("click", () => {
   clientChoisi = null;
   $("#client-choisi").hidden = true;
+  $("#client-choisi-emails").hidden = true;
   $("#client-nouveau").hidden = false;
 });
 
@@ -285,7 +296,11 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
   // Client : existant ou nouveau
   let client;
   if (clientChoisi) {
-    client = clientChoisi;
+    client = { ...clientChoisi };
+    if (client.pro) {
+      client.email = $("#client-choisi-email1").value.trim();
+      client.email2 = $("#client-choisi-email2").value.trim();
+    }
   } else {
     const nom = $("#client-nom").value.trim();
     const tel = $("#client-tel").value.trim();
@@ -309,13 +324,17 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
   btn.textContent = "Création…";
 
   try {
-    // Enregistrer le client s'il est nouveau
+    // Enregistrer le client s'il est nouveau, ou mettre à jour ses emails
     let clientId = client.id;
     if (!clientId) {
       const ref = await addDoc(collection(db, "clients"), {
         ...client, createdAt: serverTimestamp()
       });
       clientId = ref.id;
+    } else if (client.pro && (client.email !== clientChoisi.email || client.email2 !== clientChoisi.email2)) {
+      await updateDoc(doc(db, "clients", clientId), {
+        email: client.email || "", email2: client.email2 || ""
+      });
     }
 
     // Numéro de ticket via compteur transactionnel
@@ -403,6 +422,7 @@ function demarrerEcouteTickets() {
     $("#badge-client").hidden = nClient === 0;
     $("#badge-pro").textContent = nPro;
     $("#badge-pro").hidden = nPro === 0;
+    if (!$("#vue-bilan").hidden) rendreBilan();
     // rafraîchir la fiche ouverte si besoin
     if (ticketOuvert) {
       const maj = tousTickets.find(t => t.id === ticketOuvert.id);
@@ -690,6 +710,111 @@ $("#btn-notifier").addEventListener("click", async () => {
     btn.textContent = "✉ Prévenir le client (montre prête)";
   }
 });
+
+
+// ------------------------------------------------------------
+// Bilan
+// ------------------------------------------------------------
+const MOIS_FR = ["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"];
+
+function montantTicket(t) {
+  const lignes = (t.devis && t.devis.lignes) || [];
+  if (lignes.length) return lignes.reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
+  return (t.pieces || []).reduce((s, p) => s + (parseFloat(p.prix) || 0), 0);
+}
+
+function dateStatut(t, statut) {
+  const h = (t.historique || []).filter(x => x.statut === statut);
+  return h.length ? new Date(h[h.length - 1].date) : null;
+}
+
+function initBilanMois() {
+  const sel = $("#bilan-mois");
+  if (sel.options.length) return;
+  const maintenant = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(maintenant.getFullYear(), maintenant.getMonth() - i, 1);
+    const opt = document.createElement("option");
+    opt.value = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0");
+    opt.textContent = MOIS_FR[d.getMonth()] + " " + d.getFullYear();
+    sel.appendChild(opt);
+  }
+  sel.addEventListener("change", rendreBilan);
+}
+
+const eur = n => n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
+
+function rendreBilan() {
+  initBilanMois();
+  const [annee, mois] = $("#bilan-mois").value.split("-").map(Number);
+  const dansLeMois = d => d && d.getFullYear() === annee && d.getMonth() + 1 === mois;
+
+  // --- Cartes ---
+  const attente = tousTickets.filter(t => t.statut === "devis_envoye");
+  $("#stat-attente-n").textContent = attente.length;
+  $("#stat-attente-eur").textContent = eur(attente.reduce((s, t) => s + montantTicket(t), 0)) + " en jeu";
+
+  const atelier = tousTickets.filter(t => ["accepte", "en_cours"].includes(t.statut));
+  $("#stat-atelier-n").textContent = atelier.length;
+  $("#stat-atelier-eur").textContent = eur(atelier.reduce((s, t) => s + montantTicket(t), 0)) + " à venir";
+
+  const prets = tousTickets.filter(t => t.statut === "pret");
+  $("#stat-pret-n").textContent = prets.length;
+  $("#stat-pret-eur").textContent = eur(prets.reduce((s, t) => s + montantTicket(t), 0)) + " à encaisser";
+
+  const rendusMois = tousTickets.filter(t => t.statut === "rendu" && dansLeMois(dateStatut(t, "rendu")));
+  $("#stat-ca-libelle").textContent = "Rendus — " + MOIS_FR[mois - 1];
+  $("#stat-ca-eur").textContent = eur(rendusMois.reduce((s, t) => s + montantTicket(t), 0));
+  $("#stat-ca-n").textContent = rendusMois.length + " ticket" + (rendusMois.length > 1 ? "s" : "") + " rendu" + (rendusMois.length > 1 ? "s" : "");
+
+  // --- Dû par les clients pro ---
+  // En cours : devis accepté, pas encore rendu. À facturer : rendu dans le mois choisi.
+  const proTickets = tousTickets.filter(t => t.clientPro && montantTicket(t) > 0 && t.devis && t.devis.statut === "accepte");
+  const parClient = {};
+  proTickets.forEach(t => {
+    const c = parClient[t.clientNom] || (parClient[t.clientNom] = { enCours: 0, nEnCours: 0, rendu: 0, nRendu: 0 });
+    if (t.statut === "rendu") {
+      if (dansLeMois(dateStatut(t, "rendu"))) { c.rendu += montantTicket(t); c.nRendu++; }
+    } else {
+      c.enCours += montantTicket(t); c.nEnCours++;
+    }
+  });
+  const noms = Object.keys(parClient).sort();
+  let totalEnCours = 0, totalRendu = 0;
+  $("#bilan-pro").innerHTML = noms.length ? `
+    <div class="bilan-ligne bilan-ligne-titre">
+      <span>Client</span><span>En atelier</span><span>Rendu ${MOIS_FR[mois - 1]}</span>
+    </div>
+    ${noms.map(n => {
+      const c = parClient[n];
+      totalEnCours += c.enCours; totalRendu += c.rendu;
+      return `<div class="bilan-ligne">
+        <span>${echap(n)}</span>
+        <span>${c.nEnCours ? eur(c.enCours) + " (" + c.nEnCours + ")" : "—"}</span>
+        <span>${c.nRendu ? eur(c.rendu) + " (" + c.nRendu + ")" : "—"}</span>
+      </div>`;
+    }).join("")}
+    <div class="bilan-ligne bilan-ligne-total">
+      <span>Total</span><span>${eur(totalEnCours)}</span><span>${eur(totalRendu)}</span>
+    </div>`
+    : "<p class='liste-vide'>Aucun devis pro accepté pour l'instant.</p>";
+
+  // --- Tickets validés ---
+  const valides = tousTickets
+    .filter(t => t.devis && t.devis.statut === "accepte")
+    .sort((a, b) => new Date(b.devis.dateReponse || 0) - new Date(a.devis.dateReponse || 0));
+  $("#bilan-valides").innerHTML = valides.map(t => `
+    <div class="ticket-carte" data-id="${t.id}">
+      <div class="tc-num">N° ${t.numero}</div>
+      <div class="tc-corps">
+        <div class="tc-client">${echap(t.clientNom)}${t.clientPro ? ' <span class="tag-pro">PRO</span>' : ""}</div>
+        <div class="tc-objet">Accepté le ${t.devis.dateReponse ? fmtDate(t.devis.dateReponse) : "—"} · ${eur(montantTicket(t))}</div>
+      </div>
+      <div class="tc-statut statut-${t.statut}">${statutLabel(t.statut)}</div>
+    </div>
+  `).join("") || "<p class='liste-vide'>Aucun ticket validé.</p>";
+  $$("#bilan-valides .ticket-carte").forEach(c => c.addEventListener("click", () => ouvrirFiche(c.dataset.id)));
+}
 
 // ------------------------------------------------------------
 // Contrôle final + certificat de révision

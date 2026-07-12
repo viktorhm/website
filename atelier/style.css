@@ -360,3 +360,57 @@ textarea { resize: vertical; margin-top: 10px; }
     text-align: center; font-size: 7.5pt;
   }
 }
+
+/* ============================================================
+   Bilan
+   ============================================================ */
+.bilan-entete { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.bilan-select {
+  padding: 11px 14px; border: 1px solid var(--ligne); border-radius: var(--rayon-s);
+  background: var(--carte); color: var(--texte); font: inherit; cursor: pointer;
+}
+.bilan-select:focus { outline: none; border-color: var(--laiton); }
+
+.stats-grille {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;
+}
+.stat-carte {
+  background: var(--carte); border: 1px solid var(--ligne);
+  border-radius: var(--rayon); padding: 18px;
+  border-top: 3px solid var(--ligne);
+}
+.stat-attente { border-top-color: var(--laiton); }
+.stat-atelier { border-top-color: var(--acier-bleu); }
+.stat-pret    { border-top-color: var(--emauxvert); }
+.stat-ca      { border-top-color: var(--texte); }
+.stat-libelle { font-size: .76rem; text-transform: uppercase; letter-spacing: .12em; color: var(--texte-2); }
+.stat-valeur {
+  font-family: "JetBrains Mono", monospace; font-size: 1.9rem; font-weight: 700;
+  margin-top: 6px; color: var(--texte);
+}
+.stat-sous { color: var(--texte-2); font-size: .85rem; margin-top: 4px; font-family: "JetBrains Mono", monospace; }
+
+.bilan-ligne {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 18px;
+  padding: 10px 0; border-bottom: 1px solid var(--ligne);
+}
+.bilan-ligne span:nth-child(2), .bilan-ligne span:nth-child(3) {
+  font-family: "JetBrains Mono", monospace; text-align: right; min-width: 120px;
+}
+.bilan-ligne-titre {
+  font-size: .76rem; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--texte-2); border-bottom: 1px solid var(--laiton-fonce);
+}
+.bilan-ligne-titre span { font-family: inherit !important; }
+.bilan-ligne-total { border-bottom: none; border-top: 2px solid var(--laiton-fonce); font-weight: 700; color: var(--laiton); }
+
+/* Statuts plus visibles : pastille pleine colorée */
+.tc-statut {
+  padding: 6px 12px; border-radius: 999px;
+  border: 1px solid currentColor;
+  background: rgba(255,255,255,.03);
+}
+
+@media (max-width: 760px) {
+  .stats-grille { grid-template-columns: repeat(2, 1fr); }
+}
