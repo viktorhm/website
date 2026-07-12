@@ -186,7 +186,7 @@ function rendreListe() {
   }).join("");
 
   $$(".ticket-carte").forEach(c => c.addEventListener("click", e => {
-    if (e.target.closest("button")) return;
+    if (e.target.closest("button, label, input, a")) return;
     ticketOuvertId = ticketOuvertId === c.dataset.id ? null : c.dataset.id;
     rendreListe();
   }));
