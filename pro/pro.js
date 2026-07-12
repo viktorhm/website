@@ -219,7 +219,11 @@ function rendreListe() {
 
     return `
     <div class="ticket-carte ${ouvert ? "ouvert" : ""}" data-id="${t.id}" style="flex-direction:column;align-items:stretch;">
-      <div style="display:flex;align-items:center;gap:18px;">
+      <div style="display:flex;align-items:center;gap:16px;">
+        ${(t.photos && t.photos.length) ? `
+          <a class="photo-item tc-photo" href="${t.photos[0]}" target="_blank" rel="noopener" title="Agrandir">
+            <img src="${t.photos[0].replace("/upload/", "/upload/w_140,h_140,c_fill/")}" alt="montre" loading="lazy">
+          </a>` : ""}
         <div class="tc-num">N° ${t.numero}</div>
         <div class="tc-corps">
           <div class="tc-client">${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</div>

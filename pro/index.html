@@ -90,6 +90,8 @@
   .btn-refuser { background: var(--carte-2); color: var(--texte-2); border: 1px solid var(--ligne); }
   .pro-vide { text-align: center; color: var(--texte-2); padding: 60px 20px; }
   .ticket-carte.ouvert { border-color: var(--laiton-fonce); }
+  .tc-photo { width: 58px; height: 58px; flex-shrink: 0; border-radius: 8px; }
+  @media (max-width: 480px) { .tc-photo { display: none; } }
 
   /* Bandeau solde */
   .pro-solde { margin-bottom: 18px; }
@@ -185,6 +187,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="pro.js?v=4.0"></script>
+<script type="module" src="pro.js?v=4.1"></script>
 </body>
 </html>
