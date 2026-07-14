@@ -84,7 +84,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 4.4");
+console.log("Atelier app.js chargé — version 4.5");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -528,6 +528,28 @@ function ouvrirFiche(id) {
   window.scrollTo(0, 0);
 }
 
+function dateVersInput(ts) {
+  if (!ts) return "";
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+async function modifierDateDepot() {
+  const t = ticketOuvert;
+  const val = $("#edit-date-depot").value;
+  if (!t || !val) return;
+  const ancienne = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || Date.now());
+  const [a, m, j] = val.split("-").map(Number);
+  // conserver l'heure d'origine, ne changer que le jour
+  const nouvelle = new Date(a, m - 1, j, ancienne.getHours(), ancienne.getMinutes(), ancienne.getSeconds());
+  if (!confirm(`Changer la date de dépôt du ticket n° ${t.numero} au ${nouvelle.toLocaleDateString("fr-FR")} ?`)) return;
+  await updateDoc(doc(db, "tickets", t.id), {
+    createdAt: nouvelle,
+    updatedAt: serverTimestamp()
+  });
+  toast("Date de dépôt modifiée ✓");
+}
+
 function rendreFiche() {
   const t = ticketOuvert;
   $("#fiche-numero").textContent = "N° " + t.numero;
@@ -554,12 +576,17 @@ function rendreFiche() {
     ${t.numSerie ? `<div><span>N° série</span><b>${echap(t.numSerie)}</b></div>` : ""}
     <div><span>État au dépôt</span><b>${echap([...(t.etat || []), t.etatTexte].filter(Boolean).join(", ") || "RAS")}</b></div>
     <div><span>Demande</span><b>${echap([t.demande, t.demandeTexte].filter(Boolean).join(" — "))}</b></div>
-    <div><span>Déposé le</span><b>${fmtDate(t.createdAt)}</b></div>
+    <div><span>Déposé le</span><b>${fmtDate(t.createdAt)}</b>
+      <input type="date" id="edit-date-depot" class="edit-date" value="${dateVersInput(t.createdAt)}">
+      <button type="button" id="btn-date-depot" class="btn-lien">modifier</button>
+    </div>
     ${t.facture ? `<div><span>Facturation</span><b style="color:var(--emauxvert)">✓ Facturé le ${fmtDate(t.factureDate)}</b></div>` : ""}
   `;
   $("#fiche-photos").innerHTML = (t.photos || []).map(u =>
     `<a class="photo-item" href="${u}" target="_blank"><img src="${u.replace("/upload/", "/upload/w_200,h_200,c_fill/")}"></a>`
   ).join("");
+
+  $("#btn-date-depot").addEventListener("click", modifierDateDepot);
 
   // Devis
   rendreDevis(t);

@@ -531,3 +531,11 @@ textarea { resize: vertical; margin-top: 10px; }
   font-weight: 600; cursor: pointer; white-space: nowrap;
 }
 .btn-recue:hover { background: rgba(76,175,119,.12); }
+
+/* Date de dépôt éditable */
+.edit-date {
+  width: auto !important; padding: 6px 10px !important;
+  font-size: .88rem !important; margin-left: 10px;
+  font-family: "JetBrains Mono", monospace;
+  color-scheme: dark;
+}
