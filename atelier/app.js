@@ -75,6 +75,31 @@ function fmtDate(ts) {
          d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
 }
 
+// Formatage téléphone : espaces tous les 2 chiffres, France (+33) par défaut
+function fmtTel(brut) {
+  if (!brut) return "";
+  let n = String(brut).replace(/[^\d+]/g, "");
+  // 9 chiffres sans 0 initial ni indicatif : numéro français saisi sans le 0
+  if (/^[1-9]\d{8}$/.test(n)) n = "0" + n;
+  // 0X XX XX XX XX
+  if (/^0\d{9}$/.test(n)) return n.replace(/(\d{2})(?=\d)/g, "$1 ").trim();
+  // +33 X XX XX XX XX
+  if (/^(\+|00)33\d{9}$/.test(n)) {
+    const reste = n.replace(/^(\+|00)33/, "");
+    return "+33 " + reste[0] + " " + reste.slice(1).replace(/(\d{2})(?=\d)/g, "$1 ").trim();
+  }
+  // autre indicatif international : paires
+  if (n.startsWith("+")) return n.replace(/(\d{2})(?=\d)/g, "$1 ").trim();
+  return brut;
+}
+
+function brancherFormatTel(input) {
+  input.addEventListener("blur", () => {
+    const f = fmtTel(input.value);
+    if (f) input.value = f;
+  });
+}
+
 function echap(s) {
   const div = document.createElement("div");
   div.textContent = s ?? "";
@@ -84,7 +109,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 4.5");
+console.log("Atelier app.js chargé — version 4.6");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -178,6 +203,7 @@ function initPastilles(conteneurId, multi = false) {
 }
 initPastilles("type-objet");
 initPastilles("client-civilite");
+brancherFormatTel($("#client-tel"));
 initPastilles("etat-objet", true);
 initPastilles("demande-client", true);
 
@@ -227,7 +253,7 @@ $("#client-recherche").addEventListener("input", async e => {
     (c.tel || "").replace(/\s/g, "").includes(q$.replace(/\s/g, ""))
   );
   box.innerHTML = resultats.slice(0, 8).map(c =>
-    `<div class="suggestion" data-id="${c.id}">${echap(c.nom)} — ${echap(c.tel || "")}${c.pro ? " · PRO" : ""}</div>`
+    `<div class="suggestion" data-id="${c.id}">${echap(c.nom)} — ${echap(fmtTel(c.tel) || "")}${c.pro ? " · PRO" : ""}</div>`
   ).join("") || `<div class="suggestion suggestion-vide">Aucun client trouvé</div>`;
   box.hidden = false;
   box.querySelectorAll(".suggestion[data-id]").forEach(el => {
@@ -244,7 +270,7 @@ function choisirClient(c) {
   $("#client-recherche").value = "";
   $("#client-nouveau").hidden = true;
   $("#client-choisi").hidden = false;
-  $("#client-choisi-nom").textContent = (c.civilite ? c.civilite + " " : "") + c.nom + (c.tel ? " — " + c.tel : "") + (c.pro ? " · PRO" : "");
+  $("#client-choisi-nom").textContent = (c.civilite ? c.civilite + " " : "") + c.nom + (c.tel ? " — " + fmtTel(c.tel) : "") + (c.pro ? " · PRO" : "");
   // Rappeler la civilité sur les pastilles (modifiable si absente ou erronée)
   $$("#client-civilite .pastille").forEach(p => p.classList.toggle("actif", p.dataset.val === c.civilite));
   // Client pro : permettre de voir/compléter le 2e email (fiche mise à jour à la création)
@@ -340,7 +366,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
     }
   } else {
     const nom = $("#client-nom").value.trim();
-    const tel = $("#client-tel").value.trim();
+    const tel = fmtTel($("#client-tel").value.trim()) || $("#client-tel").value.trim();
     if (!nom || !tel) return toast("Nom et téléphone du client obligatoires", true);
     client = {
       nom, tel,
@@ -563,14 +589,14 @@ function rendreFiche() {
   // Zone notification
   const zone = $("#fiche-notif");
   zone.hidden = t.statut !== "pret";
-  $("#notif-info").textContent = t.notifie ? "✓ Client déjà notifié" : (t.clientEmail ? "" : "Pas d'email enregistré — appelle le " + t.clientTel);
+  $("#notif-info").textContent = t.notifie ? "✓ Client déjà notifié" : (t.clientEmail ? "" : "Pas d'email enregistré — appelle le " + fmtTel(t.clientTel));
   $("#btn-notifier").disabled = !t.clientEmail || t.notifie;
 
   // Infos
   $("#fiche-infos").innerHTML = `
     <div><span>Client</span><b>${echap((t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom)}${t.clientPro ? " · PRO" : ""}</b></div>
     ${t.contremarque ? `<div><span>Contremarque</span><b>${echap(t.contremarque)}</b></div>` : ""}
-    <div><span>Téléphone</span><b>${echap(t.clientTel)}</b></div>
+    <div><span>Téléphone</span><b>${echap(fmtTel(t.clientTel))}</b></div>
     ${(t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).filter(Boolean).map(e => `<div><span>Email</span><b>${echap(e)}</b></div>`).join("")}
     <div><span>Objet</span><b>${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</b></div>
     ${t.numSerie ? `<div><span>N° série</span><b>${echap(t.numSerie)}</b></div>` : ""}
@@ -1133,7 +1159,7 @@ function imprimerTicket(t) {
   const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || Date.now());
   $("#pt-date").textContent = "Déposé le " + d.toLocaleDateString("fr-FR");
   $("#pt-client").textContent = (t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom;
-  $("#pt-tel").textContent = t.clientTel;
+  $("#pt-tel").textContent = fmtTel(t.clientTel);
   $("#pt-objet").textContent = [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · ");
   $("#pt-etat").textContent = [...(t.etat || []), t.etatTexte].filter(Boolean).join(", ") || "RAS";
   $("#pt-demande").textContent = [t.demande, t.demandeTexte].filter(Boolean).join(" — ");
