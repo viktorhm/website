@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 4.7");
+console.log("Atelier app.js chargé — version 5.0");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -370,6 +370,61 @@ async function uploadCloudinary(fichier) {
 // ------------------------------------------------------------
 // Création du ticket
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+// Dépôt multi-montres : chaque montre = un ticket, saisie en une fois
+// ------------------------------------------------------------
+let objetsLot = [];
+
+function lireObjetCourant() {
+  return {
+    typeObjet: pastilleVal("type-objet"),
+    marque: $("#objet-marque").value.trim(),
+    modele: $("#objet-modele").value.trim(),
+    numSerie: $("#objet-serie").value.trim(),
+    etat: pastillesVals("etat-objet"),
+    etatTexte: $("#etat-texte").value.trim(),
+    demande: pastillesVals("demande-client").join(", "),
+    demandeTexte: $("#demande-texte").value.trim(),
+    photos: [...photosDepot]
+  };
+}
+
+function viderObjetCourant() {
+  ["objet-marque", "objet-modele", "objet-serie"].forEach(id => ($("#" + id).value = ""));
+  $("#etat-texte").value = ""; $("#demande-texte").value = "";
+  $$("#type-objet .pastille, #etat-objet .pastille, #demande-client .pastille")
+    .forEach(p => p.classList.remove("actif"));
+  $("#photos-apercu").innerHTML = "";
+  photosDepot = [];
+}
+
+function rendreLot() {
+  $("#lot-objets").innerHTML = objetsLot.map((o, i) => `
+    <div class="lot-chip">
+      <span>${i + 1}. ${echap([o.typeObjet, o.marque, o.modele].filter(Boolean).join(" "))}${o.numSerie ? " · " + echap(o.numSerie) : ""}</span>
+      <button type="button" class="lot-suppr" data-i="${i}">✕</button>
+    </div>`).join("");
+  $$(".lot-suppr").forEach(b => b.addEventListener("click", () => {
+    objetsLot.splice(parseInt(b.dataset.i), 1);
+    rendreLot();
+  }));
+  const n = objetsLot.length;
+  $("#btn-creer-ticket").textContent = n
+    ? `Créer les ${n + 1} tickets de dépôt`
+    : "Créer le ticket de dépôt";
+}
+
+$("#btn-ajouter-objet").addEventListener("click", () => {
+  const o = lireObjetCourant();
+  if (!o.typeObjet) return toast("Choisis le type d'objet", true);
+  if (!o.demande) return toast("Choisis la demande du client", true);
+  objetsLot.push(o);
+  viderObjetCourant();
+  rendreLot();
+  toast("Montre " + objetsLot.length + " ajoutée — saisis la suivante");
+  document.querySelector("#type-objet").scrollIntoView({ behavior: "smooth", block: "center" });
+});
+
 $("#btn-creer-ticket").addEventListener("click", async () => {
   const btn = $("#btn-creer-ticket");
 
@@ -397,24 +452,30 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
     };
   }
 
-  const typeObjet = pastilleVal("type-objet");
-  if (!typeObjet) return toast("Choisis le type d'objet", true);
-  const demandes = pastillesVals("demande-client");
-  if (!demandes.length) return toast("Choisis la demande du client", true);
-  const demande = demandes.join(", ");
+  // Objets : ceux mis de côté + celui en cours de saisie s'il est entamé
+  const objets = [...objetsLot];
+  const courant = lireObjetCourant();
+  const courantEntame = courant.typeObjet || courant.marque || courant.demande
+    || courant.etat.length || courant.photos.length;
+  if (courantEntame) {
+    if (!courant.typeObjet) return toast("Choisis le type d'objet", true);
+    if (!courant.demande) return toast("Choisis la demande du client", true);
+    objets.push(courant);
+  }
+  if (!objets.length) return toast("Renseigne au moins une montre", true);
 
   btn.disabled = true;
   btn.textContent = "Création…";
 
   try {
-    // Enregistrer le client s'il est nouveau, ou mettre à jour ses emails
+    // Enregistrer le client s'il est nouveau, ou mettre à jour sa fiche
     let clientId = client.id;
     if (!clientId) {
       const ref = await addDoc(collection(db, "clients"), {
         ...client, createdAt: serverTimestamp()
       });
       clientId = ref.id;
-      cacheClients = null; // recharger au prochain usage
+      cacheClients = null;
     } else {
       const majClient = {};
       if (client.pro && (client.email !== clientChoisi.email || client.email2 !== clientChoisi.email2)) {
@@ -428,43 +489,50 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
       }
     }
 
-    // Numéro de ticket via compteur transactionnel
-    const numero = await prochainNumero();
+    const lotId = objets.length > 1 ? crypto.randomUUID() : null;
+    const crees = [];
 
-    const ticket = {
-      numero,
-      clientId,
-      clientNom: client.nom,
-      clientCivilite: client.civilite || "",
-      clientTel: client.tel,
-      clientEmail: client.email || "",
-      clientEmails: [client.email, client.email2].filter(Boolean).map(e => e.toLowerCase()),
-      clientPro: !!client.pro,
-      typeObjet,
-      marque: $("#objet-marque").value.trim(),
-      modele: $("#objet-modele").value.trim(),
-      numSerie: $("#objet-serie").value.trim(),
-      etat: pastillesVals("etat-objet"),
-      etatTexte: $("#etat-texte").value.trim(),
-      demande,
-      demandeTexte: $("#demande-texte").value.trim(),
-      photos: photosDepot,
-      pieces: [],
-      notes: [],
-      statut: "depose",
-      historique: [{ statut: "depose", date: new Date().toISOString() }],
-      notifie: false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    };
+    for (const o of objets) {
+      const numero = await prochainNumero();
+      const ticket = {
+        numero,
+        clientId,
+        clientNom: client.nom,
+        clientCivilite: client.civilite || "",
+        clientTel: client.tel,
+        clientEmail: client.email || "",
+        clientEmails: [client.email, client.email2].filter(Boolean).map(e => e.toLowerCase()),
+        clientPro: !!client.pro,
+        typeObjet: o.typeObjet,
+        marque: o.marque,
+        modele: o.modele,
+        numSerie: o.numSerie,
+        etat: o.etat,
+        etatTexte: o.etatTexte,
+        demande: o.demande,
+        demandeTexte: o.demandeTexte,
+        photos: o.photos,
+        pieces: [],
+        notes: [],
+        statut: "depose",
+        historique: [{ statut: "depose", date: new Date().toISOString() }],
+        notifie: false,
+        ...(lotId ? { lot: lotId } : {}),
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      };
+      const ref = await addDoc(collection(db, "tickets"), ticket);
+      crees.push({ id: ref.id, ...ticket, createdAt: new Date() });
+    }
 
-    const ref = await addDoc(collection(db, "tickets"), ticket);
-    toast(`Ticket n° ${numero} créé`);
-    imprimerTicket({ id: ref.id, ...ticket, createdAt: new Date() });
+    toast(crees.length > 1
+      ? `${crees.length} tickets créés (n° ${crees[0].numero} à ${crees[crees.length - 1].numero})`
+      : `Ticket n° ${crees[0].numero} créé`);
+    imprimerTickets(crees);
     reinitFormDepot();
   } catch (e) {
     console.error(e);
-    toast("Erreur lors de la création du ticket", true);
+    toast("Erreur lors de la création", true);
   } finally {
     btn.disabled = false;
     btn.textContent = "Créer le ticket de dépôt";
@@ -492,7 +560,10 @@ function reinitFormDepot() {
   photosDepot = [];
   clientChoisi = null;
   $("#client-choisi").hidden = true;
+  $("#client-choisi-emails").hidden = true;
   $("#client-nouveau").hidden = false;
+  objetsLot = [];
+  rendreLot();
 }
 
 // ------------------------------------------------------------
@@ -624,6 +695,7 @@ function rendreFiche() {
       <input type="date" id="edit-date-depot" class="edit-date" value="${dateVersInput(t.createdAt)}">
       <button type="button" id="btn-date-depot" class="btn-lien">modifier</button>
     </div>
+    ${t.lot ? (() => { const freres = tousTickets.filter(x => x.lot === t.lot && x.id !== t.id).map(x => "n° " + x.numero).join(", "); return freres ? `<div><span>Déposé avec</span><b>${freres}</b></div>` : ""; })() : ""}
     ${t.facture ? `<div><span>Facturation</span><b style="color:var(--emauxvert)">✓ Facturé le ${fmtDate(t.factureDate)}</b></div>` : ""}
   `;
   $("#fiche-photos").innerHTML = (t.photos || []).map(u =>
@@ -1145,25 +1217,7 @@ $("#btn-certificat").addEventListener("click", () => {
     reserve: $("#ctrl-reserve").value.trim(),
     remarque: $("#ctrl-remarque").value.trim()
   };
-  $("#pc-ref").textContent = "Ticket n° " + t.numero + " — le " + new Date().toLocaleDateString("fr-FR");
-  $("#pc-objet").textContent = [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · ");
-  $("#pc-serie").textContent = t.numSerie || "";
-  $("#pc-serie-ligne").style.display = t.numSerie ? "" : "none";
-  $("#pc-client").textContent = (t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom;
-  const interventions = (t.pieces || []).map(p => p.designation);
-  $("#pc-interventions").textContent = interventions.length
-    ? "Révision complète — " + interventions.join(", ")
-    : "Révision complète (démontage, nettoyage, lubrification, réglage)";
-  $("#pc-marche").textContent = c.marche || "—";
-  $("#pc-amplitude").textContent = c.amplitude || "—";
-  $("#pc-reserve").textContent = c.reserve || "";
-  $("#pc-reserve-ligne").style.display = c.reserve ? "" : "none";
-  $("#pc-remarque").textContent = c.remarque || "";
-  $("#pc-remarque-ligne").style.display = c.remarque ? "" : "none";
-  $("#pc-date-garantie").textContent = new Date().toLocaleDateString("fr-FR");
-  document.body.classList.add("mode-certif");
-  window.print();
-  document.body.classList.remove("mode-certif");
+  imprimerPages(pageCertifHTML(t, c));
 });
 
 // ------------------------------------------------------------
@@ -1171,15 +1225,70 @@ $("#btn-certificat").addEventListener("click", () => {
 // ------------------------------------------------------------
 $("#btn-imprimer").addEventListener("click", () => { if (ticketOuvert) imprimerTicket(ticketOuvert); });
 
-function imprimerTicket(t) {
-  $("#pt-num").textContent = "N° " + t.numero;
-  $("#pt-contremarque").textContent = t.contremarque ? "Contremarque : " + t.contremarque : "";
+function pageTicketHTML(t) {
   const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || Date.now());
-  $("#pt-date").textContent = "Déposé le " + d.toLocaleDateString("fr-FR");
-  $("#pt-client").textContent = (t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom;
-  $("#pt-tel").textContent = fmtTel(t.clientTel);
-  $("#pt-objet").textContent = [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · ");
-  $("#pt-etat").textContent = [...(t.etat || []), t.etatTexte].filter(Boolean).join(", ") || "RAS";
-  $("#pt-demande").textContent = [t.demande, t.demandeTexte].filter(Boolean).join(" — ");
+  return `<div class="pt-page">
+  <div class="pt-entete">
+    <div class="pt-marque">HORLOGERIE HARATYK</div>
+    <div class="pt-coord">43 rue du Vieux Four · 59700 Marcq-en-Barœul<br>07 85 85 10 80 · horlogerie-haratyk.fr</div>
+  </div>
+  <div class="pt-numero">TICKET DE DÉPÔT N° ${t.numero}</div>
+  ${t.contremarque ? `<div class="pt-date" style="font-weight:600">Contremarque : ${echap(t.contremarque)}</div>` : ""}
+  <div class="pt-date">Déposé le ${d.toLocaleDateString("fr-FR")}</div>
+  <div class="pt-section">
+    <div class="pt-ligne"><span>Client</span><b>${echap((t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom)}</b></div>
+    <div class="pt-ligne"><span>Téléphone</span><b>${echap(fmtTel(t.clientTel))}</b></div>
+  </div>
+  <div class="pt-section">
+    <div class="pt-ligne"><span>Objet</span><b>${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</b></div>
+    ${t.numSerie ? `<div class="pt-ligne"><span>N° série</span><b>${echap(t.numSerie)}</b></div>` : ""}
+    <div class="pt-ligne"><span>État constaté</span><span>${echap([...(t.etat || []), t.etatTexte].filter(Boolean).join(", ") || "RAS")}</span></div>
+    <div class="pt-ligne"><span>Demande</span><span>${echap([t.demande, t.demandeTexte].filter(Boolean).join(" — "))}</span></div>
+  </div>
+  <div class="pt-pied">
+    À présenter lors du retrait.<br>
+    Ouvert mercredi &amp; jeudi 10h–18h, samedi 10h–14h.<br>
+    Paiement : espèces ou chèque.
+  </div>
+</div>`;
+}
+
+function pageCertifHTML(t, c) {
+  return `<div class="pt-page">
+  <div class="pt-entete">
+    <div class="pt-marque">HORLOGERIE HARATYK</div>
+    <div class="pt-coord">43 rue du Vieux Four · 59700 Marcq-en-Barœul<br>07 85 85 10 80 · horlogerie-haratyk.fr · SIRET 988 378 378</div>
+  </div>
+  <div class="pt-numero">CERTIFICAT DE RÉVISION</div>
+  <div class="pt-date">Ticket n° ${t.numero} — le ${new Date().toLocaleDateString("fr-FR")}</div>
+  <div class="pt-section">
+    <div class="pt-ligne"><span>Objet</span><b>${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</b></div>
+    ${t.numSerie ? `<div class="pt-ligne"><span>N° série</span><b>${echap(t.numSerie)}</b></div>` : ""}
+    <div class="pt-ligne"><span>Client</span><b>${echap((t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom)}</b></div>
+  </div>
+  <div class="pt-section">
+    <div class="pt-ligne"><span>Interventions</span><span>${echap((t.pieces || []).length
+      ? "Révision complète — " + t.pieces.map(p => p.designation).join(", ")
+      : "Révision complète (démontage, nettoyage, lubrification, réglage)")}</span></div>
+  </div>
+  <div class="pt-section">
+    <div class="pt-ligne"><span>Marche</span><b>${echap(c.marche || "—")}</b></div>
+    <div class="pt-ligne"><span>Amplitude</span><b>${echap(c.amplitude || "—")}</b></div>
+    ${c.reserve ? `<div class="pt-ligne"><span>Réserve</span><b>${echap(c.reserve)}</b></div>` : ""}
+    ${c.remarque ? `<div class="pt-ligne"><span>Remarque</span><span>${echap(c.remarque)}</span></div>` : ""}
+  </div>
+  <div class="pt-pied">
+    Révision garantie <b>1 an</b> à compter du ${new Date().toLocaleDateString("fr-FR")}<br>
+    (hors chocs, oxydation et usure du bracelet).<br>
+    Viktor Haratyk — Artisan horloger, CAP Horlogerie
+  </div>
+</div>`;
+}
+
+function imprimerPages(html) {
+  $("#print-zone").innerHTML = html;
   window.print();
 }
+
+function imprimerTicket(t) { imprimerPages(pageTicketHTML(t)); }
+function imprimerTickets(liste) { imprimerPages(liste.map(pageTicketHTML).join("")); }

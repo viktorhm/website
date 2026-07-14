@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=4.7">
+<link rel="stylesheet" href="style.css?v=5.0">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -121,7 +121,9 @@
         <textarea id="demande-texte" rows="2" placeholder="Précisions…"></textarea>
       </section>
 
+      <div id="lot-objets" class="lot-objets"></div>
       <div class="actions-bas">
+        <button type="button" id="btn-ajouter-objet" class="btn btn-secondaire btn-large" style="margin-bottom:10px">＋ Ajouter une autre montre à ce dépôt</button>
         <button type="button" id="btn-creer-ticket" class="btn btn-principal btn-large">Créer le ticket de dépôt</button>
       </div>
     </form>
@@ -296,62 +298,10 @@
   </main>
 </div>
 
-<!-- ============ TICKET A6 (impression uniquement) ============ -->
-<div id="print-ticket" class="print-ticket">
-  <div class="pt-entete">
-    <div class="pt-marque">HORLOGERIE HARATYK</div>
-    <div class="pt-coord">43 rue du Vieux Four · 59700 Marcq-en-Barœul<br>07 85 85 10 80 · horlogerie-haratyk.fr</div>
-  </div>
-  <div class="pt-numero">TICKET DE DÉPÔT <span id="pt-num"></span></div>
-  <div class="pt-date" id="pt-contremarque" style="font-weight:600"></div>
-  <div class="pt-date" id="pt-date"></div>
-  <div class="pt-section">
-    <div class="pt-ligne"><span>Client</span><b id="pt-client"></b></div>
-    <div class="pt-ligne"><span>Téléphone</span><b id="pt-tel"></b></div>
-  </div>
-  <div class="pt-section">
-    <div class="pt-ligne"><span>Objet</span><b id="pt-objet"></b></div>
-    <div class="pt-ligne"><span>État constaté</span><span id="pt-etat"></span></div>
-    <div class="pt-ligne"><span>Demande</span><span id="pt-demande"></span></div>
-  </div>
-  <div class="pt-pied">
-    À présenter lors du retrait.<br>
-    Ouvert mercredi &amp; jeudi 10h–18h, samedi 10h–14h.<br>
-    Paiement : espèces ou chèque.
-  </div>
-</div>
-
-<!-- ============ CERTIFICAT DE RÉVISION A6 (impression uniquement) ============ -->
-<div id="print-certif" class="print-certif">
-  <div class="pt-entete">
-    <div class="pt-marque">HORLOGERIE HARATYK</div>
-    <div class="pt-coord">43 rue du Vieux Four · 59700 Marcq-en-Barœul<br>07 85 85 10 80 · horlogerie-haratyk.fr · SIRET 988 378 378</div>
-  </div>
-  <div class="pt-numero">CERTIFICAT DE RÉVISION</div>
-  <div class="pt-date" id="pc-ref"></div>
-  <div class="pt-section">
-    <div class="pt-ligne"><span>Objet</span><b id="pc-objet"></b></div>
-    <div class="pt-ligne" id="pc-serie-ligne"><span>N° série</span><b id="pc-serie"></b></div>
-    <div class="pt-ligne"><span>Client</span><b id="pc-client"></b></div>
-  </div>
-  <div class="pt-section">
-    <div class="pt-ligne"><span>Interventions</span><span id="pc-interventions"></span></div>
-  </div>
-  <div class="pt-section">
-    <div class="pt-ligne"><span>Marche</span><b id="pc-marche"></b></div>
-    <div class="pt-ligne"><span>Amplitude</span><b id="pc-amplitude"></b></div>
-    <div class="pt-ligne" id="pc-reserve-ligne"><span>Réserve</span><b id="pc-reserve"></b></div>
-    <div class="pt-ligne" id="pc-remarque-ligne"><span>Remarque</span><span id="pc-remarque"></span></div>
-  </div>
-  <div class="pt-pied">
-    Révision garantie <b>1 an</b> à compter du <span id="pc-date-garantie"></span><br>
-    (hors chocs, oxydation et usure du bracelet).<br>
-    Viktor Haratyk — Artisan horloger, CAP Horlogerie
-  </div>
-</div>
+<div id="print-zone" class="print-zone"></div>
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=4.7"></script>
+<script type="module" src="app.js?v=5.0"></script>
 </body>
 </html>

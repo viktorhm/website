@@ -330,27 +330,21 @@ textarea { resize: vertical; margin-top: 10px; }
 /* ============================================================
    TICKET A6 — impression uniquement (noir sur blanc)
    ============================================================ */
-.print-ticket, .print-certif { display: none; }
+.print-zone { display: none; }
 
 @media print {
   @page { size: A6 portrait; margin: 7mm; }
 
-  body * { visibility: hidden; }
+  body > *:not(#print-zone) { display: none !important; }
+  #print-zone { display: block !important; }
 
-  /* Par défaut : ticket de dépôt. En mode-certif : certificat. */
-  body:not(.mode-certif) .print-ticket,
-  body:not(.mode-certif) .print-ticket * { visibility: visible; }
-  body.mode-certif .print-certif,
-  body.mode-certif .print-certif * { visibility: visible; }
-
-  .print-ticket, .print-certif {
-    position: fixed; inset: 0;
+  .pt-page {
     font-family: Georgia, "Times New Roman", serif;
     color: #000; font-size: 9.5pt; line-height: 1.45;
     background: #fff;
+    page-break-after: always;
   }
-  body:not(.mode-certif) .print-ticket { display: block; }
-  body.mode-certif .print-certif { display: block; }
+  .pt-page:last-child { page-break-after: auto; }
   .pt-entete { text-align: center; border-bottom: 1.5pt solid #000; padding-bottom: 3mm; }
   .pt-marque { font-weight: 700; letter-spacing: .18em; font-size: 11pt; }
   .pt-coord { font-size: 7.5pt; margin-top: 1mm; }
@@ -358,7 +352,7 @@ textarea { resize: vertical; margin-top: 10px; }
     text-align: center; font-weight: 700; font-size: 12pt;
     margin: 3mm 0 1mm; letter-spacing: .05em;
   }
-  .pt-date { text-align: center; font-size: 8.5pt; margin-bottom: 3mm; }
+  .pt-date { text-align: center; font-size: 8.5pt; margin-bottom: 1.5mm; }
   .pt-section { border-top: .5pt solid #000; padding: 2mm 0; }
   .pt-ligne { display: flex; gap: 3mm; padding: .6mm 0; }
   .pt-ligne > span:first-child { width: 24mm; flex-shrink: 0; font-size: 8pt; color: #333; }
@@ -538,4 +532,17 @@ textarea { resize: vertical; margin-top: 10px; }
   font-size: .88rem !important; margin-left: 10px;
   font-family: "JetBrains Mono", monospace;
   color-scheme: dark;
+}
+
+
+/* Lot de montres (dépôt multiple) */
+.lot-objets { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.lot-chip {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  background: var(--carte); border: 1px solid var(--laiton-fonce);
+  border-radius: var(--rayon-s); padding: 12px 16px; font-weight: 600;
+}
+.lot-suppr {
+  background: none; border: none; color: var(--emauxrouge);
+  font-size: 1rem; cursor: pointer; padding: 4px 8px;
 }
