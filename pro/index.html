@@ -91,6 +91,12 @@
   .pro-vide { text-align: center; color: var(--texte-2); padding: 60px 20px; }
   .ticket-carte.ouvert { border-color: var(--laiton-fonce); }
   .tc-photo { width: 58px; height: 58px; flex-shrink: 0; border-radius: 8px; }
+  .ref-suivi {
+    font-family: "JetBrains Mono", monospace; font-size: .82rem; font-weight: 700;
+    color: var(--laiton); border: 1px solid var(--laiton-fonce);
+    border-radius: 5px; padding: 1px 7px; margin-left: 8px; vertical-align: middle;
+    white-space: nowrap;
+  }
   @media (max-width: 480px) { .tc-photo { display: none; } }
 
   /* Bandeau solde */
@@ -187,6 +193,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="pro.js?v=4.1"></script>
+<script type="module" src="pro.js?v=4.4"></script>
 </body>
 </html>

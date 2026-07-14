@@ -45,6 +45,7 @@ const STATUTS = [
   { id: "diagnostic",   label: "En diagnostic" },
   { id: "devis_envoye", label: "Devis envoyé" },
   { id: "accepte",      label: "Devis accepté" },
+  { id: "piece_attente", label: "Pièce en attente" },
   { id: "en_cours",     label: "En réparation" },
   { id: "pret",         label: "Prêt" },
   { id: "rendu",        label: "Rendu" },
@@ -83,7 +84,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 4.3");
+console.log("Atelier app.js chargé — version 4.4");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -243,7 +244,9 @@ function choisirClient(c) {
   $("#client-recherche").value = "";
   $("#client-nouveau").hidden = true;
   $("#client-choisi").hidden = false;
-  $("#client-choisi-nom").textContent = c.nom + (c.tel ? " — " + c.tel : "") + (c.pro ? " · PRO" : "");
+  $("#client-choisi-nom").textContent = (c.civilite ? c.civilite + " " : "") + c.nom + (c.tel ? " — " + c.tel : "") + (c.pro ? " · PRO" : "");
+  // Rappeler la civilité sur les pastilles (modifiable si absente ou erronée)
+  $$("#client-civilite .pastille").forEach(p => p.classList.toggle("actif", p.dataset.val === c.civilite));
   // Client pro : permettre de voir/compléter le 2e email (fiche mise à jour à la création)
   const zone = $("#client-choisi-emails");
   if (c.pro) {
@@ -330,6 +333,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
   let client;
   if (clientChoisi) {
     client = { ...clientChoisi };
+    client.civilite = pastilleVal("client-civilite") || client.civilite || "";
     if (client.pro) {
       client.email = $("#client-choisi-email1").value.trim();
       client.email2 = $("#client-choisi-email2").value.trim();
@@ -367,11 +371,17 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
       });
       clientId = ref.id;
       cacheClients = null; // recharger au prochain usage
-    } else if (client.pro && (client.email !== clientChoisi.email || client.email2 !== clientChoisi.email2)) {
-      await updateDoc(doc(db, "clients", clientId), {
-        email: client.email || "", email2: client.email2 || ""
-      });
-      cacheClients = null;
+    } else {
+      const majClient = {};
+      if (client.pro && (client.email !== clientChoisi.email || client.email2 !== clientChoisi.email2)) {
+        majClient.email = client.email || "";
+        majClient.email2 = client.email2 || "";
+      }
+      if (client.civilite !== (clientChoisi.civilite || "")) majClient.civilite = client.civilite;
+      if (Object.keys(majClient).length) {
+        await updateDoc(doc(db, "clients", clientId), majClient);
+        cacheClients = null;
+      }
     }
 
     // Numéro de ticket via compteur transactionnel
@@ -854,7 +864,7 @@ function rendreBilan() {
   $("#stat-attente-n").textContent = attente.length;
   $("#stat-attente-eur").textContent = eur(attente.reduce((s, t) => s + montantTicket(t), 0)) + " en jeu";
 
-  const atelier = tousTickets.filter(t => ["accepte", "en_cours"].includes(t.statut));
+  const atelier = tousTickets.filter(t => ["accepte", "piece_attente", "en_cours"].includes(t.statut));
   $("#stat-atelier-n").textContent = atelier.length;
   $("#stat-atelier-eur").textContent = eur(atelier.reduce((s, t) => s + montantTicket(t), 0)) + " à venir";
 
@@ -919,7 +929,7 @@ function rendreBilan() {
     if (t.statut === "rendu") {
       if (!t.facture) { c.du += montantTicket(t); c.nDu++; c.tickets.push(t); }
       else { c.cumul += montantTicket(t); c.nCumul++; }
-    } else if (["accepte", "en_cours", "pret"].includes(t.statut)) {
+    } else if (["accepte", "piece_attente", "en_cours", "pret"].includes(t.statut)) {
       c.enCours += montantTicket(t); c.nEnCours++;
     }
   });

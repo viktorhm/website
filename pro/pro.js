@@ -27,8 +27,8 @@ const db = getFirestore(app);
 
 const STATUTS = {
   depose: "Déposé", diagnostic: "En diagnostic", devis_envoye: "Devis en attente",
-  accepte: "Devis accepté", en_cours: "En réparation", pret: "Prêt à retirer",
-  rendu: "Rendu", refuse: "Devis refusé"
+  accepte: "Devis accepté", piece_attente: "Pièce en attente", en_cours: "En réparation",
+  pret: "Prêt à retirer", rendu: "Rendu", refuse: "Devis refusé"
 };
 
 const $ = s => document.querySelector(s);
@@ -226,7 +226,7 @@ function rendreListe() {
           </a>` : ""}
         <div class="tc-num">N° ${t.numero}</div>
         <div class="tc-corps">
-          <div class="tc-client">${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</div>
+          <div class="tc-client">${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}${t.numSerie ? ` <span class="ref-suivi">Réf. ${echap(t.numSerie)}</span>` : ""}</div>
           <div class="tc-objet">Déposé le ${fmtDate(t.createdAt)}${t.contremarque ? " · Réf. " + echap(t.contremarque) : ""}</div>
         </div>
         <div class="tc-statut statut-${t.statut}">${STATUTS[t.statut] || t.statut}</div>
