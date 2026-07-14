@@ -93,7 +93,25 @@ function fmtTel(brut) {
   return brut;
 }
 
+// Formatage en direct pendant la frappe : paires de chiffres au fil de l'eau
+function fmtTelDirect(valeur) {
+  let n = String(valeur).replace(/[^\d+]/g, "");
+  if (n.startsWith("+33")) {
+    const reste = n.slice(3, 12);
+    return ("+33 " + (reste ? reste[0] + " " : "") +
+      reste.slice(1).replace(/(\d{2})(?=\d)/g, "$1 ")).trim();
+  }
+  if (n.startsWith("+")) {
+    return (n.slice(0, 3) + " " + n.slice(3).replace(/(\d{2})(?=\d)/g, "$1 ")).trim();
+  }
+  n = n.slice(0, 10);
+  return n.replace(/(\d{2})(?=\d)/g, "$1 ").trim();
+}
+
 function brancherFormatTel(input) {
+  input.addEventListener("input", () => {
+    input.value = fmtTelDirect(input.value);
+  });
   input.addEventListener("blur", () => {
     const f = fmtTel(input.value);
     if (f) input.value = f;
@@ -109,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 4.6");
+console.log("Atelier app.js chargé — version 4.7");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
