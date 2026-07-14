@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=3.9">
+<link rel="stylesheet" href="style.css?v=4.3">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -158,6 +158,11 @@
         <div class="stat-valeur" id="stat-atelier-n">—</div>
         <div class="stat-sous" id="stat-atelier-eur"></div>
       </div>
+      <div class="stat-carte stat-pieces">
+        <div class="stat-libelle">Pièces en attente</div>
+        <div class="stat-valeur" id="stat-pieces-n">—</div>
+        <div class="stat-sous" id="stat-pieces-detail"></div>
+      </div>
       <div class="stat-carte stat-pret">
         <div class="stat-libelle">Prêts à retirer</div>
         <div class="stat-valeur" id="stat-pret-n">—</div>
@@ -173,6 +178,11 @@
     <section class="bloc">
       <h2>Encaissé par mois (tickets rendus)</h2>
       <div id="bilan-courbe"></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Pièces à commander</h2>
+      <div id="bilan-commandes"></div>
     </section>
 
     <section class="bloc">
@@ -239,6 +249,16 @@
         <div class="grille-piece grille-piece-cmd">
           <input type="text" id="piece-designation" placeholder="Désignation (ex. glace Ø29,5 mm, bracelet cuir 18mm)">
           <input type="text" id="piece-ref" placeholder="Réf. à commander">
+          <input type="text" id="piece-fournisseur" placeholder="Fournisseur" list="liste-fournisseurs">
+          <datalist id="liste-fournisseurs">
+            <option value="Cousins UK"></option>
+            <option value="Général Ressort"></option>
+            <option value="Boley"></option>
+            <option value="AliExpress"></option>
+            <option value="Meranom"></option>
+            <option value="Vostok-Watches24"></option>
+            <option value="eBay"></option>
+          </datalist>
           <input type="number" id="piece-prix" placeholder="Prix €" step="0.01" min="0">
           <label class="case-option"><input type="checkbox" id="piece-commander"> à commander</label>
           <button id="btn-ajouter-piece" class="btn btn-secondaire">Ajouter</button>
@@ -332,6 +352,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=3.9"></script>
+<script type="module" src="app.js?v=4.3"></script>
 </body>
 </html>

@@ -83,7 +83,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 3.9");
+console.log("Atelier app.js chargé — version 4.3");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -566,7 +566,7 @@ function rendreFiche() {
   const total = pieces.reduce((s, p) => s + (parseFloat(p.prix) || 0), 0);
   $("#fiche-pieces").innerHTML = pieces.map((p, i) => `
     <div class="piece-ligne">
-      <span>${echap(p.designation)}${p.ref ? ` <em>(${echap(p.ref)})</em>` : ""}
+      <span>${echap(p.designation)}${p.ref ? ` <em>(${echap(p.ref)})</em>` : ""}${p.fournisseur ? ` <em>· ${echap(p.fournisseur)}</em>` : ""}
         ${p.aCommander ? `<button class="tag-option tag-cmd piece-cmd" data-i="${i}" title="Marquer comme reçue">📦 à commander</button>` : ""}
       </span>
       <b>${(parseFloat(p.prix) || 0).toFixed(2)} €</b>
@@ -618,6 +618,7 @@ $("#btn-ajouter-piece").addEventListener("click", async () => {
   const piece = {
     designation,
     ref: $("#piece-ref").value.trim(),
+    fournisseur: $("#piece-fournisseur").value.trim(),
     prix: parseFloat($("#piece-prix").value) || 0,
     date: new Date().toISOString()
   };
@@ -627,7 +628,7 @@ $("#btn-ajouter-piece").addEventListener("click", async () => {
     updatedAt: serverTimestamp()
   });
   $("#piece-designation").value = ""; $("#piece-ref").value = ""; $("#piece-prix").value = "";
-  $("#piece-commander").checked = false;
+  $("#piece-fournisseur").value = ""; $("#piece-commander").checked = false;
 });
 
 $("#btn-ajouter-note").addEventListener("click", async () => {
@@ -860,6 +861,48 @@ function rendreBilan() {
   const prets = tousTickets.filter(t => t.statut === "pret");
   $("#stat-pret-n").textContent = prets.length;
   $("#stat-pret-eur").textContent = eur(prets.reduce((s, t) => s + montantTicket(t), 0)) + " à encaisser";
+
+  // Pièces en attente de commande / réception
+  const enAttente = [];
+  tousTickets.filter(t => t.statut !== "rendu").forEach(t => {
+    (t.pieces || []).forEach((p, i) => {
+      if (p.aCommander) enAttente.push({ t, p, i });
+    });
+  });
+  $("#stat-pieces-n").textContent = enAttente.length;
+  $("#stat-pieces-detail").textContent = enAttente.length
+    ? [...new Set(enAttente.map(x => x.p.fournisseur || "sans fournisseur"))].length + " fournisseur(s)"
+    : "rien à commander";
+
+  const parFournisseur = {};
+  enAttente.forEach(x => {
+    const f = x.p.fournisseur || "Fournisseur non renseigné";
+    (parFournisseur[f] = parFournisseur[f] || []).push(x);
+  });
+  $("#bilan-commandes").innerHTML = Object.keys(parFournisseur).sort().map(f => `
+    <div class="cmd-fournisseur">${echap(f)} — ${parFournisseur[f].length} pièce(s)</div>
+    ${parFournisseur[f].map(x => `
+      <div class="cmd-ligne">
+        <div class="cmd-info">
+          ${echap(x.p.designation)}
+          ${x.p.ref ? `<span class="cmd-ref"> · ${echap(x.p.ref)}</span>` : ""}
+          <div class="cmd-ticket">Ticket n° ${x.t.numero} — ${echap(x.t.clientNom)}</div>
+        </div>
+        <button class="btn-recue" data-ticket="${x.t.id}" data-i="${x.i}">✓ Reçue</button>
+      </div>`).join("")}
+  `).join("") || "<p class='liste-vide'>Aucune pièce en attente de commande.</p>";
+
+  $$("#bilan-commandes .btn-recue").forEach(b => b.addEventListener("click", async () => {
+    const t = tousTickets.find(x => x.id === b.dataset.ticket);
+    if (!t) return;
+    const nouvelles = (t.pieces || []).map((p, i) => {
+      if (i !== parseInt(b.dataset.i)) return p;
+      const { aCommander, ...reste } = p;
+      return reste;
+    });
+    await updateDoc(doc(db, "tickets", t.id), { pieces: nouvelles, updatedAt: serverTimestamp() });
+    toast("Pièce marquée comme reçue ✓");
+  }));
 
   const rendusMois = tousTickets.filter(t => t.statut === "rendu" && dansLeMois(dateStatut(t, "rendu")));
   $("#stat-ca-libelle").textContent = "Rendus — " + MOIS_FR[mois - 1];

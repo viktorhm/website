@@ -86,7 +86,7 @@ body {
 .nav-btn {
   background: none; border: 1px solid transparent; color: var(--texte-2);
   font: inherit; font-size: .95rem; padding: 10px 16px;
-  border-radius: 999px; cursor: pointer;
+  border-radius: 999px; cursor: pointer; white-space: nowrap;
   transition: color .15s, border-color .15s, background .15s;
 }
 .nav-btn.actif {
@@ -378,7 +378,7 @@ textarea { resize: vertical; margin-top: 10px; }
 .bilan-select:focus { outline: none; border-color: var(--laiton); }
 
 .stats-grille {
-  display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 16px;
 }
 .stat-carte {
   background: var(--carte); border: 1px solid var(--ligne);
@@ -441,7 +441,7 @@ textarea { resize: vertical; margin-top: 10px; }
 }
 .case-option input { width: 20px; height: 20px; accent-color: var(--laiton); }
 .grille-devis { grid-template-columns: 2fr 110px auto auto; }
-.grille-piece-cmd { grid-template-columns: 2fr 1fr 100px auto auto; }
+.grille-piece-cmd { grid-template-columns: 2fr 1fr 1fr 100px auto auto; }
 @media (max-width: 560px) {
   .grille-devis, .grille-piece-cmd { grid-template-columns: 1fr 1fr; }
 }
@@ -477,3 +477,56 @@ textarea { resize: vertical; margin-top: 10px; }
 }
 .btn-deco:hover { color: var(--emauxrouge); border-color: var(--emauxrouge); }
 @media (max-width: 640px) { .entete-logo { display: none; } }
+
+/* ============================================================
+   Correctifs mobile / petites tablettes
+   ============================================================ */
+@media (max-width: 900px) {
+  /* En-tête : navigation défilante sur une seule ligne */
+  .entete {
+    height: auto; min-height: 56px;
+    padding: 8px 10px; gap: 8px;
+  }
+  .entete-titre { display: none; }
+  .entete-nav {
+    overflow-x: auto; flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .entete-nav::-webkit-scrollbar { display: none; }
+  .nav-btn {
+    white-space: nowrap; padding: 9px 13px; font-size: .9rem;
+    flex-shrink: 0;
+  }
+  .btn-deco { padding: 8px 13px; font-size: .82rem; flex-shrink: 0; }
+
+  /* Tableau pro : défilement horizontal au lieu d'écraser les colonnes */
+  #bilan-pro { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .bilan-ligne-pro { min-width: 540px; }
+  .bilan-ligne span:nth-child(2), .bilan-ligne span:nth-child(3) { min-width: 90px; }
+
+  /* Cartes stats : chiffres un peu plus compacts */
+  .stat-valeur { font-size: 1.5rem; }
+}
+
+
+/* Pièces à commander */
+.stat-pieces { border-top-color: #E09A4E; }
+.cmd-fournisseur {
+  font-size: .78rem; text-transform: uppercase; letter-spacing: .14em;
+  color: #E09A4E; margin: 14px 0 4px; font-weight: 700;
+}
+.cmd-fournisseur:first-child { margin-top: 0; }
+.cmd-ligne {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 9px 0; border-bottom: 1px solid var(--ligne);
+}
+.cmd-ligne .cmd-info { flex: 1; min-width: 0; }
+.cmd-ligne .cmd-ref { color: var(--texte-2); font-family: "JetBrains Mono", monospace; font-size: .88rem; }
+.cmd-ligne .cmd-ticket { color: var(--texte-2); font-size: .85rem; }
+.btn-recue {
+  background: none; border: 1px solid var(--emauxvert); color: var(--emauxvert);
+  border-radius: 999px; padding: 5px 13px; font: inherit; font-size: .82rem;
+  font-weight: 600; cursor: pointer; white-space: nowrap;
+}
+.btn-recue:hover { background: rgba(76,175,119,.12); }
