@@ -436,7 +436,7 @@ textarea { resize: vertical; margin-top: 10px; }
 }
 .case-option input { width: 20px; height: 20px; accent-color: var(--laiton); }
 .grille-devis { grid-template-columns: 2fr 110px auto auto; }
-.grille-piece-cmd { grid-template-columns: 2fr 1fr 1fr 100px auto auto; }
+.grille-piece-cmd { grid-template-columns: 2fr 1fr 1fr 90px 90px auto auto; }
 @media (max-width: 560px) {
   .grille-devis, .grille-piece-cmd { grid-template-columns: 1fr 1fr; }
 }
@@ -507,6 +507,7 @@ textarea { resize: vertical; margin-top: 10px; }
 
 /* Pièces à commander */
 .stat-pieces { border-top-color: #E09A4E; }
+.stat-marge { border-top-color: #8FBF6A; }
 .cmd-fournisseur {
   font-size: .78rem; text-transform: uppercase; letter-spacing: .14em;
   color: #E09A4E; margin: 14px 0 4px; font-weight: 700;

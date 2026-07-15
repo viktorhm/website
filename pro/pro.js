@@ -316,7 +316,8 @@ function devisActions(t) {
 async function repondreDevis(token, reponse, opts) {
   if (reponse === "refuse" && !confirm("Confirmer le refus de ce devis ?")) return;
   try {
-    const r = await fetch(`/.netlify/functions/devis-reponse?token=${encodeURIComponent(token)}&reponse=${reponse}&opts=${encodeURIComponent(opts || "")}`);
+    const qui = auth.currentUser ? auth.currentUser.email : "";
+    const r = await fetch(`/.netlify/functions/devis-reponse?token=${encodeURIComponent(token)}&reponse=${reponse}&opts=${encodeURIComponent(opts || "")}&qui=${encodeURIComponent(qui)}`);
     if (!r.ok) throw new Error();
     toast(reponse === "accepte" ? "Devis accepté ✓ — les travaux vont démarrer" : "Refus enregistré");
   } catch {

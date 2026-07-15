@@ -103,7 +103,7 @@ async function pageChoix(token) {
 }
 
 export async function handler(event) {
-  const { token, reponse, opts } = event.queryStringParameters || {};
+  const { token, reponse, opts, qui } = event.queryStringParameters || {};
 
   if (!token) {
     return { statusCode: 400, headers: { "Content-Type": "text/html; charset=utf-8" },
@@ -142,6 +142,7 @@ export async function handler(event) {
     const misesAJour = {
       "devis.statut": reponse,
       "devis.dateReponse": new Date().toISOString(),
+      ...(qui && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(qui) ? { "devis.repondant": qui.toLowerCase() } : {}),
       statut: reponse,
       historique: admin.firestore.FieldValue.arrayUnion({ statut: reponse, date: new Date().toISOString() }),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()

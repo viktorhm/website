@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=5.0">
+<link rel="stylesheet" href="style.css?v=5.3">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -175,6 +175,11 @@
         <div class="stat-valeur" id="stat-ca-eur">—</div>
         <div class="stat-sous" id="stat-ca-n"></div>
       </div>
+      <div class="stat-carte stat-marge">
+        <div class="stat-libelle" id="stat-marge-libelle">Marge (rendus)</div>
+        <div class="stat-valeur" id="stat-marge-eur">—</div>
+        <div class="stat-sous" id="stat-marge-detail"></div>
+      </div>
     </div>
 
     <section class="bloc">
@@ -262,6 +267,7 @@
             <option value="eBay"></option>
           </datalist>
           <input type="number" id="piece-prix" placeholder="Prix €" step="0.01" min="0">
+          <input type="number" id="piece-cout" placeholder="Coût €" step="0.01" min="0" title="Ton prix d'achat (visible par toi seul)">
           <label class="case-option"><input type="checkbox" id="piece-commander"> à commander</label>
           <button id="btn-ajouter-piece" class="btn btn-secondaire">Ajouter</button>
         </div>
@@ -302,6 +308,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=5.0"></script>
+<script type="module" src="app.js?v=5.3"></script>
 </body>
 </html>

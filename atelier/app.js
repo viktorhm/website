@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 5.0");
+console.log("Atelier app.js chargé — version 5.3");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -528,7 +528,34 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
     toast(crees.length > 1
       ? `${crees.length} tickets créés (n° ${crees[0].numero} à ${crees[crees.length - 1].numero})`
       : `Ticket n° ${crees[0].numero} créé`);
-    imprimerTickets(crees);
+
+    // Récapitulatif par email (remplace le ticket papier ; réimprimable depuis la fiche)
+    const destinataires = [client.email, client.email2].filter(Boolean).join(", ");
+    if (destinataires) {
+      try {
+        const r = await fetch("/.netlify/functions/send-depot", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: destinataires,
+            nom: client.nom,
+            civilite: client.civilite || "",
+            tickets: crees.map(t => ({
+              numero: t.numero,
+              objet: [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "),
+              numSerie: t.numSerie,
+              etat: [...(t.etat || []), t.etatTexte].filter(Boolean).join(", "),
+              demande: [t.demande, t.demandeTexte].filter(Boolean).join(" — ")
+            }))
+          })
+        });
+        toast(r.ok ? "Récapitulatif envoyé par email ✓" : "Tickets créés, mais échec de l'email", !r.ok);
+      } catch {
+        toast("Tickets créés, mais échec de l'email", true);
+      }
+    } else {
+      toast("Pas d'email client — pense au ticket papier (bouton 🖨 sur la fiche)", true);
+    }
     reinitFormDepot();
   } catch (e) {
     console.error(e);
@@ -724,7 +751,10 @@ function rendreFiche() {
       </span>
       <b>${(parseFloat(p.prix) || 0).toFixed(2)} €</b>
     </div>
-  `).join("") + (pieces.length ? `<div class="piece-ligne piece-total"><span>Total pièces</span><b>${total.toFixed(2)} €</b></div>` : "<p class='liste-vide'>Aucune pièce pour l'instant.</p>");
+  `).join("") + (pieces.length ? (() => {
+    const cout = pieces.reduce((s, p) => s + (parseFloat(p.cout) || 0), 0);
+    return `<div class="piece-ligne piece-total"><span>Total pièces${cout ? ` <em style="font-weight:400">· coût d'achat ${cout.toFixed(2)} €</em>` : ""}</span><b>${total.toFixed(2)} €</b></div>`;
+  })() : "<p class='liste-vide'>Aucune pièce pour l'instant.</p>");
 
   $$(".piece-cmd").forEach(b => b.addEventListener("click", async () => {
     const nouvelles = pieces.map((p, i) => {
@@ -773,6 +803,7 @@ $("#btn-ajouter-piece").addEventListener("click", async () => {
     ref: $("#piece-ref").value.trim(),
     fournisseur: $("#piece-fournisseur").value.trim(),
     prix: parseFloat($("#piece-prix").value) || 0,
+    cout: parseFloat($("#piece-cout").value) || 0,
     date: new Date().toISOString()
   };
   if ($("#piece-commander").checked) piece.aCommander = true;
@@ -781,7 +812,7 @@ $("#btn-ajouter-piece").addEventListener("click", async () => {
     updatedAt: serverTimestamp()
   });
   $("#piece-designation").value = ""; $("#piece-ref").value = ""; $("#piece-prix").value = "";
-  $("#piece-fournisseur").value = ""; $("#piece-commander").checked = false;
+  $("#piece-fournisseur").value = ""; $("#piece-cout").value = ""; $("#piece-commander").checked = false;
 });
 
 $("#btn-ajouter-note").addEventListener("click", async () => {
@@ -827,10 +858,11 @@ function rendreDevis(t) {
     });
   }));
 
+  const parQui = devis.repondant ? " par " + devis.repondant : "";
   const infos = {
     envoye: "Devis envoyé le " + (devis.dateEnvoi ? fmtDate(devis.dateEnvoi) : ""),
-    accepte: "✓ Devis accepté par le client",
-    refuse: "✗ Devis refusé par le client"
+    accepte: "✓ Devis accepté" + parQui + (devis.dateReponse ? " le " + fmtDate(devis.dateReponse) : ""),
+    refuse: "✗ Devis refusé" + parQui + (devis.dateReponse ? " le " + fmtDate(devis.dateReponse) : "")
   };
   $("#devis-info").textContent = infos[devis.statut] || "";
   if (t.clientPro) {
@@ -976,6 +1008,10 @@ function montantTicket(t) {
   return (t.pieces || []).reduce((s, p) => s + (parseFloat(p.prix) || 0), 0);
 }
 
+function coutPieces(t) {
+  return (t.pieces || []).reduce((s, p) => s + (parseFloat(p.cout) || 0), 0);
+}
+
 function dateStatut(t, statut) {
   const h = (t.historique || []).filter(x => x.statut === statut);
   return h.length ? new Date(h[h.length - 1].date) : null;
@@ -1061,6 +1097,16 @@ function rendreBilan() {
   $("#stat-ca-libelle").textContent = "Rendus — " + MOIS_FR[mois - 1];
   $("#stat-ca-eur").textContent = eur(rendusMois.reduce((s, t) => s + montantTicket(t), 0));
   $("#stat-ca-n").textContent = rendusMois.length + " ticket" + (rendusMois.length > 1 ? "s" : "") + " rendu" + (rendusMois.length > 1 ? "s" : "");
+
+  // Marge automatique : encaissé − coût d'achat des pièces (tickets rendus du mois)
+  const caMois = rendusMois.reduce((s, t) => s + montantTicket(t), 0);
+  const coutMois = rendusMois.reduce((s, t) => s + coutPieces(t), 0);
+  const margeMois = caMois - coutMois;
+  $("#stat-marge-libelle").textContent = "Marge — " + MOIS_FR[mois - 1];
+  $("#stat-marge-eur").textContent = eur(margeMois);
+  $("#stat-marge-detail").textContent = coutMois
+    ? eur(coutMois) + " de pièces déduites"
+    : "aucun coût de pièce saisi";
 
   // --- Dû par les clients pro ---
   // À facturer : UNIQUEMENT les montres rendues (non facturées), devis validé ou accord oral.

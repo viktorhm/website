@@ -2,7 +2,7 @@
 // Boutons Accepter / Refuser → devis-reponse.js met à jour Firestore
 
 import nodemailer from "nodemailer";
-import { gabaritEmail, boutonEmail } from "./email-template.js";
+import { gabaritPremium, boutonPremium, friseEtapes, P } from "./email-template.js";
 
 const SITE = "https://horlogerie-haratyk.fr";
 
@@ -22,35 +22,43 @@ export async function handler(event) {
 
     const lignesHtml = lignes.map(l => `
       <tr>
-        <td style="padding:10px 0;border-bottom:1px solid #EFEDE7;">${String(l.designation).replace(/</g, "&lt;")}${l.optionnelle ? ' <em style="color:#A8823C;font-style:normal;font-size:.85em;">(en option)</em>' : ""}</td>
-        <td style="padding:10px 0;border-bottom:1px solid #EFEDE7;text-align:right;white-space:nowrap;">${l.optionnelle ? "+ " : ""}${(parseFloat(l.prix) || 0).toFixed(2)} €</td>
+        <td style="padding:11px 0;border-bottom:1px solid #313B44;font-family:${P.POLICE};font-size:14px;color:${P.IVOIRE};">${String(l.designation).replace(/</g, "&lt;")}${l.optionnelle ? ` <em style="color:${P.LAITON};font-style:normal;font-size:.85em;">(en option)</em>` : ""}</td>
+        <td style="padding:11px 0;border-bottom:1px solid #313B44;text-align:right;white-space:nowrap;font-family:${P.MONO};font-size:14px;color:${P.IVOIRE};">${l.optionnelle ? "+ " : ""}${(parseFloat(l.prix) || 0).toFixed(2)} €</td>
       </tr>`).join("");
 
     const urlBase = `${SITE}/.netlify/functions/devis-reponse?token=${encodeURIComponent(token)}`;
     const aOptions = lignes.some(l => l.optionnelle);
 
     const corps = `
-      <p style="margin:0 0 16px;">Bonjour${nom ? " " + String(nom).replace(/</g, "&lt;") : ""},</p>
-      <p style="margin:0 0 20px;">Voici le devis pour votre <b>${String(objet || "objet").replace(/</g, "&lt;")}</b>
-      (ticket de d&eacute;p&ocirc;t n&deg; <b>${numero}</b>${contremarque ? ", contremarque <b>" + String(contremarque).replace(/</g, "&lt;") + "</b>" : ""}).</p>
-
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:15px;">
-        ${lignesHtml}
-        <tr>
-          <td style="padding:14px 0;font-weight:bold;border-top:2px solid #22282E;">Total</td>
-          <td style="padding:14px 0;font-weight:bold;border-top:2px solid #22282E;text-align:right;">${total.toFixed(2)} €</td>
-        </tr>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+             style="background:${P.CARTE};border-radius:14px;border-left:4px solid ${P.LAITON};margin-bottom:16px;">
+        <tr><td style="padding:22px 24px;">
+          <table role="presentation" cellpadding="0" cellspacing="0"><tr>
+            <td style="border:1px solid ${P.LAITON};border-radius:8px;padding:8px 14px;font-family:${P.MONO};font-size:17px;font-weight:bold;color:${P.LAITON};letter-spacing:1px;white-space:nowrap;">N&deg; ${numero}</td>
+          </tr></table>
+          <div style="font-family:${P.POLICE};font-size:14px;color:${P.GRIS};margin-top:12px;">
+            <b style="color:${P.IVOIRE};">${String(objet || "objet").replace(/</g, "&lt;")}</b>${contremarque ? " &middot; Contremarque " + String(contremarque).replace(/</g, "&lt;") : ""}
+          </div>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:14px;">
+            ${lignesHtml}
+            <tr>
+              <td style="padding:13px 0 0;font-family:${P.POLICE};font-weight:bold;font-size:15px;color:${P.LAITON};border-top:2px solid ${P.LAITON};">Total${aOptions ? " (hors options)" : ""}</td>
+              <td style="padding:13px 0 0;text-align:right;font-family:${P.MONO};font-weight:bold;font-size:16px;color:${P.LAITON};border-top:2px solid ${P.LAITON};">${total.toFixed(2)} €</td>
+            </tr>
+          </table>
+        </td></tr>
       </table>
 
-      <p style="margin:24px 0 12px;text-align:center;color:#3A434B;">Pour donner suite &agrave; ce devis&nbsp;:</p>
+      ${friseEtapes("Devis")}
+      <div style="font-family:${P.POLICE};font-size:13px;color:${P.GRIS};text-align:center;margin:12px 0 18px;">Pour donner suite &agrave; ce devis :</div>
       ${aOptions
-        ? boutonEmail("▸ &nbsp;Voir le devis et choisir mes options", urlBase, "#A8823C")
-        : boutonEmail("✓ &nbsp;J'accepte le devis", urlBase + "&reponse=accepte", "#3E7A4E")
-          + boutonEmail("✗ &nbsp;Je refuse le devis", urlBase + "&reponse=refuse", "#8A8F94")}
-      <p style="margin:20px 0 0;font-size:13px;color:#8A8F94;text-align:center;">
+        ? boutonPremium("Voir le devis et choisir mes options", urlBase, P.LAITON)
+        : boutonPremium("&#10003; &nbsp;J'accepte le devis", urlBase + "&reponse=accepte", "#3E7A4E", "#FFFFFF")
+          + boutonPremium("&#10007; &nbsp;Je refuse le devis", urlBase + "&reponse=refuse", P.CARTE, P.GRIS)}
+      <div style="font-family:${P.POLICE};font-size:12px;color:${P.GRIS};text-align:center;margin-top:14px;line-height:1.7;">
         Un simple clic suffit, aucune cr&eacute;ation de compte n&eacute;cessaire.<br>
         Vous pouvez aussi r&eacute;pondre &agrave; cet email ou m'appeler au 07&nbsp;85&nbsp;85&nbsp;10&nbsp;80.
-      </p>`;
+      </div>`;
 
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -61,7 +69,11 @@ export async function handler(event) {
       from: `"Horlogerie Haratyk" <${process.env.GMAIL_USER}>`,
       to: email,
       subject: `Devis n° ${numero} — ${objet || "votre objet"} (${total.toFixed(2)} €)`,
-      html: gabaritEmail({ titre: `Devis — ticket n° ${numero}`, corps }),
+      html: gabaritPremium({
+        titre: "Votre devis est pr\u00eat",
+        intro: `Bonjour${nom ? " " + String(nom).replace(/</g, "&lt;") : ""}, voici le devis pour votre objet d\u00e9pos\u00e9 \u00e0 l'atelier.`,
+        corps
+      }),
       text:
 `Bonjour${nom ? " " + nom : ""},
 
