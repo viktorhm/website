@@ -547,3 +547,23 @@ textarea { resize: vertical; margin-top: 10px; }
   background: none; border: none; color: var(--emauxrouge);
   font-size: 1rem; cursor: pointer; padding: 4px 8px;
 }
+
+
+/* Bilan : actions et commandes libres */
+.bilan-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.grille-cmd-libre { grid-template-columns: 2fr 1fr 1fr auto; margin-top: 14px; }
+@media (max-width: 640px) { .grille-cmd-libre { grid-template-columns: 1fr 1fr; } }
+.cmd-libre-tag {
+  font-size: .72rem; color: var(--acier-bleu); border: 1px solid var(--acier-bleu);
+  border-radius: 5px; padding: 1px 7px; font-weight: 700; letter-spacing: .05em;
+}
+
+/* Correction des coordonnées sur la fiche */
+.edit-coord {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  padding: 14px; margin-top: 8px;
+  background: var(--fond); border: 1px solid var(--laiton-fonce);
+  border-radius: var(--rayon-s);
+}
+.edit-coord .btn { grid-column: 1 / -1; }
+@media (max-width: 560px) { .edit-coord { grid-template-columns: 1fr; } }

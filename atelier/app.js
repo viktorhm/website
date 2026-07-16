@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 5.3");
+console.log("Atelier app.js chargé — version 5.5");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -599,7 +599,24 @@ function reinitFormDepot() {
 let tousTickets = [];
 let filtreActif = "actifs";
 
+let ventesLibres = [];
+let commandesLibres = [];
+
+function demarrerEcoutesAnnexes() {
+  onSnapshot(collection(db, "ventes"), snap => {
+    ventesLibres = [];
+    snap.forEach(d => ventesLibres.push({ id: d.id, ...d.data() }));
+    if (!$("#vue-bilan").hidden) rendreBilan();
+  });
+  onSnapshot(collection(db, "commandes"), snap => {
+    commandesLibres = [];
+    snap.forEach(d => commandesLibres.push({ id: d.id, ...d.data() }));
+    if (!$("#vue-bilan").hidden) rendreBilan();
+  });
+}
+
 function demarrerEcouteTickets() {
+  demarrerEcoutesAnnexes();
   const q$ = query(collection(db, "tickets"), orderBy("createdAt", "desc"), limit(500));
   onSnapshot(q$, snap => {
     tousTickets = [];
@@ -692,6 +709,36 @@ async function modifierDateDepot() {
   toast("Date de dépôt modifiée ✓");
 }
 
+async function corrigerCoordonnees() {
+  const t = ticketOuvert;
+  const tel = fmtTel($("#coord-tel").value.trim()) || $("#coord-tel").value.trim();
+  const email1 = $("#coord-email1").value.trim().toLowerCase();
+  const email2El = $("#coord-email2");
+  const email2 = email2El ? email2El.value.trim().toLowerCase() : "";
+  if (!tel) return toast("Le téléphone ne peut pas être vide", true);
+  const emails = [email1, email2].filter(Boolean);
+
+  if (!confirm("Enregistrer ces coordonnées sur le ticket ET la fiche client ?")) return;
+  try {
+    await updateDoc(doc(db, "tickets", t.id), {
+      clientTel: tel,
+      clientEmail: email1,
+      clientEmails: emails,
+      updatedAt: serverTimestamp()
+    });
+    if (t.clientId) {
+      const majClient = { tel, email: email1 };
+      if (email2El) majClient.email2 = email2;
+      await updateDoc(doc(db, "clients", t.clientId), majClient);
+      cacheClients = null;
+    }
+    toast("Coordonnées corrigées ✓");
+  } catch (e) {
+    console.error(e);
+    toast("Erreur lors de la correction", true);
+  }
+}
+
 function rendreFiche() {
   const t = ticketOuvert;
   $("#fiche-numero").textContent = "N° " + t.numero;
@@ -714,6 +761,13 @@ function rendreFiche() {
     ${t.contremarque ? `<div><span>Contremarque</span><b>${echap(t.contremarque)}</b></div>` : ""}
     <div><span>Téléphone</span><b>${echap(fmtTel(t.clientTel))}</b></div>
     ${(t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).filter(Boolean).map(e => `<div><span>Email</span><b>${echap(e)}</b></div>`).join("")}
+    <div><span></span><button type="button" id="btn-coord" class="btn-lien">✎ Corriger téléphone / email</button></div>
+    <div id="edit-coord" class="edit-coord" hidden>
+      <input type="tel" id="coord-tel" placeholder="Téléphone" value="${echap(fmtTel(t.clientTel))}">
+      <input type="email" id="coord-email1" placeholder="Email" value="${echap((t.clientEmails && t.clientEmails[0]) || t.clientEmail || "")}">
+      ${t.clientPro ? `<input type="email" id="coord-email2" placeholder="Email 2 (associé / collègue)" value="${echap((t.clientEmails && t.clientEmails[1]) || "")}">` : ""}
+      <button type="button" id="btn-coord-sauver" class="btn btn-principal">Enregistrer</button>
+    </div>
     <div><span>Objet</span><b>${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}</b></div>
     ${t.numSerie ? `<div><span>N° série</span><b>${echap(t.numSerie)}</b></div>` : ""}
     <div><span>État au dépôt</span><b>${echap([...(t.etat || []), t.etatTexte].filter(Boolean).join(", ") || "RAS")}</b></div>
@@ -730,6 +784,12 @@ function rendreFiche() {
   ).join("");
 
   $("#btn-date-depot").addEventListener("click", modifierDateDepot);
+  $("#btn-coord").addEventListener("click", () => {
+    const z = $("#edit-coord");
+    z.hidden = !z.hidden;
+  });
+  brancherFormatTel($("#coord-tel"));
+  $("#btn-coord-sauver").addEventListener("click", corrigerCoordonnees);
 
   // Devis
   rendreDevis(t);
@@ -1033,6 +1093,44 @@ function initBilanMois() {
 
 const eur = n => n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
 
+$("#btn-cmd-libre").addEventListener("click", async () => {
+  const designation = $("#cmd-designation").value.trim();
+  if (!designation) return toast("Indique la fourniture à commander", true);
+  await addDoc(collection(db, "commandes"), {
+    designation,
+    ref: $("#cmd-ref").value.trim(),
+    fournisseur: $("#cmd-fournisseur").value.trim(),
+    date: new Date().toISOString(),
+    createdAt: serverTimestamp()
+  });
+  $("#cmd-designation").value = ""; $("#cmd-ref").value = ""; $("#cmd-fournisseur").value = "";
+  toast("Ajouté à la liste de commandes ✓");
+});
+
+$("#btn-pile").addEventListener("click", async () => {
+  await addDoc(collection(db, "ventes"), {
+    type: "pile", montant: 10, cout: 0.84,
+    date: new Date().toISOString(), createdAt: serverTimestamp()
+  });
+  toast("Pile enregistrée : +10 € ✓");
+});
+
+$("#btn-pile-annuler").addEventListener("click", async () => {
+  const piles = ventesLibres.filter(v => v.type === "pile")
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (!piles.length) return;
+  if (!confirm("Annuler la dernière pile enregistrée (" + new Date(piles[0].date).toLocaleString("fr-FR") + ") ?")) return;
+  await deleteDoc(doc(db, "ventes", piles[0].id));
+  toast("Pile annulée");
+});
+
+function ventesDuMois(annee, mois) {
+  return ventesLibres.filter(v => {
+    const d = new Date(v.date);
+    return d.getFullYear() === annee && d.getMonth() + 1 === mois;
+  });
+}
+
 function rendreBilan() {
   initBilanMois();
   const [annee, mois] = $("#bilan-mois").value.split("-").map(Number);
@@ -1058,6 +1156,9 @@ function rendreBilan() {
       if (p.aCommander) enAttente.push({ t, p, i });
     });
   });
+  commandesLibres.filter(c => !c.recu).forEach(c => {
+    enAttente.push({ libre: c, p: c });
+  });
   $("#stat-pieces-n").textContent = enAttente.length;
   $("#stat-pieces-detail").textContent = enAttente.length
     ? [...new Set(enAttente.map(x => x.p.fournisseur || "sans fournisseur"))].length + " fournisseur(s)"
@@ -1075,13 +1176,22 @@ function rendreBilan() {
         <div class="cmd-info">
           ${echap(x.p.designation)}
           ${x.p.ref ? `<span class="cmd-ref"> · ${echap(x.p.ref)}</span>` : ""}
-          <div class="cmd-ticket">Ticket n° ${x.t.numero} — ${echap(x.t.clientNom)}</div>
+          ${x.libre
+            ? `<div class="cmd-ticket"><span class="cmd-libre-tag">ATELIER</span> ajouté le ${new Date(x.libre.date).toLocaleDateString("fr-FR")}</div>`
+            : `<div class="cmd-ticket">Ticket n° ${x.t.numero} — ${echap(x.t.clientNom)}</div>`}
         </div>
-        <button class="btn-recue" data-ticket="${x.t.id}" data-i="${x.i}">✓ Reçue</button>
+        ${x.libre
+          ? `<button class="btn-recue" data-libre="${x.libre.id}">✓ Reçue</button>`
+          : `<button class="btn-recue" data-ticket="${x.t.id}" data-i="${x.i}">✓ Reçue</button>`}
       </div>`).join("")}
   `).join("") || "<p class='liste-vide'>Aucune pièce en attente de commande.</p>";
 
   $$("#bilan-commandes .btn-recue").forEach(b => b.addEventListener("click", async () => {
+    if (b.dataset.libre) {
+      await deleteDoc(doc(db, "commandes", b.dataset.libre));
+      toast("Fourniture marquée comme reçue ✓");
+      return;
+    }
     const t = tousTickets.find(x => x.id === b.dataset.ticket);
     if (!t) return;
     const nouvelles = (t.pieces || []).map((p, i) => {
@@ -1094,19 +1204,28 @@ function rendreBilan() {
   }));
 
   const rendusMois = tousTickets.filter(t => t.statut === "rendu" && dansLeMois(dateStatut(t, "rendu")));
-  $("#stat-ca-libelle").textContent = "Rendus — " + MOIS_FR[mois - 1];
-  $("#stat-ca-eur").textContent = eur(rendusMois.reduce((s, t) => s + montantTicket(t), 0));
-  $("#stat-ca-n").textContent = rendusMois.length + " ticket" + (rendusMois.length > 1 ? "s" : "") + " rendu" + (rendusMois.length > 1 ? "s" : "");
+  const ventesMois = ventesDuMois(annee, mois);
+  const nPiles = ventesMois.filter(v => v.type === "pile").length;
+  const caTickets = rendusMois.reduce((s, t) => s + montantTicket(t), 0);
+  const caVentes = ventesMois.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
 
-  // Marge automatique : encaissé − coût d'achat des pièces (tickets rendus du mois)
-  const caMois = rendusMois.reduce((s, t) => s + montantTicket(t), 0);
-  const coutMois = rendusMois.reduce((s, t) => s + coutPieces(t), 0);
-  const margeMois = caMois - coutMois;
+  $("#stat-ca-libelle").textContent = "Encaissé — " + MOIS_FR[mois - 1];
+  $("#stat-ca-eur").textContent = eur(caTickets + caVentes);
+  $("#stat-ca-n").textContent = rendusMois.length + " ticket" + (rendusMois.length > 1 ? "s" : "")
+    + (nPiles ? " · " + nPiles + " pile" + (nPiles > 1 ? "s" : "") : "");
+
+  // Annulation de pile : visible seulement s'il y en a ce mois-ci
+  $("#btn-pile-annuler").hidden = !ventesLibres.some(v => v.type === "pile");
+
+  // Marge automatique : encaissé − coûts (pièces des tickets rendus + coût des piles)
+  const coutMois = rendusMois.reduce((s, t) => s + coutPieces(t), 0)
+    + ventesMois.reduce((s, v) => s + (parseFloat(v.cout) || 0), 0);
+  const margeMois = caTickets + caVentes - coutMois;
   $("#stat-marge-libelle").textContent = "Marge — " + MOIS_FR[mois - 1];
   $("#stat-marge-eur").textContent = eur(margeMois);
   $("#stat-marge-detail").textContent = coutMois
-    ? eur(coutMois) + " de pièces déduites"
-    : "aucun coût de pièce saisi";
+    ? eur(coutMois) + " de coûts déduits"
+    : "aucun coût saisi";
 
   // --- Dû par les clients pro ---
   // À facturer : UNIQUEMENT les montres rendues (non facturées), devis validé ou accord oral.
@@ -1194,6 +1313,11 @@ function rendreCourbe() {
     if (!d) return;
     const cible = points.find(x => x.a === d.getFullYear() && x.m === d.getMonth());
     if (cible) cible.total += montantTicket(t);
+  });
+  ventesLibres.forEach(v => {
+    const d = new Date(v.date);
+    const cible = points.find(x => x.a === d.getFullYear() && x.m === d.getMonth());
+    if (cible) cible.total += parseFloat(v.montant) || 0;
   });
 
   const L = 600, H = 190, basY = 150, hautY = 24;

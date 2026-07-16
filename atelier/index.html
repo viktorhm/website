@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=5.3">
+<link rel="stylesheet" href="style.css?v=5.5">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -146,7 +146,11 @@
   <main id="vue-bilan" class="vue" hidden>
     <div class="bilan-entete">
       <h1 class="tickets-titre" style="margin:0">Bilan</h1>
-      <select id="bilan-mois" class="bilan-select"></select>
+      <div class="bilan-actions">
+        <button id="btn-pile" class="btn btn-secondaire">🔋 + Pile 10 €</button>
+        <button id="btn-pile-annuler" class="btn-lien" hidden>annuler la dernière</button>
+        <select id="bilan-mois" class="bilan-select"></select>
+      </div>
     </div>
 
     <div class="stats-grille">
@@ -190,6 +194,12 @@
     <section class="bloc">
       <h2>Pièces à commander</h2>
       <div id="bilan-commandes"></div>
+      <div class="grille-piece grille-cmd-libre">
+        <input type="text" id="cmd-designation" placeholder="Fourniture (ex. huile 9010, rouleau A6…)">
+        <input type="text" id="cmd-ref" placeholder="Réf.">
+        <input type="text" id="cmd-fournisseur" placeholder="Fournisseur" list="liste-fournisseurs">
+        <button id="btn-cmd-libre" class="btn btn-secondaire">Ajouter</button>
+      </div>
     </section>
 
     <section class="bloc">
@@ -308,6 +318,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=5.3"></script>
+<script type="module" src="app.js?v=5.5"></script>
 </body>
 </html>
