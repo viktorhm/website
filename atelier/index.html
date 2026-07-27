@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=5.5">
+<link rel="stylesheet" href="style.css?v=5.9">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -90,6 +90,7 @@
         <div class="pastilles pastilles-multi" id="etat-objet">
           <button type="button" class="pastille" data-val="Verre rayé">Verre rayé</button>
           <button type="button" class="pastille" data-val="Verre fêlé/cassé">Verre fêlé</button>
+          <button type="button" class="pastille" data-val="Verre manquant">Verre manquant</button>
           <button type="button" class="pastille" data-val="Boîte rayée">Boîte rayée</button>
           <button type="button" class="pastille" data-val="Bracelet usé">Bracelet usé</button>
           <button type="button" class="pastille" data-val="Bracelet absent">Bracelet absent</button>
@@ -134,6 +135,8 @@
     <h1 id="tickets-titre" class="tickets-titre"></h1>
     <div class="filtres">
       <button class="filtre actif" data-statut="actifs">En cours</button>
+      <button class="filtre" data-statut="devis_envoye">Devis envoyés</button>
+      <button class="filtre" data-statut="accepte">Acceptés</button>
       <button class="filtre" data-statut="pret">Prêts</button>
       <button class="filtre" data-statut="rendu">Rendus</button>
       <button class="filtre" data-statut="tous">Tous</button>
@@ -179,6 +182,11 @@
         <div class="stat-valeur" id="stat-ca-eur">—</div>
         <div class="stat-sous" id="stat-ca-n"></div>
       </div>
+      <div class="stat-carte stat-piles">
+        <div class="stat-libelle">Piles — aujourd'hui</div>
+        <div class="stat-valeur" id="stat-piles-jour">—</div>
+        <div class="stat-sous" id="stat-piles-mois"></div>
+      </div>
       <div class="stat-carte stat-marge">
         <div class="stat-libelle" id="stat-marge-libelle">Marge (rendus)</div>
         <div class="stat-valeur" id="stat-marge-eur">—</div>
@@ -218,6 +226,7 @@
     <div class="fiche-entete">
       <button id="btn-retour" class="btn-lien">← Retour</button>
       <div class="fiche-numero" id="fiche-numero"></div>
+      <button id="btn-renvoyer-depot" class="btn btn-secondaire" title="Renvoyer l'email de dépôt au client">✉ Renvoyer</button>
       <button id="btn-imprimer" class="btn btn-secondaire">🖨 Ticket A6</button>
       <button id="btn-supprimer" class="btn btn-danger" title="Supprimer ce ticket">🗑</button>
     </div>
@@ -318,6 +327,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=5.5"></script>
+<script type="module" src="app.js?v=5.9"></script>
 </body>
 </html>

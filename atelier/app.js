@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 5.5");
+console.log("Atelier app.js chargé — version 5.9");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -853,6 +853,34 @@ async function changerStatut(nouveau) {
   }
   await updateDoc(doc(db, "tickets", ticketOuvert.id), maj);
   toast("Statut : " + statutLabel(nouveau));
+
+  // Restitution : email de remerciement + avis Google (une seule fois)
+  const t = ticketOuvert;
+  if (nouveau === "rendu" && !t.renduNotifie) {
+    const destinataires = (t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).filter(Boolean).join(", ");
+    if (destinataires) {
+      try {
+        const r = await fetch("/.netlify/functions/send-rendu", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: destinataires,
+            nom: t.clientNom,
+            civilite: t.clientCivilite || "",
+            numero: t.numero,
+            objet: [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" "),
+            garantie: !!(t.controle && (t.controle.marche || t.controle.amplitude))
+          })
+        });
+        if (r.ok) {
+          await updateDoc(doc(db, "tickets", t.id), { renduNotifie: true });
+          toast("Email de restitution envoyé ✓");
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }
 }
 
 $("#btn-ajouter-piece").addEventListener("click", async () => {
@@ -1096,23 +1124,37 @@ const eur = n => n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFr
 $("#btn-cmd-libre").addEventListener("click", async () => {
   const designation = $("#cmd-designation").value.trim();
   if (!designation) return toast("Indique la fourniture à commander", true);
-  await addDoc(collection(db, "commandes"), {
-    designation,
-    ref: $("#cmd-ref").value.trim(),
-    fournisseur: $("#cmd-fournisseur").value.trim(),
-    date: new Date().toISOString(),
-    createdAt: serverTimestamp()
-  });
-  $("#cmd-designation").value = ""; $("#cmd-ref").value = ""; $("#cmd-fournisseur").value = "";
-  toast("Ajouté à la liste de commandes ✓");
+  try {
+    await addDoc(collection(db, "commandes"), {
+      designation,
+      ref: $("#cmd-ref").value.trim(),
+      fournisseur: $("#cmd-fournisseur").value.trim(),
+      date: new Date().toISOString(),
+      createdAt: serverTimestamp()
+    });
+    $("#cmd-designation").value = ""; $("#cmd-ref").value = ""; $("#cmd-fournisseur").value = "";
+    toast("Ajouté à la liste de commandes ✓");
+  } catch (e) {
+    console.error(e);
+    toast(e.code === "permission-denied"
+      ? "Règle Firestore manquante pour « commandes » — publie les règles"
+      : "Erreur d'enregistrement", true);
+  }
 });
 
 $("#btn-pile").addEventListener("click", async () => {
-  await addDoc(collection(db, "ventes"), {
-    type: "pile", montant: 10, cout: 0.84,
-    date: new Date().toISOString(), createdAt: serverTimestamp()
-  });
-  toast("Pile enregistrée : +10 € ✓");
+  try {
+    await addDoc(collection(db, "ventes"), {
+      type: "pile", montant: 10, cout: 0.84,
+      date: new Date().toISOString(), createdAt: serverTimestamp()
+    });
+    toast("Pile enregistrée : +10 € ✓");
+  } catch (e) {
+    console.error(e);
+    toast(e.code === "permission-denied"
+      ? "Règle Firestore manquante pour « ventes » — publie les règles"
+      : "Erreur d'enregistrement de la pile", true);
+  }
 });
 
 $("#btn-pile-annuler").addEventListener("click", async () => {
@@ -1213,6 +1255,22 @@ function rendreBilan() {
   $("#stat-ca-eur").textContent = eur(caTickets + caVentes);
   $("#stat-ca-n").textContent = rendusMois.length + " ticket" + (rendusMois.length > 1 ? "s" : "")
     + (nPiles ? " · " + nPiles + " pile" + (nPiles > 1 ? "s" : "") : "");
+
+  // Compteur de piles : aujourd'hui + total du mois sélectionné
+  const aujourdHui = new Date();
+  const pilesJour = ventesLibres.filter(v => {
+    if (v.type !== "pile") return false;
+    const d = new Date(v.date);
+    return d.getFullYear() === aujourdHui.getFullYear()
+      && d.getMonth() === aujourdHui.getMonth()
+      && d.getDate() === aujourdHui.getDate();
+  }).length;
+  const pilesMois = ventesMois.filter(v => v.type === "pile");
+  const montantPilesMois = pilesMois.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
+  $("#stat-piles-jour").textContent = pilesJour;
+  $("#stat-piles-mois").textContent = pilesMois.length
+    ? pilesMois.length + " pile" + (pilesMois.length > 1 ? "s" : "") + " en " + MOIS_FR[mois - 1] + " · " + eur(montantPilesMois)
+    : "aucune pile en " + MOIS_FR[mois - 1];
 
   // Annulation de pile : visible seulement s'il y en a ce mois-ci
   $("#btn-pile-annuler").hidden = !ventesLibres.some(v => v.type === "pile");
@@ -1394,6 +1452,38 @@ $("#btn-certificat").addEventListener("click", () => {
 // Impression ticket A6
 // ------------------------------------------------------------
 $("#btn-imprimer").addEventListener("click", () => { if (ticketOuvert) imprimerTicket(ticketOuvert); });
+
+$("#btn-renvoyer-depot").addEventListener("click", async () => {
+  const t = ticketOuvert;
+  if (!t) return;
+  const destinataires = (t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).filter(Boolean).join(", ");
+  if (!destinataires) return toast("Aucun email sur ce ticket — corrige-le d'abord (✎)", true);
+  const btn = $("#btn-renvoyer-depot");
+  btn.disabled = true;
+  try {
+    const r = await fetch("/.netlify/functions/send-depot", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: destinataires,
+        nom: t.clientNom,
+        civilite: t.clientCivilite || "",
+        tickets: [{
+          numero: t.numero,
+          objet: [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "),
+          numSerie: t.numSerie,
+          etat: [...(t.etat || []), t.etatTexte].filter(Boolean).join(", "),
+          demande: [t.demande, t.demandeTexte].filter(Boolean).join(" — ")
+        }]
+      })
+    });
+    toast(r.ok ? "Ticket de dépôt renvoyé ✓" : "Échec du renvoi", !r.ok);
+  } catch {
+    toast("Échec du renvoi", true);
+  } finally {
+    btn.disabled = false;
+  }
+});
 
 function pageTicketHTML(t) {
   const d = t.createdAt?.toDate ? t.createdAt.toDate() : new Date(t.createdAt || Date.now());

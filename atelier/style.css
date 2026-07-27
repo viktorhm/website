@@ -508,6 +508,7 @@ textarea { resize: vertical; margin-top: 10px; }
 /* Pièces à commander */
 .stat-pieces { border-top-color: #E09A4E; }
 .stat-marge { border-top-color: #8FBF6A; }
+.stat-piles { border-top-color: var(--acier-bleu); }
 .cmd-fournisseur {
   font-size: .78rem; text-transform: uppercase; letter-spacing: .14em;
   color: #E09A4E; margin: 14px 0 4px; font-weight: 700;
