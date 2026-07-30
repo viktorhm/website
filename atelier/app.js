@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 6.1");
+console.log("Atelier app.js chargé — version 6.2");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -1042,18 +1042,16 @@ $("#btn-facturer").addEventListener("click", async () => {
   const t = ticketOuvert;
   if (!t) return;
   if (t.facture) {
-    if (!confirm(`Ce ticket est facturé depuis le ${fmtDate(t.factureDate)}.\nAnnuler le marquage (il redeviendra "à facturer") ?`)) return;
     await updateDoc(doc(db, "tickets", t.id), {
       facture: false, updatedAt: serverTimestamp()
     });
     toast("Marquage facturé annulé");
     return;
   }
-  if (!confirm(`Marquer le ticket n° ${t.numero} comme facturé ?`)) return;
   await updateDoc(doc(db, "tickets", t.id), {
     facture: true, factureDate: new Date().toISOString(), updatedAt: serverTimestamp()
   });
-  toast("Ticket marqué facturé ✓");
+  toast("Ticket n° " + t.numero + " marqué facturé ✓");
 });
 
 $("#btn-supprimer").addEventListener("click", async () => {
