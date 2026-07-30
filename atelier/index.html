@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=5.9">
+<link rel="stylesheet" href="style.css?v=6.1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -139,6 +139,7 @@
       <button class="filtre" data-statut="accepte">Acceptés</button>
       <button class="filtre" data-statut="pret">Prêts</button>
       <button class="filtre" data-statut="rendu">Rendus</button>
+      <button class="filtre" data-statut="facture">Facturés</button>
       <button class="filtre" data-statut="tous">Tous</button>
       <input type="search" id="tickets-recherche" placeholder="N°, client, marque…">
     </div>
@@ -151,7 +152,7 @@
       <h1 class="tickets-titre" style="margin:0">Bilan</h1>
       <div class="bilan-actions">
         <button id="btn-pile" class="btn btn-secondaire">🔋 + Pile 10 €</button>
-        <button id="btn-pile-annuler" class="btn-lien" hidden>annuler la dernière</button>
+        <button id="btn-pile-annuler" class="btn btn-danger" hidden>🗑 Supprimer</button>
         <select id="bilan-mois" class="bilan-select"></select>
       </div>
     </div>
@@ -228,6 +229,7 @@
       <div class="fiche-numero" id="fiche-numero"></div>
       <button id="btn-renvoyer-depot" class="btn btn-secondaire" title="Renvoyer l'email de dépôt au client">✉ Renvoyer</button>
       <button id="btn-imprimer" class="btn btn-secondaire">🖨 Ticket A6</button>
+      <button id="btn-facturer" class="btn btn-secondaire" title="Marquer ce ticket comme facturé">✓ Facturé</button>
       <button id="btn-supprimer" class="btn btn-danger" title="Supprimer ce ticket">🗑</button>
     </div>
 
@@ -327,6 +329,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=5.9"></script>
+<script type="module" src="app.js?v=6.1"></script>
 </body>
 </html>

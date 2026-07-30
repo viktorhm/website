@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 5.9");
+console.log("Atelier app.js chargé — version 6.1");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -607,6 +607,9 @@ function demarrerEcoutesAnnexes() {
     ventesLibres = [];
     snap.forEach(d => ventesLibres.push({ id: d.id, ...d.data() }));
     if (!$("#vue-bilan").hidden) rendreBilan();
+  }, err => {
+    console.error("Lecture ventes refusée :", err);
+    toast("Lecture « ventes » refusée — règles Firestore à publier puis recharger", true);
   });
   onSnapshot(collection(db, "commandes"), snap => {
     commandesLibres = [];
@@ -650,6 +653,7 @@ function rendreListe() {
   const rech = $("#tickets-recherche").value.trim().toLowerCase();
   let liste = tousTickets.filter(t => !!t.clientPro === modePro);
   if (filtreActif === "actifs") liste = liste.filter(t => !["pret", "rendu"].includes(t.statut));
+  else if (filtreActif === "facture") liste = liste.filter(t => t.facture);
   else if (filtreActif !== "tous") liste = liste.filter(t => t.statut === filtreActif);
   if (rech) {
     liste = liste.filter(t =>
@@ -783,6 +787,7 @@ function rendreFiche() {
     `<a class="photo-item" href="${u}" target="_blank"><img src="${u.replace("/upload/", "/upload/w_200,h_200,c_fill/")}"></a>`
   ).join("");
 
+  $("#btn-facturer").textContent = t.facture ? "↩ Annuler facturé" : "✓ Facturé";
   $("#btn-date-depot").addEventListener("click", modifierDateDepot);
   $("#btn-coord").addEventListener("click", () => {
     const z = $("#edit-coord");
@@ -1033,6 +1038,24 @@ $("#btn-envoyer-devis").addEventListener("click", async () => {
 // ------------------------------------------------------------
 // Suppression de ticket
 // ------------------------------------------------------------
+$("#btn-facturer").addEventListener("click", async () => {
+  const t = ticketOuvert;
+  if (!t) return;
+  if (t.facture) {
+    if (!confirm(`Ce ticket est facturé depuis le ${fmtDate(t.factureDate)}.\nAnnuler le marquage (il redeviendra "à facturer") ?`)) return;
+    await updateDoc(doc(db, "tickets", t.id), {
+      facture: false, updatedAt: serverTimestamp()
+    });
+    toast("Marquage facturé annulé");
+    return;
+  }
+  if (!confirm(`Marquer le ticket n° ${t.numero} comme facturé ?`)) return;
+  await updateDoc(doc(db, "tickets", t.id), {
+    facture: true, factureDate: new Date().toISOString(), updatedAt: serverTimestamp()
+  });
+  toast("Ticket marqué facturé ✓");
+});
+
 $("#btn-supprimer").addEventListener("click", async () => {
   const t = ticketOuvert;
   if (!t) return;
