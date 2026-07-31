@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 6.2");
+console.log("Atelier app.js chargé — version 6.3");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -652,9 +652,27 @@ $("#tickets-recherche").addEventListener("input", rendreListe);
 function rendreListe() {
   const rech = $("#tickets-recherche").value.trim().toLowerCase();
   let liste = tousTickets.filter(t => !!t.clientPro === modePro);
+  // Chaîne de fin de parcours : Prêts → Retirés (à facturer) → Facturés
   if (filtreActif === "actifs") liste = liste.filter(t => !["pret", "rendu"].includes(t.statut));
+  else if (filtreActif === "rendu") liste = liste.filter(t => t.statut === "rendu" && !t.facture);
   else if (filtreActif === "facture") liste = liste.filter(t => t.facture);
   else if (filtreActif !== "tous") liste = liste.filter(t => t.statut === filtreActif);
+
+  // Compteurs sur les boutons de filtre (pour l'onglet courant)
+  const base = tousTickets.filter(t => !!t.clientPro === modePro);
+  const comptes = {
+    actifs: base.filter(t => !["pret", "rendu"].includes(t.statut)).length,
+    devis_envoye: base.filter(t => t.statut === "devis_envoye").length,
+    accepte: base.filter(t => t.statut === "accepte").length,
+    pret: base.filter(t => t.statut === "pret").length,
+    rendu: base.filter(t => t.statut === "rendu" && !t.facture).length,
+    facture: base.filter(t => t.facture).length
+  };
+  $$(".filtre-n").forEach(el => {
+    const n = comptes[el.dataset.n];
+    el.textContent = n || "";
+    el.hidden = !n;
+  });
   if (rech) {
     liste = liste.filter(t =>
       String(t.numero).includes(rech) ||

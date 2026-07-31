@@ -568,3 +568,12 @@ textarea { resize: vertical; margin-top: 10px; }
 }
 .edit-coord .btn { grid-column: 1 / -1; }
 @media (max-width: 560px) { .edit-coord { grid-template-columns: 1fr; } }
+
+/* Compteurs des filtres */
+.filtre-n {
+  display: inline-block; min-width: 20px; text-align: center;
+  background: var(--laiton); color: #14100A;
+  border-radius: 999px; padding: 1px 6px; margin-left: 5px;
+  font-family: "JetBrains Mono", monospace; font-size: .76rem; font-weight: 700;
+}
+.filtre.actif .filtre-n { background: var(--blanc, #fff); }

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=6.2">
+<link rel="stylesheet" href="style.css?v=6.3">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -134,12 +134,12 @@
   <main id="vue-tickets" class="vue" hidden>
     <h1 id="tickets-titre" class="tickets-titre"></h1>
     <div class="filtres">
-      <button class="filtre actif" data-statut="actifs">En cours</button>
-      <button class="filtre" data-statut="devis_envoye">Devis envoyés</button>
-      <button class="filtre" data-statut="accepte">Acceptés</button>
-      <button class="filtre" data-statut="pret">Prêts</button>
-      <button class="filtre" data-statut="rendu">Rendus</button>
-      <button class="filtre" data-statut="facture">Facturés</button>
+      <button class="filtre actif" data-statut="actifs">En cours <span class="filtre-n" data-n="actifs"></span></button>
+      <button class="filtre" data-statut="devis_envoye">Devis envoyés <span class="filtre-n" data-n="devis_envoye"></span></button>
+      <button class="filtre" data-statut="accepte">Acceptés <span class="filtre-n" data-n="accepte"></span></button>
+      <button class="filtre" data-statut="pret">Prêts <span class="filtre-n" data-n="pret"></span></button>
+      <button class="filtre" data-statut="rendu">Retirés — à facturer <span class="filtre-n" data-n="rendu"></span></button>
+      <button class="filtre" data-statut="facture">Facturés <span class="filtre-n" data-n="facture"></span></button>
       <button class="filtre" data-statut="tous">Tous</button>
       <input type="search" id="tickets-recherche" placeholder="N°, client, marque…">
     </div>
@@ -329,6 +329,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=6.2"></script>
+<script type="module" src="app.js?v=6.3"></script>
 </body>
 </html>
