@@ -57,7 +57,8 @@ export const P = {
   MONO: `'SF Mono',SFMono-Regular,Consolas,'Courier New',monospace`
 };
 
-export function gabaritPremium({ titre, intro, corps }) {
+export function gabaritPremium({ titre, intro, corps, horaires }) {
+  const h = String(horaires || "Mercredi & jeudi 10h\u201318h \u00b7 Samedi 10h\u201314h").replace(/&/g, "&amp;").replace(/</g, "&lt;");
   return `<!DOCTYPE html>
 <html lang="fr">
 <body style="margin:0;padding:0;background:#EBE8E1;">
@@ -83,7 +84,7 @@ export function gabaritPremium({ titre, intro, corps }) {
           <b style="color:${P.IVOIRE};">Viktor Haratyk</b> &middot; Horlogerie Haratyk<br>
           43 rue du Vieux Four, 59700 Marcq-en-Bar&oelig;ul<br>
           07 85 85 10 80 &middot; <a href="https://horlogerie-haratyk.fr" style="color:${P.LAITON};text-decoration:none;">horlogerie-haratyk.fr</a><br>
-          <span style="font-size:11px;">Mercredi &amp; jeudi 10h&ndash;18h &middot; Samedi 10h&ndash;14h &middot; TVA non applicable, art. 293 B du CGI</span>
+          <span style="font-size:11px;">${h} &middot; TVA non applicable, art. 293 B du CGI</span>
         </td></tr>
 
       </table>

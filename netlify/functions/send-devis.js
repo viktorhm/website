@@ -12,7 +12,7 @@ export async function handler(event) {
   }
 
   try {
-    const { email, nom, numero, contremarque, objet, lignes, token } = JSON.parse(event.body || "{}");
+    const { email, nom, numero, contremarque, objet, lignes, token, horaires } = JSON.parse(event.body || "{}");
 
     if (!email || !numero || !Array.isArray(lignes) || !lignes.length || !token) {
       return { statusCode: 400, body: JSON.stringify({ error: "Données incomplètes" }) };
@@ -69,7 +69,7 @@ export async function handler(event) {
       from: `"Horlogerie Haratyk" <${process.env.GMAIL_USER}>`,
       to: email,
       subject: `Devis n° ${numero} — ${objet || "votre objet"} (${total.toFixed(2)} €)`,
-      html: gabaritPremium({
+      html: gabaritPremium({ horaires,
         titre: "Votre devis est pr\u00eat",
         intro: `Bonjour${nom ? " " + String(nom).replace(/</g, "&lt;") : ""}, voici le devis pour votre objet d\u00e9pos\u00e9 \u00e0 l'atelier.`,
         corps

@@ -569,6 +569,7 @@ textarea { resize: vertical; margin-top: 10px; }
 .edit-coord .btn { grid-column: 1 / -1; }
 @media (max-width: 560px) { .edit-coord { grid-template-columns: 1fr; } }
 
+
 /* Compteurs des filtres */
 .filtre-n {
   display: inline-block; min-width: 20px; text-align: center;
@@ -577,3 +578,20 @@ textarea { resize: vertical; margin-top: 10px; }
   font-family: "JetBrains Mono", monospace; font-size: .76rem; font-weight: 700;
 }
 .filtre.actif .filtre-n { background: var(--blanc, #fff); }
+
+/* Réglages */
+.grille-cfg { display: grid; grid-template-columns: 1fr auto; gap: 10px; }
+.cfg-note { font-size: .82rem; color: var(--texte-2); margin: 8px 0 0; }
+
+/* Sélecteur de mois des listes */
+.filtre-mois { padding: 8px 12px; font-size: .88rem; }
+.tc-rendu {
+  text-align: right; font-size: .82rem; color: var(--texte-2);
+  line-height: 1.5; white-space: nowrap;
+}
+.tc-rendu b { color: var(--laiton); font-family: "JetBrains Mono", monospace; }
+
+
+/* Journal des ventes */
+.grille-vente { grid-template-columns: auto 2fr 90px 90px auto; }
+@media (max-width: 700px) { .grille-vente { grid-template-columns: 1fr 1fr; } }

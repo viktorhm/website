@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=6.3">
+<link rel="stylesheet" href="style.css?v=6.6">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -32,6 +32,7 @@
       <button class="nav-btn actif" data-vue="depot">Dépôt</button>
       <button class="nav-btn" data-vue="tickets" data-pro="0">Client <span id="badge-client" class="badge" hidden></span></button>
       <button class="nav-btn" data-vue="tickets" data-pro="1">Pro <span id="badge-pro" class="badge" hidden></span></button>
+      <button class="nav-btn" data-vue="tickets" data-pendule="1">Pendules</button>
       <button class="nav-btn" data-vue="bilan">Bilan</button>
     </nav>
     <button id="btn-logout" class="btn-deco">Déconnexion</button>
@@ -82,6 +83,7 @@
           <input type="text" id="objet-marque" placeholder="Marque">
           <input type="text" id="objet-modele" placeholder="Modèle / référence">
           <input type="text" id="objet-serie" placeholder="N° de série (si visible)">
+          <input type="text" id="objet-adresse" placeholder="Adresse (pendules — intervention à domicile)">
         </div>
       </section>
 
@@ -134,6 +136,7 @@
   <main id="vue-tickets" class="vue" hidden>
     <h1 id="tickets-titre" class="tickets-titre"></h1>
     <div class="filtres">
+      <select id="filtre-mois" class="bilan-select filtre-mois" hidden></select>
       <button class="filtre actif" data-statut="actifs">En cours <span class="filtre-n" data-n="actifs"></span></button>
       <button class="filtre" data-statut="devis_envoye">Devis envoyés <span class="filtre-n" data-n="devis_envoye"></span></button>
       <button class="filtre" data-statut="accepte">Acceptés <span class="filtre-n" data-n="accepte"></span></button>
@@ -198,6 +201,32 @@
     <section class="bloc">
       <h2>Encaissé par mois (tickets rendus)</h2>
       <div id="bilan-courbe"></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Journal des ventes</h2>
+      <div class="grille-piece grille-vente">
+        <select id="vente-type" class="bilan-select">
+          <option value="pile">Pile</option>
+          <option value="bracelet">Bracelet</option>
+          <option value="montre">Montre</option>
+          <option value="autre">Autre</option>
+        </select>
+        <input type="text" id="vente-designation" placeholder="Désignation (ex. bracelet cuir 20mm)">
+        <input type="number" id="vente-montant" placeholder="Vendu €" step="0.01" min="0">
+        <input type="number" id="vente-cout" placeholder="Coût €" step="0.01" min="0">
+        <button id="btn-vente-ajouter" class="btn btn-secondaire">Ajouter</button>
+      </div>
+      <div id="bilan-journal" style="margin-top:14px"></div>
+    </section>
+
+    <section class="bloc">
+      <h2>Réglages de l'atelier</h2>
+      <div class="grille-cfg">
+        <input type="text" id="cfg-horaires" placeholder="Horaires d'ouverture (emails & tickets)">
+        <button id="btn-cfg-sauver" class="btn btn-secondaire">Enregistrer</button>
+      </div>
+      <p class="cfg-note">Affichés dans les emails (dépôt, prêt, restitution) et sur les tickets imprimés.</p>
     </section>
 
     <section class="bloc">
@@ -329,6 +358,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=6.3"></script>
+<script type="module" src="app.js?v=6.6"></script>
 </body>
 </html>

@@ -14,7 +14,7 @@ export async function handler(event) {
   }
 
   try {
-    const { email, nom, civilite, numero, objet, garantie } = JSON.parse(event.body || "{}");
+    const { email, nom, civilite, numero, objet, garantie, horaires } = JSON.parse(event.body || "{}");
 
     if (!email || !numero) {
       return { statusCode: 400, body: JSON.stringify({ error: "email et numero requis" }) };
@@ -55,7 +55,7 @@ export async function handler(event) {
       from: `"Horlogerie Haratyk" <${process.env.GMAIL_USER}>`,
       to: email,
       subject: `Merci de votre confiance — Ticket n° ${numero}`,
-      html: gabaritPremium({
+      html: gabaritPremium({ horaires,
         titre: "À bientôt !",
         intro: `Bonjour${nom ? " " + ech((civilite ? civilite + " " : "") + nom) : ""}, nous vous confirmons la restitution de votre objet ce jour.`,
         corps

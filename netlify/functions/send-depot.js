@@ -18,7 +18,9 @@ export async function handler(event) {
   }
 
   try {
-    const { email, nom, civilite, tickets } = JSON.parse(event.body || "{}");
+    const { email, nom, civilite, tickets, horaires } = JSON.parse(event.body || "{}");
+    const horairesTxt = String(horaires || "Mercredi & jeudi 10h\u201318h \u00b7 Samedi 10h\u201314h");
+    const horairesHtml = horairesTxt.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
     if (!email || !Array.isArray(tickets) || !tickets.length) {
       return { statusCode: 400, body: JSON.stringify({ error: "Données incomplètes" }) };
@@ -106,7 +108,7 @@ export async function handler(event) {
                  style="background:${CARTE};border-radius:12px;">
             <tr><td style="padding:18px 22px;font-family:${POLICE};font-size:13px;color:${GRIS};line-height:1.8;">
               <b style="color:${IVOIRE};">Retrait &agrave; l'atelier</b><br>
-              Mercredi &amp; jeudi 10h&ndash;18h &middot; Samedi 10h&ndash;14h<br>
+              ${horairesHtml}<br>
               R&egrave;glement en esp&egrave;ces ou par ch&egrave;que.<br>
               <span style="color:${LAITON};">Conservez cet email : le num&eacute;ro de ticket vous sera demand&eacute;.</span>
             </td></tr>
@@ -149,7 +151,7 @@ ${tickets.map(t => `Ticket n° ${t.numero} — ${t.objet}${t.demande ? " (" + t.
 Vous serez informé(e) par email à chaque étape (diagnostic, devis, objet prêt).
 Conservez ce message : le numéro de ticket vous sera demandé au retrait.
 
-Horaires : mercredi et jeudi 10h-18h, samedi 10h-14h.
+Horaires : ${horairesTxt}.
 Règlement en espèces ou par chèque.
 
 Viktor Haratyk — Horlogerie Haratyk

@@ -10,7 +10,9 @@ export async function handler(event) {
   }
 
   try {
-    const { email, nom, numero, objet } = JSON.parse(event.body || "{}");
+    const { email, nom, numero, objet, horaires } = JSON.parse(event.body || "{}");
+    const horairesTxt = String(horaires || "Mercredi & jeudi 10h\u201318h \u00b7 Samedi 10h\u201314h");
+    const horairesHtml = horairesTxt.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
     if (!email || !numero) {
       return { statusCode: 400, body: JSON.stringify({ error: "email et numero requis" }) };
@@ -39,7 +41,7 @@ export async function handler(event) {
              style="background:${P.CARTE};border-radius:12px;margin-top:16px;">
         <tr><td style="padding:18px 22px;font-family:${P.POLICE};font-size:13px;color:${P.GRIS};line-height:1.8;">
           <b style="color:${P.IVOIRE};">Retrait &agrave; l'atelier</b><br>
-          Mercredi &amp; jeudi 10h&ndash;18h &middot; Samedi 10h&ndash;14h<br>
+          ${horairesHtml}<br>
           R&egrave;glement en esp&egrave;ces ou par ch&egrave;que.<br>
           <span style="color:${P.LAITON};">Merci de vous munir de votre num&eacute;ro de ticket.</span>
         </td></tr>
@@ -54,7 +56,7 @@ export async function handler(event) {
       from: `"Horlogerie Haratyk" <${process.env.GMAIL_USER}>`,
       to: email,
       subject: `Votre ${objet || "objet"} est prêt — Ticket n° ${numero}`,
-      html: gabaritPremium({
+      html: gabaritPremium({ horaires: horairesTxt,
         titre: "Votre objet est pr\u00eat !",
         intro: `Bonjour${nom ? " " + String(nom).replace(/</g, "&lt;") : ""}, bonne nouvelle : les travaux sont termin\u00e9s.`,
         corps

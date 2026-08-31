@@ -9,7 +9,7 @@ import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
+  getFirestore, getDoc, setDoc, collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, where, orderBy, limit, onSnapshot, runTransaction,
   serverTimestamp, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 6.3");
+console.log("Atelier app.js chargé — version 6.6");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -181,24 +181,29 @@ onAuthStateChanged(auth, user => {
 // Navigation
 // ------------------------------------------------------------
 let modePro = false; // vue tickets : false = clients atelier, true = pros
+let modePendule = false; // vue tickets : true = pendules uniquement
 
 function montrerVue(nom) {
   $$(".vue").forEach(v => (v.hidden = true));
   $("#vue-" + nom).hidden = false;
   $$(".nav-btn").forEach(b => {
     const actif = b.dataset.vue === nom &&
-      (nom !== "tickets" || (b.dataset.pro === "1") === modePro);
+      (nom !== "tickets" || ((b.dataset.pendule === "1") === modePendule
+        && (modePendule || (b.dataset.pro === "1") === modePro)));
     b.classList.toggle("actif", actif);
   });
   if (nom === "tickets") {
-    $("#tickets-titre").textContent = modePro ? "Tickets professionnels" : "Tickets atelier client";
+    $("#tickets-titre").textContent = modePendule ? "Pendules" : (modePro ? "Tickets professionnels" : "Tickets atelier client");
     rendreListe();
   }
   if (nom === "bilan") rendreBilan();
   window.scrollTo(0, 0);
 }
 $$(".nav-btn").forEach(b => b.addEventListener("click", () => {
-  if (b.dataset.vue === "tickets") modePro = b.dataset.pro === "1";
+  if (b.dataset.vue === "tickets") {
+    modePendule = b.dataset.pendule === "1";
+    modePro = b.dataset.pro === "1";
+  }
   montrerVue(b.dataset.vue);
 }));
 $("#btn-retour").addEventListener("click", () => montrerVue("tickets"));
@@ -383,6 +388,7 @@ function lireObjetCourant() {
     numSerie: $("#objet-serie").value.trim(),
     etat: pastillesVals("etat-objet"),
     etatTexte: $("#etat-texte").value.trim(),
+    adresse: $("#objet-adresse").value.trim(),
     demande: pastillesVals("demande-client").join(", "),
     demandeTexte: $("#demande-texte").value.trim(),
     photos: [...photosDepot]
@@ -390,7 +396,7 @@ function lireObjetCourant() {
 }
 
 function viderObjetCourant() {
-  ["objet-marque", "objet-modele", "objet-serie"].forEach(id => ($("#" + id).value = ""));
+  ["objet-marque", "objet-modele", "objet-serie", "objet-adresse"].forEach(id => ($("#" + id).value = ""));
   $("#etat-texte").value = ""; $("#demande-texte").value = "";
   $$("#type-objet .pastille, #etat-objet .pastille, #demande-client .pastille")
     .forEach(p => p.classList.remove("actif"));
@@ -507,6 +513,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
         marque: o.marque,
         modele: o.modele,
         numSerie: o.numSerie,
+        adresse: o.adresse || "",
         etat: o.etat,
         etatTexte: o.etatTexte,
         demande: o.demande,
@@ -538,6 +545,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             email: destinataires,
+            horaires: configAtelier.horaires,
             nom: client.nom,
             civilite: client.civilite || "",
             tickets: crees.map(t => ({
@@ -599,10 +607,58 @@ function reinitFormDepot() {
 let tousTickets = [];
 let filtreActif = "actifs";
 
+const HORAIRES_DEFAUT = "Mercredi & jeudi 10h–18h · Samedi 10h–14h";
+let configAtelier = { horaires: HORAIRES_DEFAUT };
+
+async function chargerConfig() {
+  try {
+    const snap = await getDoc(doc(db, "config", "atelier"));
+    if (snap.exists() && snap.data().horaires) configAtelier = snap.data();
+  } catch (e) { console.error("Config non chargée :", e); }
+  const champ = $("#cfg-horaires");
+  if (champ) champ.value = configAtelier.horaires;
+}
+
+$("#btn-cfg-sauver")?.addEventListener("click", async () => {
+  const horaires = $("#cfg-horaires").value.trim();
+  if (!horaires) return toast("Les horaires ne peuvent pas être vides", true);
+  try {
+    await setDoc(doc(db, "config", "atelier"), { horaires }, { merge: true });
+    configAtelier.horaires = horaires;
+    toast("Horaires enregistrés ✓ (emails et tickets à jour)");
+  } catch (e) {
+    console.error(e);
+    toast(e.code === "permission-denied"
+      ? "Règle Firestore manquante pour « config » — publie les règles"
+      : "Erreur d'enregistrement", true);
+  }
+});
+
+let filtreMoisInit = false;
+function initFiltreMois() {
+  if (filtreMoisInit) return;
+  filtreMoisInit = true;
+  const sel = $("#filtre-mois");
+  const opts = ['<option value="">Tous les mois</option>'];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    opts.push(`<option value="${d.getFullYear()}-${d.getMonth()}">${MOIS_FR[d.getMonth()]} ${d.getFullYear()}</option>`);
+  }
+  sel.innerHTML = opts.join("");
+  sel.addEventListener("change", rendreListe);
+}
+
+function moisRestitution(t) {
+  const d = dateStatut(t, "rendu") || (t.factureDate ? new Date(t.factureDate) : null);
+  return d ? d.getFullYear() + "-" + d.getMonth() : null;
+}
+
 let ventesLibres = [];
 let commandesLibres = [];
 
 function demarrerEcoutesAnnexes() {
+  chargerConfig();
   onSnapshot(collection(db, "ventes"), snap => {
     ventesLibres = [];
     snap.forEach(d => ventesLibres.push({ id: d.id, ...d.data() }));
@@ -650,22 +706,31 @@ $$(".filtre").forEach(f => f.addEventListener("click", () => {
 $("#tickets-recherche").addEventListener("input", rendreListe);
 
 function rendreListe() {
+  initFiltreMois();
   const rech = $("#tickets-recherche").value.trim().toLowerCase();
-  let liste = tousTickets.filter(t => !!t.clientPro === modePro);
-  // Chaîne de fin de parcours : Prêts → Retirés (à facturer) → Facturés
+  let liste = modePendule
+    ? tousTickets.filter(t => t.typeObjet === "Pendule")
+    : tousTickets.filter(t => !!t.clientPro === modePro && t.typeObjet !== "Pendule");
   if (filtreActif === "actifs") liste = liste.filter(t => !["pret", "rendu"].includes(t.statut));
-  else if (filtreActif === "rendu") liste = liste.filter(t => t.statut === "rendu" && !t.facture);
+  else if (filtreActif === "rendu") liste = liste.filter(t => t.statut === "rendu" && !t.facture && montantTicket(t) > 0);
   else if (filtreActif === "facture") liste = liste.filter(t => t.facture);
   else if (filtreActif !== "tous") liste = liste.filter(t => t.statut === filtreActif);
 
-  // Compteurs sur les boutons de filtre (pour l'onglet courant)
-  const base = tousTickets.filter(t => !!t.clientPro === modePro);
+  const selMois = $("#filtre-mois");
+  selMois.hidden = !["rendu", "facture"].includes(filtreActif);
+  if (!selMois.hidden && selMois.value) {
+    liste = liste.filter(t => moisRestitution(t) === selMois.value);
+  }
+
+  const base = modePendule
+    ? tousTickets.filter(t => t.typeObjet === "Pendule")
+    : tousTickets.filter(t => !!t.clientPro === modePro && t.typeObjet !== "Pendule");
   const comptes = {
     actifs: base.filter(t => !["pret", "rendu"].includes(t.statut)).length,
     devis_envoye: base.filter(t => t.statut === "devis_envoye").length,
     accepte: base.filter(t => t.statut === "accepte").length,
     pret: base.filter(t => t.statut === "pret").length,
-    rendu: base.filter(t => t.statut === "rendu" && !t.facture).length,
+    rendu: base.filter(t => t.statut === "rendu" && !t.facture && montantTicket(t) > 0).length,
     facture: base.filter(t => t.facture).length
   };
   $$(".filtre-n").forEach(el => {
@@ -688,6 +753,11 @@ function rendreListe() {
         <div class="tc-client">${echap(t.clientNom)}${t.clientPro ? ' <span class="tag-pro">PRO</span>' : ""}</div>
         <div class="tc-objet">${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}${t.contremarque ? " · CM " + echap(t.contremarque) : ""}</div>
       </div>
+      ${["rendu", "facture"].includes(filtreActif) ? (() => {
+        const d = dateStatut(t, "rendu");
+        const m = montantTicket(t);
+        return `<div class="tc-rendu">${d ? "Rendu le " + d.toLocaleDateString("fr-FR") : ""}${m ? "<br><b>" + eur(m) + "</b>" : ""}</div>`;
+      })() : ""}
       <div class="tc-statut statut-${t.statut}">${statutLabel(t.statut)}</div>
     </div>
   `).join("") || `<p class="liste-vide">Aucun ticket ici pour l'instant.</p>`;
@@ -782,6 +852,7 @@ function rendreFiche() {
     <div><span>Client</span><b>${echap((t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom)}${t.clientPro ? " · PRO" : ""}</b></div>
     ${t.contremarque ? `<div><span>Contremarque</span><b>${echap(t.contremarque)}</b></div>` : ""}
     <div><span>Téléphone</span><b>${echap(fmtTel(t.clientTel))}</b></div>
+    ${t.adresse ? `<div><span>Adresse</span><b>${echap(t.adresse)}</b></div>` : ""}
     ${(t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).filter(Boolean).map(e => `<div><span>Email</span><b>${echap(e)}</b></div>`).join("")}
     <div><span></span><button type="button" id="btn-coord" class="btn-lien">✎ Corriger téléphone / email</button></div>
     <div id="edit-coord" class="edit-coord" hidden>
@@ -887,6 +958,7 @@ async function changerStatut(nouveau) {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+        horaires: configAtelier.horaires,
             email: destinataires,
             nom: t.clientNom,
             civilite: t.clientCivilite || "",
@@ -1026,6 +1098,7 @@ $("#btn-envoyer-devis").addEventListener("click", async () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+        horaires: configAtelier.horaires,
           email: (t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).join(", "),
           nom: t.clientNom,
           numero: t.numero,
@@ -1060,9 +1133,7 @@ $("#btn-facturer").addEventListener("click", async () => {
   const t = ticketOuvert;
   if (!t) return;
   if (t.facture) {
-    await updateDoc(doc(db, "tickets", t.id), {
-      facture: false, updatedAt: serverTimestamp()
-    });
+    await updateDoc(doc(db, "tickets", t.id), { facture: false, updatedAt: serverTimestamp() });
     toast("Marquage facturé annulé");
     return;
   }
@@ -1101,6 +1172,7 @@ $("#btn-notifier").addEventListener("click", async () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        horaires: configAtelier.horaires,
         email: (t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).join(", "),
         nom: t.clientNom,
         numero: t.numero,
@@ -1125,6 +1197,8 @@ const MOIS_FR = ["janvier","février","mars","avril","mai","juin","juillet","ao�
 
 function montantTicket(t) {
   const devis = t.devis || {};
+  // Devis refusé : aucune prestation facturable, quel que soit le statut du ticket
+  if (devis.statut === "refuse" || t.statut === "refuse") return 0;
   const lignes = devis.lignes || [];
   if (lignes.length) {
     const accepte = devis.statut === "accepte";
@@ -1184,7 +1258,7 @@ $("#btn-cmd-libre").addEventListener("click", async () => {
 $("#btn-pile").addEventListener("click", async () => {
   try {
     await addDoc(collection(db, "ventes"), {
-      type: "pile", montant: 10, cout: 0.84,
+      type: "pile", designation: "Remplacement de pile", montant: 10, cout: 0.84,
       date: new Date().toISOString(), createdAt: serverTimestamp()
     });
     toast("Pile enregistrée : +10 € ✓");
@@ -1204,6 +1278,50 @@ $("#btn-pile-annuler").addEventListener("click", async () => {
   await deleteDoc(doc(db, "ventes", piles[0].id));
   toast("Pile annulée");
 });
+
+$("#btn-vente-ajouter")?.addEventListener("click", async () => {
+  const designation = $("#vente-designation").value.trim();
+  const montant = parseFloat($("#vente-montant").value);
+  if (!designation) return toast("Indique ce que tu as vendu", true);
+  if (!montant || montant <= 0) return toast("Indique le montant de la vente", true);
+  try {
+    await addDoc(collection(db, "ventes"), {
+      type: $("#vente-type").value,
+      designation,
+      montant,
+      cout: parseFloat($("#vente-cout").value) || 0,
+      date: new Date().toISOString(),
+      createdAt: serverTimestamp()
+    });
+    $("#vente-designation").value = ""; $("#vente-montant").value = ""; $("#vente-cout").value = "";
+    toast("Vente enregistrée ✓");
+  } catch (e) {
+    console.error(e);
+    toast("Erreur d'enregistrement de la vente", true);
+  }
+});
+
+function rendreJournalVentes(ventesMois) {
+  const zone = $("#bilan-journal");
+  if (!zone) return;
+  const tri = [...ventesMois].sort((a, b) => new Date(b.date) - new Date(a.date));
+  zone.innerHTML = tri.length ? tri.map(v => `
+    <div class="cmd-ligne">
+      <div class="cmd-info">
+        ${echap(v.designation || v.type)}
+        <span class="cmd-ref"> · ${new Date(v.date).toLocaleDateString("fr-FR")}</span>
+        <div class="cmd-ticket">${echap(v.type || "vente")}${v.cout ? " — coût " + eur(v.cout) : ""}</div>
+      </div>
+      <b style="font-family:'JetBrains Mono',monospace;color:var(--laiton);white-space:nowrap">${eur(v.montant)}</b>
+      <button class="btn-recue btn-vente-suppr" data-id="${v.id}" style="border-color:var(--emauxrouge);color:var(--emauxrouge)">🗑</button>
+    </div>`).join("")
+    : "<p class='liste-vide'>Aucune vente ce mois-ci.</p>";
+  $$(".btn-vente-suppr").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Supprimer cette vente du journal ?")) return;
+    await deleteDoc(doc(db, "ventes", b.dataset.id));
+    toast("Vente supprimée");
+  }));
+}
 
 function ventesDuMois(annee, mois) {
   return ventesLibres.filter(v => {
@@ -1292,8 +1410,9 @@ function rendreBilan() {
 
   $("#stat-ca-libelle").textContent = "Encaissé — " + MOIS_FR[mois - 1];
   $("#stat-ca-eur").textContent = eur(caTickets + caVentes);
-  $("#stat-ca-n").textContent = rendusMois.length + " ticket" + (rendusMois.length > 1 ? "s" : "")
-    + (nPiles ? " · " + nPiles + " pile" + (nPiles > 1 ? "s" : "") : "");
+  $("#stat-ca-n").textContent = "Prestations " + eur(caTickets) + " · Ventes " + eur(caVentes);
+
+  rendreJournalVentes(ventesMois);
 
   // Compteur de piles : aujourd'hui + total du mois sélectionné
   const aujourdHui = new Date();
@@ -1389,6 +1508,11 @@ function rendreBilan() {
         <div class="tc-client">${echap(t.clientNom)}${t.clientPro ? ' <span class="tag-pro">PRO</span>' : ""}</div>
         <div class="tc-objet">Accepté le ${t.devis.dateReponse ? fmtDate(t.devis.dateReponse) : "—"} · ${eur(montantTicket(t))}</div>
       </div>
+      ${["rendu", "facture"].includes(filtreActif) ? (() => {
+        const d = dateStatut(t, "rendu");
+        const m = montantTicket(t);
+        return `<div class="tc-rendu">${d ? "Rendu le " + d.toLocaleDateString("fr-FR") : ""}${m ? "<br><b>" + eur(m) + "</b>" : ""}</div>`;
+      })() : ""}
       <div class="tc-statut statut-${t.statut}">${statutLabel(t.statut)}</div>
     </div>
   `).join("") || "<p class='liste-vide'>Aucun ticket validé.</p>";
@@ -1505,6 +1629,7 @@ $("#btn-renvoyer-depot").addEventListener("click", async () => {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         email: destinataires,
+        horaires: configAtelier.horaires,
         nom: t.clientNom,
         civilite: t.clientCivilite || "",
         tickets: [{
@@ -1546,7 +1671,7 @@ function pageTicketHTML(t) {
   </div>
   <div class="pt-pied">
     À présenter lors du retrait.<br>
-    Ouvert mercredi &amp; jeudi 10h–18h, samedi 10h–14h.<br>
+    ${echap(configAtelier.horaires)}.<br>
     Paiement : espèces ou chèque.
   </div>
 </div>`;
