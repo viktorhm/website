@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=6.7">
+<link rel="stylesheet" href="style.css?v=6.8">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -35,6 +35,7 @@
       <button class="nav-btn" data-vue="tickets" data-pendule="1">Pendules</button>
       <button class="nav-btn" data-vue="bilan">Bilan</button>
     </nav>
+    <button id="btn-reglages" class="btn-deco btn-rouage" title="Réglages">⚙</button>
     <button id="btn-logout" class="btn-deco">Déconnexion</button>
   </header>
 
@@ -205,6 +206,10 @@
 
     <section class="bloc">
       <h2>Journal des ventes</h2>
+      <select id="journal-portee" class="bilan-select" style="margin-bottom:12px">
+        <option value="mois">Mois affiché</option>
+        <option value="tout">Tout l'historique</option>
+      </select>
       <div class="grille-piece grille-vente">
         <select id="vente-type" class="bilan-select">
           <option value="pile">Pile</option>
@@ -218,15 +223,6 @@
         <button id="btn-vente-ajouter" class="btn btn-secondaire">Ajouter</button>
       </div>
       <div id="bilan-journal" style="margin-top:14px"></div>
-    </section>
-
-    <section class="bloc">
-      <h2>Réglages de l'atelier</h2>
-      <div class="grille-cfg">
-        <input type="text" id="cfg-horaires" placeholder="Horaires d'ouverture (emails & tickets)">
-        <button id="btn-cfg-sauver" class="btn btn-secondaire">Enregistrer</button>
-      </div>
-      <p class="cfg-note">Affichés dans les emails (dépôt, prêt, restitution) et sur les tickets imprimés.</p>
     </section>
 
     <section class="bloc">
@@ -354,10 +350,22 @@
   </main>
 </div>
 
+<main id="vue-reglages" class="vue" hidden>
+  <div class="conteneur">
+    <section class="bloc">
+      <h1 class="tickets-titre" style="margin-top:0">Réglages</h1>
+      <h2>Horaires d'ouverture</h2>
+      <div id="tbl-horaires" class="tbl-horaires"></div>
+      <div class="apercu-horaires">Affiché dans les emails et sur les tickets : <b id="apercu-horaires-txt">—</b></div>
+      <button id="btn-horaires-sauver" class="btn btn-principal" style="margin-top:14px">Enregistrer les horaires</button>
+    </section>
+  </div>
+</main>
+
 <div id="print-zone" class="print-zone"></div>
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=6.7"></script>
+<script type="module" src="app.js?v=6.8"></script>
 </body>
 </html>

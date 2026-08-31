@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 6.7");
+console.log("Atelier app.js chargé — version 6.8");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -197,6 +197,7 @@ function montrerVue(nom) {
     rendreListe();
   }
   if (nom === "bilan") rendreBilan();
+  if (nom === "reglages") rendreTableHoraires();
   window.scrollTo(0, 0);
 }
 $$(".nav-btn").forEach(b => b.addEventListener("click", () => {
@@ -615,8 +616,6 @@ async function chargerConfig() {
     const snap = await getDoc(doc(db, "config", "atelier"));
     if (snap.exists() && snap.data().horaires) configAtelier = snap.data();
   } catch (e) { console.error("Config non chargée :", e); }
-  const champ = $("#cfg-horaires");
-  if (champ) champ.value = configAtelier.horaires;
 }
 
 $("#btn-cfg-sauver")?.addEventListener("click", async () => {
@@ -633,6 +632,91 @@ $("#btn-cfg-sauver")?.addEventListener("click", async () => {
       : "Erreur d'enregistrement", true);
   }
 });
+
+const JOURS_FR = ["Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi", "Dimanche"];
+const JOURS_DEFAUT = [
+  { actif: false, debut: "10:00", fin: "18:00" },
+  { actif: false, debut: "10:00", fin: "18:00" },
+  { actif: true,  debut: "10:00", fin: "18:00" },
+  { actif: true,  debut: "10:00", fin: "18:00" },
+  { actif: false, debut: "10:00", fin: "18:00" },
+  { actif: true,  debut: "10:00", fin: "14:00" },
+  { actif: false, debut: "10:00", fin: "14:00" }
+];
+
+function heureCourte(h) {
+  if (!h) return "";
+  const [hh, mm] = h.split(":");
+  return parseInt(hh) + "h" + (mm && mm !== "00" ? mm : "");
+}
+
+function genererPhraseHoraires(jours) {
+  // Regrouper les jours ouverts par plage identique, dans l'ordre de la semaine
+  const groupes = [];
+  jours.forEach((j, i) => {
+    if (!j.actif) return;
+    const sig = j.debut + "|" + j.fin;
+    const g = groupes.find(x => x.sig === sig);
+    if (g) g.noms.push(JOURS_FR[i]);
+    else groupes.push({ sig, noms: [JOURS_FR[i]], debut: j.debut, fin: j.fin });
+  });
+  if (!groupes.length) return "Sur rendez-vous";
+  return groupes.map(g => {
+    const noms = g.noms.length > 1
+      ? g.noms.slice(0, -1).map((n, idx) => idx === 0 ? n : n.toLowerCase()).join(", ") + " & " + g.noms[g.noms.length - 1].toLowerCase()
+      : g.noms[0];
+    return `${noms} ${heureCourte(g.debut)}–${heureCourte(g.fin)}`;
+  }).join(" · ");
+}
+
+function rendreTableHoraires() {
+  const jours = (configAtelier.jours && configAtelier.jours.length === 7) ? configAtelier.jours : JOURS_DEFAUT;
+  $("#tbl-horaires").innerHTML = jours.map((j, i) => `
+    <div class="jour-ligne ${j.actif ? "" : "ferme"}" data-i="${i}">
+      <span class="jour-nom">${JOURS_FR[i]}</span>
+      <label class="case-option"><input type="checkbox" class="jour-actif" ${j.actif ? "checked" : ""}> ouvert</label>
+      <input type="time" class="jour-debut" value="${j.debut}" ${j.actif ? "" : "disabled"}>
+      <span class="tiret">→</span>
+      <input type="time" class="jour-fin" value="${j.fin}" ${j.actif ? "" : "disabled"}>
+    </div>`).join("");
+
+  const majApercu = () => $("#apercu-horaires-txt").textContent = genererPhraseHoraires(lireTableHoraires());
+  $$("#tbl-horaires input").forEach(inp => inp.addEventListener("change", () => {
+    if (inp.classList.contains("jour-actif")) {
+      const ligne = inp.closest(".jour-ligne");
+      ligne.classList.toggle("ferme", !inp.checked);
+      ligne.querySelectorAll('input[type="time"]').forEach(t => t.disabled = !inp.checked);
+    }
+    majApercu();
+  }));
+  majApercu();
+}
+
+function lireTableHoraires() {
+  return $$("#tbl-horaires .jour-ligne").map(l => ({
+    actif: l.querySelector(".jour-actif").checked,
+    debut: l.querySelector(".jour-debut").value || "10:00",
+    fin: l.querySelector(".jour-fin").value || "18:00"
+  }));
+}
+
+$("#btn-horaires-sauver").addEventListener("click", async () => {
+  const jours = lireTableHoraires();
+  const horaires = genererPhraseHoraires(jours);
+  try {
+    await setDoc(doc(db, "config", "atelier"), { jours, horaires }, { merge: true });
+    configAtelier.jours = jours;
+    configAtelier.horaires = horaires;
+    toast("Horaires enregistrés ✓ — " + horaires);
+  } catch (e) {
+    console.error(e);
+    toast(e.code === "permission-denied"
+      ? "Règle Firestore manquante pour « config » — publie les règles"
+      : "Erreur d'enregistrement", true);
+  }
+});
+
+$("#btn-reglages").addEventListener("click", () => montrerVue("reglages"));
 
 let filtreMoisInit = false;
 function initFiltreMois() {
@@ -1301,10 +1385,17 @@ $("#btn-vente-ajouter")?.addEventListener("click", async () => {
   }
 });
 
+let porteeInit = false;
 function rendreJournalVentes(ventesMois) {
   const zone = $("#bilan-journal");
   if (!zone) return;
-  const tri = [...ventesMois].sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (!porteeInit) {
+    porteeInit = true;
+    $("#journal-portee").addEventListener("change", rendreBilan);
+  }
+  const tout = $("#journal-portee").value === "tout";
+  const source = tout ? ventesLibres : ventesMois;
+  const tri = [...source].sort((a, b) => new Date(b.date) - new Date(a.date));
   zone.innerHTML = tri.length ? tri.map(v => `
     <div class="cmd-ligne">
       <div class="cmd-info">
@@ -1315,7 +1406,14 @@ function rendreJournalVentes(ventesMois) {
       <b style="font-family:'JetBrains Mono',monospace;color:var(--laiton);white-space:nowrap">${eur(v.montant)}</b>
       <button class="btn-recue btn-vente-suppr" data-id="${v.id}" style="border-color:var(--emauxrouge);color:var(--emauxrouge)">🗑</button>
     </div>`).join("")
-    : "<p class='liste-vide'>Aucune vente ce mois-ci.</p>";
+    : "<p class='liste-vide'>" + (tout ? "Aucune vente enregistrée." : "Aucune vente ce mois-ci.") + "</p>";
+  if (tri.length) {
+    const total = tri.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
+    zone.innerHTML += `<div class="cmd-ligne" style="border-bottom:none;font-weight:700">
+      <div class="cmd-info">Total ${tout ? "historique" : "du mois"} — ${tri.length} vente${tri.length > 1 ? "s" : ""}</div>
+      <b style="font-family:'JetBrains Mono',monospace;color:var(--laiton)">${eur(total)}</b><span></span>
+    </div>`;
+  }
   $$(".btn-vente-suppr").forEach(b => b.addEventListener("click", async () => {
     if (!confirm("Supprimer cette vente du journal ?")) return;
     await deleteDoc(doc(db, "ventes", b.dataset.id));
