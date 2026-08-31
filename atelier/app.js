@@ -9,7 +9,7 @@ import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, getDoc, setDoc, collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
+  getFirestore, setDoc, collection, doc, addDoc, getDoc, getDocs, updateDoc, deleteDoc,
   query, where, orderBy, limit, onSnapshot, runTransaction,
   serverTimestamp, arrayUnion
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 6.6");
+console.log("Atelier app.js chargé — version 6.7");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
