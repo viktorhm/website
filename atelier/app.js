@@ -127,7 +127,7 @@ function echap(s) {
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 6.8");
+console.log("Atelier app.js chargé — version 6.9");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -389,7 +389,6 @@ function lireObjetCourant() {
     numSerie: $("#objet-serie").value.trim(),
     etat: pastillesVals("etat-objet"),
     etatTexte: $("#etat-texte").value.trim(),
-    adresse: $("#objet-adresse").value.trim(),
     demande: pastillesVals("demande-client").join(", "),
     demandeTexte: $("#demande-texte").value.trim(),
     photos: [...photosDepot]
@@ -397,7 +396,7 @@ function lireObjetCourant() {
 }
 
 function viderObjetCourant() {
-  ["objet-marque", "objet-modele", "objet-serie", "objet-adresse"].forEach(id => ($("#" + id).value = ""));
+  ["objet-marque", "objet-modele", "objet-serie"].forEach(id => ($("#" + id).value = ""));
   $("#etat-texte").value = ""; $("#demande-texte").value = "";
   $$("#type-objet .pastille, #etat-objet .pastille, #demande-client .pastille")
     .forEach(p => p.classList.remove("actif"));
@@ -440,6 +439,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
   if (clientChoisi) {
     client = { ...clientChoisi };
     client.civilite = pastilleVal("client-civilite") || client.civilite || "";
+    client.adresse = clientChoisi.adresse || "";
     if (client.pro) {
       client.email = $("#client-choisi-email1").value.trim();
       client.email2 = $("#client-choisi-email2").value.trim();
@@ -451,6 +451,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
     client = {
       nom, tel,
       civilite: pastilleVal("client-civilite"),
+      adresse: $("#client-adresse").value.trim(),
       email: $("#client-email").value.trim(),
       email2: $("#client-pro").checked ? $("#client-email2").value.trim() : "",
       pro: $("#client-pro").checked,
@@ -514,7 +515,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
         marque: o.marque,
         modele: o.modele,
         numSerie: o.numSerie,
-        adresse: o.adresse || "",
+        clientAdresse: client.adresse || "",
         etat: o.etat,
         etatTexte: o.etatTexte,
         demande: o.demande,
@@ -891,6 +892,7 @@ async function corrigerCoordonnees() {
   const email1 = $("#coord-email1").value.trim().toLowerCase();
   const email2El = $("#coord-email2");
   const email2 = email2El ? email2El.value.trim().toLowerCase() : "";
+  const adresse = $("#coord-adresse").value.trim();
   if (!tel) return toast("Le téléphone ne peut pas être vide", true);
   const emails = [email1, email2].filter(Boolean);
 
@@ -900,10 +902,11 @@ async function corrigerCoordonnees() {
       clientTel: tel,
       clientEmail: email1,
       clientEmails: emails,
+      clientAdresse: adresse,
       updatedAt: serverTimestamp()
     });
     if (t.clientId) {
-      const majClient = { tel, email: email1 };
+      const majClient = { tel, email: email1, adresse };
       if (email2El) majClient.email2 = email2;
       await updateDoc(doc(db, "clients", t.clientId), majClient);
       cacheClients = null;
@@ -936,12 +939,13 @@ function rendreFiche() {
     <div><span>Client</span><b>${echap((t.clientCivilite ? t.clientCivilite + " " : "") + t.clientNom)}${t.clientPro ? " · PRO" : ""}</b></div>
     ${t.contremarque ? `<div><span>Contremarque</span><b>${echap(t.contremarque)}</b></div>` : ""}
     <div><span>Téléphone</span><b>${echap(fmtTel(t.clientTel))}</b></div>
-    ${t.adresse ? `<div><span>Adresse</span><b>${echap(t.adresse)}</b></div>` : ""}
+    ${(t.clientAdresse || t.adresse) ? `<div><span>Adresse</span><b>${echap(t.clientAdresse || t.adresse)}</b></div>` : ""}
     ${(t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).filter(Boolean).map(e => `<div><span>Email</span><b>${echap(e)}</b></div>`).join("")}
     <div><span></span><button type="button" id="btn-coord" class="btn-lien">✎ Corriger téléphone / email</button></div>
     <div id="edit-coord" class="edit-coord" hidden>
       <input type="tel" id="coord-tel" placeholder="Téléphone" value="${echap(fmtTel(t.clientTel))}">
       <input type="email" id="coord-email1" placeholder="Email" value="${echap((t.clientEmails && t.clientEmails[0]) || t.clientEmail || "")}">
+      <input type="text" id="coord-adresse" placeholder="Adresse" value="${echap(t.clientAdresse || t.adresse || "")}">
       ${t.clientPro ? `<input type="email" id="coord-email2" placeholder="Email 2 (associé / collègue)" value="${echap((t.clientEmails && t.clientEmails[1]) || "")}">` : ""}
       <button type="button" id="btn-coord-sauver" class="btn btn-principal">Enregistrer</button>
     </div>
