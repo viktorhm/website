@@ -123,11 +123,12 @@ function echap(s) {
   div.textContent = s ?? "";
   return div.innerHTML;
 }
+const echapAttr = s => echap(s).replace(/"/g, "&quot;");
 
 // ------------------------------------------------------------
 // Auth
 // ------------------------------------------------------------
-console.log("Atelier app.js chargé — version 6.9");
+console.log("Atelier app.js chargé — version 7.0");
 const EMAIL_ADMIN = "haratykviktor@gmail.com";
 window.addEventListener("error", e => {
   const el = document.getElementById("login-erreur");
@@ -197,7 +198,7 @@ function montrerVue(nom) {
     rendreListe();
   }
   if (nom === "bilan") rendreBilan();
-  if (nom === "reglages") rendreTableHoraires();
+  if (nom === "reglages") { rendreTableHoraires(); rendreEditeursListes(); }
   window.scrollTo(0, 0);
 }
 $$(".nav-btn").forEach(b => b.addEventListener("click", () => {
@@ -607,7 +608,7 @@ function reinitFormDepot() {
 // Liste des tickets (temps réel)
 // ------------------------------------------------------------
 let tousTickets = [];
-let filtreActif = "actifs";
+let filtreActif = "a_deviser";
 
 const HORAIRES_DEFAUT = "Mercredi & jeudi 10h–18h · Samedi 10h–14h";
 let configAtelier = { horaires: HORAIRES_DEFAUT };
@@ -615,9 +616,167 @@ let configAtelier = { horaires: HORAIRES_DEFAUT };
 async function chargerConfig() {
   try {
     const snap = await getDoc(doc(db, "config", "atelier"));
-    if (snap.exists() && snap.data().horaires) configAtelier = snap.data();
+    if (snap.exists()) configAtelier = { horaires: HORAIRES_DEFAUT, ...snap.data() };
   } catch (e) { console.error("Config non chargée :", e); }
+  rendreListesParametrees();
 }
+
+// ------------------------------------------------------------
+// Listes paramétrables (Réglages) : fournisseurs, objets, états, demandes
+// Stockées dans config/atelier — valeurs par défaut tant que rien n'est enregistré
+// ------------------------------------------------------------
+const LISTES_DEFAUT = {
+  fournisseurs: ["Cousins UK", "Général Ressort", "Boley", "AliExpress", "Meranom", "Vostok-Watches24", "eBay"]
+    .map(nom => ({ nom, site: "" })),
+  typesObjet: ["Montre quartz", "Montre mécanique", "Montre automatique", "Pendule", "Autre"],
+  etats: ["Verre rayé", "Verre fêlé/cassé", "Verre manquant", "Boîte rayée", "Bracelet usé",
+          "Bracelet absent", "Couronne absente", "Ne fonctionne pas", "Traces d'oxydation"],
+  demandes: ["Révision complète", "Changement de pile", "Réparation", "Devis / diagnostic",
+             "Remplacement de mouvement", "Remplacement du verre", "Bracelet"]
+};
+const TYPE_PENDULE = "Pendule"; // alimente l'onglet Pendules : non supprimable
+
+function lireListe(cle) {
+  const v = configAtelier[cle];
+  const brut = Array.isArray(v) ? v : LISTES_DEFAUT[cle];
+  if (cle === "fournisseurs") {
+    return brut.map(f => typeof f === "string" ? { nom: f, site: "" } : { nom: f.nom || "", site: f.site || "" })
+               .filter(f => f.nom);
+  }
+  const liste = brut.filter(Boolean);
+  if (cle === "typesObjet" && !liste.includes(TYPE_PENDULE)) liste.push(TYPE_PENDULE);
+  return liste;
+}
+
+function listeFournisseurs() { return lireListe("fournisseurs"); }
+function siteFournisseur(nom) {
+  const f = listeFournisseurs().find(x => x.nom.toLowerCase() === String(nom || "").toLowerCase());
+  if (!f || !f.site) return "";
+  return /^https?:\/\//i.test(f.site) ? f.site : "https://" + f.site;
+}
+
+function rendrePastilles(id, valeurs) {
+  const c = document.getElementById(id);
+  if (!c) return;
+  const actifs = new Set([...c.querySelectorAll(".pastille.actif")].map(p => p.dataset.val));
+  c.innerHTML = valeurs.map(v =>
+    `<button type="button" class="pastille ${actifs.has(v) ? "actif" : ""}" data-val="${echapAttr(v)}">${echap(v)}</button>`
+  ).join("");
+}
+
+const CLE_DERNIER_FOURN = "atelier.dernierFournisseur";
+function dernierFournisseur() {
+  try { return localStorage.getItem(CLE_DERNIER_FOURN) || ""; } catch { return ""; }
+}
+function memoriserFournisseur(nom) {
+  try { if (nom) localStorage.setItem(CLE_DERNIER_FOURN, nom); } catch {}
+}
+
+function rendreSelectsFournisseurs() {
+  const fourn = listeFournisseurs();
+  $$(".select-fournisseur").forEach(sel => {
+    const courant = sel.value || dernierFournisseur();
+    const noms = fourn.map(f => f.nom);
+    const extra = courant && !noms.includes(courant) ? [courant] : [];
+    sel.innerHTML = `<option value="">— Fournisseur —</option>` +
+      [...noms, ...extra].map(n => `<option value="${echapAttr(n)}">${echap(n)}</option>`).join("");
+    sel.value = courant;
+  });
+}
+
+function rendreListesParametrees() {
+  rendrePastilles("type-objet", lireListe("typesObjet"));
+  rendrePastilles("etat-objet", lireListe("etats"));
+  rendrePastilles("demande-client", lireListe("demandes"));
+  rendreSelectsFournisseurs();
+  if (!$("#vue-reglages").hidden) rendreEditeursListes();
+}
+
+async function sauverListe(cle, valeurs) {
+  try {
+    await setDoc(doc(db, "config", "atelier"), { [cle]: valeurs }, { merge: true });
+    configAtelier[cle] = valeurs;
+    rendreListesParametrees();
+    return true;
+  } catch (e) {
+    console.error(e);
+    toast(e.code === "permission-denied"
+      ? "Règle Firestore manquante pour « config » — publie les règles"
+      : "Erreur d'enregistrement", true);
+    return false;
+  }
+}
+
+function rendreEditeursListes() {
+  ["fournisseurs", "typesObjet", "etats", "demandes"].forEach(cle => {
+    const zone = document.getElementById("cfg-" + cle);
+    if (!zone) return;
+    const liste = lireListe(cle);
+    zone.innerHTML = liste.map((item, i) => {
+      const nom = cle === "fournisseurs" ? item.nom : item;
+      const verrou = cle === "typesObjet" && nom === TYPE_PENDULE;
+      const site = cle === "fournisseurs" && item.site
+        ? `<a class="cfg-site" href="${echapAttr(siteFournisseur(item.nom))}" target="_blank" rel="noopener">${echap(item.site)}</a>` : "";
+      return `<div class="cfg-item">
+        <span class="cfg-nom">${echap(nom)}${verrou ? ' <span class="cfg-verrou" title="Utilisé par l\'onglet Pendules">🔒</span>' : ""}</span>
+        ${site}
+        <span class="cfg-actions">
+          <button type="button" class="cfg-btn" data-cle="${cle}" data-i="${i}" data-act="haut" ${i === 0 ? "disabled" : ""}>monter</button>
+          <button type="button" class="cfg-btn" data-cle="${cle}" data-i="${i}" data-act="modif" ${verrou ? "disabled" : ""}>modifier</button>
+          <button type="button" class="cfg-btn cfg-suppr" data-cle="${cle}" data-i="${i}" data-act="suppr" ${verrou ? "disabled" : ""}>supprimer</button>
+        </span>
+      </div>`;
+    }).join("") || `<p class="liste-vide">Liste vide.</p>`;
+  });
+}
+
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".cfg-btn");
+  if (!b) return;
+  const cle = b.dataset.cle, i = parseInt(b.dataset.i), act = b.dataset.act;
+  const liste = lireListe(cle).map(x => (typeof x === "object" ? { ...x } : x));
+  const nomDe = x => (cle === "fournisseurs" ? x.nom : x);
+  if (act === "haut" && i > 0) {
+    [liste[i - 1], liste[i]] = [liste[i], liste[i - 1]];
+  } else if (act === "suppr") {
+    if (!confirm(`Retirer « ${nomDe(liste[i])} » de la liste ?\n(les tickets existants ne sont pas modifiés)`)) return;
+    liste.splice(i, 1);
+  } else if (act === "modif") {
+    const nouveau = prompt("Nouveau nom :", nomDe(liste[i]));
+    if (nouveau === null || !nouveau.trim()) return;
+    if (cle === "fournisseurs") {
+      liste[i].nom = nouveau.trim();
+      const site = prompt("Site web (laisser vide si aucun) :", liste[i].site || "");
+      if (site !== null) liste[i].site = site.trim();
+    } else {
+      liste[i] = nouveau.trim();
+    }
+  } else return;
+  if (await sauverListe(cle, liste)) toast("Liste mise à jour ✓");
+});
+
+$$("[data-ajout]").forEach(b => b.addEventListener("click", async () => {
+  const cle = b.dataset.ajout;
+  const champ = $("#cfg-" + cle + "-nom");
+  const nom = champ.value.trim();
+  if (!nom) return toast("Indique un nom", true);
+  const liste = lireListe(cle);
+  const noms = liste.map(x => (cle === "fournisseurs" ? x.nom : x).toLowerCase());
+  if (noms.includes(nom.toLowerCase())) return toast("« " + nom + " » existe déjà", true);
+  if (cle === "fournisseurs") {
+    liste.push({ nom, site: $("#cfg-fournisseurs-site").value.trim() });
+  } else {
+    liste.push(nom);
+  }
+  if (await sauverListe(cle, liste)) {
+    champ.value = "";
+    if (cle === "fournisseurs") $("#cfg-fournisseurs-site").value = "";
+    toast("« " + nom + " » ajouté ✓");
+  }
+}));
+$$(".cfg-ajout input").forEach(inp => inp.addEventListener("keydown", e => {
+  if (e.key === "Enter") inp.closest(".cfg-ajout").querySelector("[data-ajout]").click();
+}));
 
 $("#btn-cfg-sauver")?.addEventListener("click", async () => {
   const horaires = $("#cfg-horaires").value.trim();
@@ -790,55 +949,85 @@ $$(".filtre").forEach(f => f.addEventListener("click", () => {
 }));
 $("#tickets-recherche").addEventListener("input", rendreListe);
 
+// Groupes de statuts pour les filtres de la liste
+const FILTRES = {
+  a_deviser:    t => ["depose", "diagnostic"].includes(t.statut),
+  devis_envoye: t => t.statut === "devis_envoye",
+  accepte:      t => ["accepte", "piece_attente", "en_cours"].includes(t.statut),
+  pret:         t => t.statut === "pret",
+  rendu:        t => t.statut === "rendu" && !t.facture && montantTicket(t) > 0,
+  facture:      t => !!t.facture,
+  refuse:       t => t.statut === "refuse",
+  tous:         () => true
+};
+
+// Chiffres seuls, format national : "+33 6 12…" / "0033…" → "06 12…"
+function chiffresTel(s) {
+  const brut = String(s || "").trim();
+  let n = brut.replace(/\D/g, "");
+  if (brut.startsWith("+33") || n.startsWith("0033")) n = "0" + n.replace(/^(00)?33/, "");
+  else if (n.startsWith("33") && n.length === 11) n = "0" + n.slice(2);
+  return n;
+}
+
+function correspondRecherche(t, rech) {
+  const chiffres = chiffresTel(rech);
+  // 3 chiffres ou plus : recherche téléphone (+ numéro de ticket)
+  if (chiffres.length >= 3 && /^[\d\s.+()-]+$/.test(rech)) {
+    const sansZero = chiffres.replace(/^0/, "");
+    const tel = chiffresTel(t.clientTel);
+    return String(t.numero).includes(chiffres) || tel.includes(chiffres) || (sansZero.length >= 3 && tel.includes(sansZero));
+  }
+  return [t.numero, t.clientNom, t.marque, t.modele, t.numSerie, t.contremarque, t.clientEmail, t.typeObjet]
+    .some(v => String(v || "").toLowerCase().includes(rech));
+}
+
 function rendreListe() {
   initFiltreMois();
   const rech = $("#tickets-recherche").value.trim().toLowerCase();
-  let liste = modePendule
-    ? tousTickets.filter(t => t.typeObjet === "Pendule")
-    : tousTickets.filter(t => !!t.clientPro === modePro && t.typeObjet !== "Pendule");
-  if (filtreActif === "actifs") liste = liste.filter(t => !["pret", "rendu"].includes(t.statut));
-  else if (filtreActif === "rendu") liste = liste.filter(t => t.statut === "rendu" && !t.facture && montantTicket(t) > 0);
-  else if (filtreActif === "facture") liste = liste.filter(t => t.facture);
-  else if (filtreActif !== "tous") liste = liste.filter(t => t.statut === filtreActif);
+  const base = modePendule
+    ? tousTickets.filter(t => t.typeObjet === TYPE_PENDULE)
+    : tousTickets.filter(t => !!t.clientPro === modePro && t.typeObjet !== TYPE_PENDULE);
+
+  let liste;
+  const info = $("#recherche-info");
+  if (rech) {
+    // Recherche : sur TOUS les tickets (client, pro, pendules, tous statuts)
+    liste = tousTickets.filter(t => correspondRecherche(t, rech));
+    info.hidden = false;
+    info.innerHTML = `${liste.length} résultat${liste.length > 1 ? "s" : ""} sur l'ensemble des tickets`
+      + (liste.length && new Set(liste.map(t => t.clientId || t.clientNom)).size === 1
+          ? ` — <b>${echap(liste[0].clientNom)}</b> · ${echap(fmtTel(liste[0].clientTel))}` : "");
+  } else {
+    info.hidden = true;
+    liste = base.filter(FILTRES[filtreActif] || FILTRES.tous);
+  }
 
   const selMois = $("#filtre-mois");
-  selMois.hidden = !["rendu", "facture"].includes(filtreActif);
+  selMois.hidden = !!rech || !["rendu", "facture"].includes(filtreActif);
   if (!selMois.hidden && selMois.value) {
     liste = liste.filter(t => moisRestitution(t) === selMois.value);
   }
 
-  const base = modePendule
-    ? tousTickets.filter(t => t.typeObjet === "Pendule")
-    : tousTickets.filter(t => !!t.clientPro === modePro && t.typeObjet !== "Pendule");
-  const comptes = {
-    actifs: base.filter(t => !["pret", "rendu"].includes(t.statut)).length,
-    devis_envoye: base.filter(t => t.statut === "devis_envoye").length,
-    accepte: base.filter(t => t.statut === "accepte").length,
-    pret: base.filter(t => t.statut === "pret").length,
-    rendu: base.filter(t => t.statut === "rendu" && !t.facture && montantTicket(t) > 0).length,
-    facture: base.filter(t => t.facture).length
-  };
+  const comptes = {};
+  Object.keys(FILTRES).forEach(k => (comptes[k] = base.filter(FILTRES[k]).length));
   $$(".filtre-n").forEach(el => {
     const n = comptes[el.dataset.n];
     el.textContent = n || "";
     el.hidden = !n;
   });
-  if (rech) {
-    liste = liste.filter(t =>
-      String(t.numero).includes(rech) ||
-      (t.clientNom || "").toLowerCase().includes(rech) ||
-      (t.marque || "").toLowerCase().includes(rech) ||
-      (t.contremarque || "").toLowerCase().includes(rech)
-    );
-  }
+  // Le filtre « Refusés » n'apparaît que s'il y a des montres à rendre
+  const btnRefuse = $('.filtre[data-statut="refuse"]');
+  btnRefuse.hidden = !comptes.refuse && filtreActif !== "refuse";
+
   $("#liste-tickets").innerHTML = liste.map(t => `
     <div class="ticket-carte" data-id="${t.id}">
       <div class="tc-num">N° ${t.numero}</div>
       <div class="tc-corps">
         <div class="tc-client">${echap(t.clientNom)}${t.clientPro ? ' <span class="tag-pro">PRO</span>' : ""}</div>
-        <div class="tc-objet">${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}${t.contremarque ? " · CM " + echap(t.contremarque) : ""}</div>
+        <div class="tc-objet">${echap([t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · "))}${t.contremarque ? " · CM " + echap(t.contremarque) : ""}${rech ? " · " + echap(fmtTel(t.clientTel)) : ""}</div>
       </div>
-      ${["rendu", "facture"].includes(filtreActif) ? (() => {
+      ${!rech && ["rendu", "facture"].includes(filtreActif) ? (() => {
         const d = dateStatut(t, "rendu");
         const m = montantTicket(t);
         return `<div class="tc-rendu">${d ? "Rendu le " + d.toLocaleDateString("fr-FR") : ""}${m ? "<br><b>" + eur(m) + "</b>" : ""}</div>`;
@@ -1072,18 +1261,19 @@ $("#btn-ajouter-piece").addEventListener("click", async () => {
   const piece = {
     designation,
     ref: $("#piece-ref").value.trim(),
-    fournisseur: $("#piece-fournisseur").value.trim(),
+    fournisseur: $("#piece-fournisseur").value,
     prix: parseFloat($("#piece-prix").value) || 0,
     cout: parseFloat($("#piece-cout").value) || 0,
     date: new Date().toISOString()
   };
   if ($("#piece-commander").checked) piece.aCommander = true;
+  memoriserFournisseur(piece.fournisseur);
   await updateDoc(doc(db, "tickets", ticketOuvert.id), {
     pieces: arrayUnion(piece),
     updatedAt: serverTimestamp()
   });
   $("#piece-designation").value = ""; $("#piece-ref").value = ""; $("#piece-prix").value = "";
-  $("#piece-fournisseur").value = ""; $("#piece-cout").value = ""; $("#piece-commander").checked = false;
+  $("#piece-cout").value = ""; $("#piece-commander").checked = false;
 });
 
 $("#btn-ajouter-note").addEventListener("click", async () => {
@@ -1329,11 +1519,12 @@ $("#btn-cmd-libre").addEventListener("click", async () => {
     await addDoc(collection(db, "commandes"), {
       designation,
       ref: $("#cmd-ref").value.trim(),
-      fournisseur: $("#cmd-fournisseur").value.trim(),
+      fournisseur: $("#cmd-fournisseur").value,
       date: new Date().toISOString(),
       createdAt: serverTimestamp()
     });
-    $("#cmd-designation").value = ""; $("#cmd-ref").value = ""; $("#cmd-fournisseur").value = "";
+    memoriserFournisseur($("#cmd-fournisseur").value);
+    $("#cmd-designation").value = ""; $("#cmd-ref").value = "";
     toast("Ajouté à la liste de commandes ✓");
   } catch (e) {
     console.error(e);
@@ -1471,7 +1662,7 @@ function rendreBilan() {
     (parFournisseur[f] = parFournisseur[f] || []).push(x);
   });
   $("#bilan-commandes").innerHTML = Object.keys(parFournisseur).sort().map(f => `
-    <div class="cmd-fournisseur">${echap(f)} — ${parFournisseur[f].length} pièce(s)</div>
+    <div class="cmd-fournisseur">${echap(f)} — ${parFournisseur[f].length} pièce(s)${siteFournisseur(f) ? ` <a class="cmd-site" href="${echapAttr(siteFournisseur(f))}" target="_blank" rel="noopener">↗ commander</a>` : ""}</div>
     ${parFournisseur[f].map(x => `
       <div class="cmd-ligne">
         <div class="cmd-info">
@@ -1818,3 +2009,6 @@ function imprimerPages(html) {
 
 function imprimerTicket(t) { imprimerPages(pageTicketHTML(t)); }
 function imprimerTickets(liste) { imprimerPages(liste.map(pageTicketHTML).join("")); }
+
+// Rendu initial des listes (valeurs par défaut, remplacées dès la config chargée)
+rendreListesParametrees();

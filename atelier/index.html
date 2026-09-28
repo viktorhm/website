@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=6.9">
+<link rel="stylesheet" href="style.css?v=7.1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -74,13 +74,7 @@
 
       <section class="bloc">
         <h2>Objet déposé</h2>
-        <div class="pastilles" id="type-objet">
-          <button type="button" class="pastille" data-val="Montre quartz">Montre quartz</button>
-          <button type="button" class="pastille" data-val="Montre mécanique">Montre mécanique</button>
-          <button type="button" class="pastille" data-val="Montre automatique">Montre automatique</button>
-          <button type="button" class="pastille" data-val="Pendule">Pendule</button>
-          <button type="button" class="pastille" data-val="Autre">Autre</button>
-        </div>
+        <div class="pastilles" id="type-objet"></div>
         <div class="grille-2">
           <input type="text" id="objet-marque" placeholder="Marque">
           <input type="text" id="objet-modele" placeholder="Modèle / référence">
@@ -90,17 +84,7 @@
 
       <section class="bloc">
         <h2>État constaté au dépôt</h2>
-        <div class="pastilles pastilles-multi" id="etat-objet">
-          <button type="button" class="pastille" data-val="Verre rayé">Verre rayé</button>
-          <button type="button" class="pastille" data-val="Verre fêlé/cassé">Verre fêlé</button>
-          <button type="button" class="pastille" data-val="Verre manquant">Verre manquant</button>
-          <button type="button" class="pastille" data-val="Boîte rayée">Boîte rayée</button>
-          <button type="button" class="pastille" data-val="Bracelet usé">Bracelet usé</button>
-          <button type="button" class="pastille" data-val="Bracelet absent">Bracelet absent</button>
-          <button type="button" class="pastille" data-val="Couronne absente">Couronne absente</button>
-          <button type="button" class="pastille" data-val="Ne fonctionne pas">Ne fonctionne pas</button>
-          <button type="button" class="pastille" data-val="Traces d'oxydation">Oxydation</button>
-        </div>
+        <div class="pastilles pastilles-multi" id="etat-objet"></div>
         <textarea id="etat-texte" rows="2" placeholder="Autres remarques sur l'état…"></textarea>
         <div class="photos-zone">
           <label for="photo-camera" class="btn btn-secondaire">📷 Prendre une photo</label>
@@ -113,15 +97,7 @@
 
       <section class="bloc">
         <h2>Demande du client</h2>
-        <div class="pastilles" id="demande-client">
-          <button type="button" class="pastille" data-val="Révision complète">Révision complète</button>
-          <button type="button" class="pastille" data-val="Changement de pile">Pile</button>
-          <button type="button" class="pastille" data-val="Réparation">Réparation</button>
-          <button type="button" class="pastille" data-val="Devis / diagnostic">Devis / diagnostic</button>
-          <button type="button" class="pastille" data-val="Remplacement de mouvement">Remplacement mouvement</button>
-          <button type="button" class="pastille" data-val="Remplacement du verre">Verre</button>
-          <button type="button" class="pastille" data-val="Bracelet">Bracelet</button>
-        </div>
+        <div class="pastilles" id="demande-client"></div>
         <textarea id="demande-texte" rows="2" placeholder="Précisions…"></textarea>
       </section>
 
@@ -138,15 +114,17 @@
     <h1 id="tickets-titre" class="tickets-titre"></h1>
     <div class="filtres">
       <select id="filtre-mois" class="bilan-select filtre-mois" hidden></select>
-      <button class="filtre actif" data-statut="actifs">En cours <span class="filtre-n" data-n="actifs"></span></button>
-      <button class="filtre" data-statut="devis_envoye">Devis envoyés <span class="filtre-n" data-n="devis_envoye"></span></button>
-      <button class="filtre" data-statut="accepte">Acceptés <span class="filtre-n" data-n="accepte"></span></button>
+      <button class="filtre actif" data-statut="a_deviser">Devis à effectuer <span class="filtre-n" data-n="a_deviser"></span></button>
+      <button class="filtre" data-statut="devis_envoye">Devis en attente <span class="filtre-n" data-n="devis_envoye"></span></button>
+      <button class="filtre" data-statut="accepte">Acceptés / en réparation <span class="filtre-n" data-n="accepte"></span></button>
       <button class="filtre" data-statut="pret">Prêts <span class="filtre-n" data-n="pret"></span></button>
       <button class="filtre" data-statut="rendu">Retirés — à facturer <span class="filtre-n" data-n="rendu"></span></button>
       <button class="filtre" data-statut="facture">Facturés <span class="filtre-n" data-n="facture"></span></button>
+      <button class="filtre" data-statut="refuse" hidden>Refusés — à rendre <span class="filtre-n" data-n="refuse"></span></button>
       <button class="filtre" data-statut="tous">Tous</button>
-      <input type="search" id="tickets-recherche" placeholder="N°, client, marque…">
+      <input type="search" id="tickets-recherche" placeholder="🔍 Téléphone, N°, client, marque…" inputmode="search">
     </div>
+    <div id="recherche-info" class="recherche-info" hidden></div>
     <div id="liste-tickets" class="liste-tickets"></div>
   </main>
 
@@ -231,7 +209,7 @@
       <div class="grille-piece grille-cmd-libre">
         <input type="text" id="cmd-designation" placeholder="Fourniture (ex. huile 9010, rouleau A6…)">
         <input type="text" id="cmd-ref" placeholder="Réf.">
-        <input type="text" id="cmd-fournisseur" placeholder="Fournisseur" list="liste-fournisseurs">
+        <select id="cmd-fournisseur" class="bilan-select select-fournisseur"></select>
         <button id="btn-cmd-libre" class="btn btn-secondaire">Ajouter</button>
       </div>
     </section>
@@ -302,16 +280,7 @@
         <div class="grille-piece grille-piece-cmd">
           <input type="text" id="piece-designation" placeholder="Désignation (ex. glace Ø29,5 mm, bracelet cuir 18mm)">
           <input type="text" id="piece-ref" placeholder="Réf. à commander">
-          <input type="text" id="piece-fournisseur" placeholder="Fournisseur" list="liste-fournisseurs">
-          <datalist id="liste-fournisseurs">
-            <option value="Cousins UK"></option>
-            <option value="Général Ressort"></option>
-            <option value="Boley"></option>
-            <option value="AliExpress"></option>
-            <option value="Meranom"></option>
-            <option value="Vostok-Watches24"></option>
-            <option value="eBay"></option>
-          </datalist>
+          <select id="piece-fournisseur" class="bilan-select select-fournisseur"></select>
           <input type="number" id="piece-prix" placeholder="Prix €" step="0.01" min="0">
           <input type="number" id="piece-cout" placeholder="Coût €" step="0.01" min="0" title="Ton prix d'achat (visible par toi seul)">
           <label class="case-option"><input type="checkbox" id="piece-commander"> à commander</label>
@@ -359,6 +328,45 @@
       <div class="apercu-horaires">Affiché dans les emails et sur les tickets : <b id="apercu-horaires-txt">—</b></div>
       <button id="btn-horaires-sauver" class="btn btn-principal" style="margin-top:14px">Enregistrer les horaires</button>
     </section>
+
+    <section class="bloc">
+      <h2>Fournisseurs</h2>
+      <p class="cfg-note" style="margin:0 0 12px">Proposés dans « Pièces remplacées » et « Pièces à commander ». Le site (facultatif) devient un lien dans la liste de commandes.</p>
+      <div id="cfg-fournisseurs" class="cfg-liste"></div>
+      <div class="cfg-ajout cfg-ajout-fourn">
+        <input type="text" id="cfg-fournisseurs-nom" placeholder="Nom du fournisseur">
+        <input type="text" id="cfg-fournisseurs-site" placeholder="Site web (facultatif)">
+        <button type="button" class="btn btn-secondaire" data-ajout="fournisseurs">Ajouter</button>
+      </div>
+    </section>
+
+    <section class="bloc">
+      <h2>Objets déposés</h2>
+      <p class="cfg-note" style="margin:0 0 12px">Types proposés sur le formulaire de dépôt. « Pendule » alimente l'onglet Pendules : il ne peut pas être supprimé.</p>
+      <div id="cfg-typesObjet" class="cfg-liste"></div>
+      <div class="cfg-ajout">
+        <input type="text" id="cfg-typesObjet-nom" placeholder="Ex. Montre quartz boîte rapide, Chronographe…">
+        <button type="button" class="btn btn-secondaire" data-ajout="typesObjet">Ajouter</button>
+      </div>
+    </section>
+
+    <section class="bloc">
+      <h2>États constatés au dépôt</h2>
+      <div id="cfg-etats" class="cfg-liste"></div>
+      <div class="cfg-ajout">
+        <input type="text" id="cfg-etats-nom" placeholder="Ex. Fond gravé, Lunette abîmée…">
+        <button type="button" class="btn btn-secondaire" data-ajout="etats">Ajouter</button>
+      </div>
+    </section>
+
+    <section class="bloc">
+      <h2>Demandes du client</h2>
+      <div id="cfg-demandes" class="cfg-liste"></div>
+      <div class="cfg-ajout">
+        <input type="text" id="cfg-demandes-nom" placeholder="Ex. Étanchéité, Polissage…">
+        <button type="button" class="btn btn-secondaire" data-ajout="demandes">Ajouter</button>
+      </div>
+    </section>
   </div>
 </main>
 
@@ -366,6 +374,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=6.9"></script>
+<script type="module" src="app.js?v=7.1"></script>
 </body>
 </html>

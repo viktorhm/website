@@ -4,195 +4,121 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
+<meta name="theme-color" content="#0C1014">
 <title>Espace professionnel — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="../atelier/style.css?v=3.2">
-<style>
-  /* ============ Portail pro ============ */
-  .entete-pro {
-    position: sticky; top: 0; z-index: 10;
-    background: rgba(15,20,24,.88);
-    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--ligne);
-    display: flex; align-items: center; gap: 18px;
-    padding: 12px 20px;
-  }
-  .marque-bloc { line-height: 1.25; }
-  .marque-nom {
-    font-weight: 800; letter-spacing: .2em; font-size: .95rem;
-    color: var(--laiton); text-transform: uppercase;
-  }
-  .marque-sous {
-    font-size: .72rem; letter-spacing: .18em; text-transform: uppercase;
-    color: var(--texte-2);
-  }
-  .pro-identite { flex: 1; text-align: right; line-height: 1.3; min-width: 0; }
-  .pro-societe {
-    font-weight: 700; font-size: 1.02rem; color: var(--texte);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .pro-email { font-size: .78rem; color: var(--texte-2); font-family: "JetBrains Mono", monospace; }
-
-  /* LED d'état de connexion */
-  .etat-ligne {
-    display: flex; align-items: center; gap: 8px;
-    font-size: .78rem; color: var(--texte-2); white-space: nowrap;
-  }
-  .led {
-    width: 11px; height: 11px; border-radius: 50%;
-    background: var(--emauxvert);
-    box-shadow: 0 0 8px var(--emauxvert);
-    animation: pulse 2.4s ease-in-out infinite;
-  }
-  .led-rouge {
-    background: var(--emauxrouge);
-    box-shadow: 0 0 8px var(--emauxrouge);
-    animation: pulse .9s ease-in-out infinite;
-  }
-  @keyframes pulse { 50% { opacity: .45; } }
-
-  .btn-deco {
-    background: var(--carte-2); color: var(--texte-2);
-    border: 1px solid var(--ligne); border-radius: 999px;
-    padding: 9px 18px; font: inherit; font-size: .88rem; font-weight: 600;
-    cursor: pointer; transition: all .15s; white-space: nowrap;
-  }
-  .btn-deco:hover { color: var(--emauxrouge); border-color: var(--emauxrouge); }
-
-  /* Disposition : menu latéral + contenu */
-  .pro-layout {
-    display: flex; gap: 20px; max-width: 1020px;
-    margin: 0 auto; padding: 24px 16px 40px;
-    min-height: calc(100vh - 70px);
-    align-items: flex-start;
-  }
-  .pro-side {
-    position: sticky; top: 86px;
-    display: flex; flex-direction: column; gap: 6px;
-    width: 190px; flex-shrink: 0;
-  }
-  .pro-side .filtre {
-    text-align: left; border-radius: var(--rayon-s);
-    padding: 12px 16px; width: 100%;
-  }
-  .pro-side .filtre .compte {
-    float: right; font-family: "JetBrains Mono", monospace;
-    font-size: .8rem; color: var(--texte-2);
-  }
-  .pro-side .filtre.actif .compte { color: var(--laiton); }
-
-  .pro-contenu { flex: 1; min-width: 0; display: flex; flex-direction: column; min-height: 60vh; }
-  .pro-contenu .liste-tickets { flex: 1; }
-
-  .pro-entete-client { color: var(--texte-2); font-size: .95rem; }
-  .pro-carte-detail { border-top: 1px solid var(--ligne); margin-top: 14px; padding-top: 14px; }
-  .pro-devis-actions { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-  .btn-accepter { background: linear-gradient(180deg, #4CAF77, #3E7A4E); color: #fff; }
-  .btn-refuser { background: var(--carte-2); color: var(--texte-2); border: 1px solid var(--ligne); }
-  .pro-vide { text-align: center; color: var(--texte-2); padding: 60px 20px; }
-  .ticket-carte.ouvert { border-color: var(--laiton-fonce); }
-  .tc-photo { width: 58px; height: 58px; flex-shrink: 0; border-radius: 8px; }
-  .ref-suivi {
-    font-family: "JetBrains Mono", monospace; font-size: .82rem; font-weight: 700;
-    color: var(--laiton); border: 1px solid var(--laiton-fonce);
-    border-radius: 5px; padding: 1px 7px; margin-left: 8px; vertical-align: middle;
-    white-space: nowrap;
-  }
-  @media (max-width: 480px) { .tc-photo { display: none; } }
-
-  /* Bandeau solde */
-  .pro-solde { margin-bottom: 18px; }
-  .solde-carte {
-    background: var(--carte); border: 1px solid var(--ligne);
-    border-radius: var(--rayon); padding: 16px 18px;
-  }
-  .solde-du-carte { border-top: 3px solid var(--laiton); }
-  .solde-libelle { font-size: .74rem; text-transform: uppercase; letter-spacing: .12em; color: var(--texte-2); }
-  .solde-valeur {
-    font-family: "JetBrains Mono", monospace; font-size: 1.6rem; font-weight: 700;
-    margin-top: 4px; color: var(--laiton);
-  }
-  .solde-carte:not(.solde-du-carte) .solde-valeur { color: var(--texte); }
-  .solde-detail { font-size: .8rem; color: var(--texte-2); margin-top: 3px; }
-  @media (max-width: 560px) { .pro-solde { grid-template-columns: 1fr; } }
-
-  /* La question / aide : toujours en fin de page */
-  .pro-aide {
-    text-align: center; color: var(--texte-2); font-size: .85rem;
-    line-height: 1.7; margin-top: auto; padding-top: 40px;
-  }
-  .pro-aide b { color: var(--texte); }
-
-  @media (max-width: 700px) {
-    .pro-layout { flex-direction: column; }
-    .pro-side {
-      position: static; width: 100%;
-      flex-direction: row; flex-wrap: wrap;
-    }
-    .pro-side .filtre { width: auto; flex: 1; text-align: center; }
-    .pro-side .filtre .compte { float: none; margin-left: 6px; }
-    .pro-identite { display: none; }
-  }
-</style>
+<link rel="icon" href="/assets/favicon.png">
+<link rel="stylesheet" href="pro.css?v=6.2">
 </head>
 <body>
 
 <!-- ============ LOGIN ============ -->
 <div id="ecran-login" class="ecran-login">
   <div class="login-carte">
-    <div class="login-logo">HORLOGERIE<br>HARATYK</div>
-    <p class="login-sous-titre">Espace professionnel</p>
-    <input type="email" id="login-email" placeholder="Email" autocomplete="username">
+    <img src="/logo.svg" alt="" class="login-logo">
+    <h1 class="login-titre">Horlogerie Haratyk</h1>
+    <p class="login-sous">Espace professionnel</p>
+    <input type="email" id="login-email" placeholder="Adresse email" autocomplete="username">
     <input type="password" id="login-mdp" placeholder="Mot de passe" autocomplete="current-password">
-    <button id="btn-login" class="btn btn-principal">Se connecter</button>
+    <button id="btn-login" class="btn btn-or">Se connecter</button>
     <p id="login-erreur" class="login-erreur"></p>
+    <p class="login-aide">Accès réservé aux bijoutiers et partenaires.<br>
+      Identifiants perdus ? <a href="tel:+33785851080">07 85 85 10 80</a></p>
   </div>
 </div>
 
 <!-- ============ PORTAIL ============ -->
-<div id="app" class="app" hidden>
-  <header class="entete-pro">
-    <div class="marque-bloc">
-      <div class="marque-nom">Horlogerie Haratyk</div>
-      <div class="marque-sous">Espace professionnel</div>
+<div id="app" hidden>
+  <header class="entete">
+    <div class="entete-in">
+      <img src="/logo.svg" alt="Horlogerie Haratyk" class="entete-logo">
+      <div class="marque">
+        <div class="marque-nom">Horlogerie Haratyk</div>
+        <div class="marque-sous">Espace professionnel</div>
+      </div>
+      <div class="entete-droite">
+        <div class="etat-ligne" title="État de la synchronisation"><span class="led" id="led"></span><span id="led-texte">En ligne</span></div>
+        <button id="btn-logout" class="btn-deco">Déconnexion</button>
+      </div>
     </div>
-    <div class="pro-identite">
-      <div class="pro-societe" id="pro-societe"></div>
-      <div class="pro-email" id="pro-nom"></div>
-    </div>
-    <div class="etat-ligne"><span class="led" id="led"></span><span id="led-texte">En ligne</span></div>
-    <button id="btn-logout" class="btn-deco">Déconnexion</button>
   </header>
 
-  <div class="pro-layout">
-    <aside class="pro-side">
-      <button class="filtre actif" data-statut="actifs">En cours <span class="compte" id="cpt-actifs"></span></button>
-      <button class="filtre" data-statut="devis">Devis à valider <span class="compte" id="cpt-devis"></span></button>
-      <button class="filtre" data-statut="pret">Prêts <span class="compte" id="cpt-pret"></span></button>
-      <button class="filtre" data-statut="tous">Tous <span class="compte" id="cpt-tous"></span></button>
-    </aside>
+  <main class="page">
+    <div class="accueil">
+      <div>
+        <div class="accueil-sur">Suivi de vos dépôts</div>
+        <h1 id="accueil-titre">Bonjour</h1>
+        <div class="accueil-date" id="accueil-date"></div>
+      </div>
+    </div>
 
-    <main class="pro-contenu">
-      <div id="pro-solde" class="pro-solde" hidden>
-        <div class="solde-carte solde-du-carte">
-          <div class="solde-libelle">Montant dû — montres rendues</div>
-          <div class="solde-valeur" id="solde-du">—</div>
-          <div class="solde-detail" id="solde-du-detail"></div>
-        </div>
+    <div id="alerte-devis" class="alerte" hidden>
+      <div class="alerte-icone">✎</div>
+      <div class="alerte-texte" id="alerte-texte"></div>
+      <button class="btn btn-or btn-petit" id="btn-alerte">Voir les devis</button>
+    </div>
+
+    <div class="kpis">
+      <button class="kpi kpi-devis" data-aller="devis">
+        <div class="kpi-libelle">Devis à valider</div>
+        <div class="kpi-valeur" id="kpi-devis">—</div>
+        <div class="kpi-sous" id="kpi-devis-sous">&nbsp;</div>
+      </button>
+      <button class="kpi kpi-atelier" data-aller="actifs">
+        <div class="kpi-libelle">À l'atelier</div>
+        <div class="kpi-valeur" id="kpi-atelier">—</div>
+        <div class="kpi-sous" id="kpi-atelier-sous">&nbsp;</div>
+      </button>
+      <button class="kpi kpi-pret" data-aller="pret">
+        <div class="kpi-libelle">Prêts à retirer</div>
+        <div class="kpi-valeur" id="kpi-pret">—</div>
+        <div class="kpi-sous" id="kpi-pret-sous">&nbsp;</div>
+      </button>
+      <div class="kpi kpi-du">
+        <div class="kpi-libelle">Montant dû</div>
+        <div class="kpi-valeur" id="kpi-du">—</div>
+        <div class="kpi-sous" id="kpi-du-sous">&nbsp;</div>
+        <button class="kpi-lien" id="btn-releve" hidden>🖨 Imprimer le relevé</button>
       </div>
-      <div id="liste-tickets" class="liste-tickets">
-        <p class="pro-vide">Chargement…</p>
+    </div>
+
+    <div class="outils">
+      <nav class="onglets" id="onglets">
+        <button class="onglet actif" data-filtre="actifs">En cours <span class="compte" id="cpt-actifs"></span></button>
+        <button class="onglet" data-filtre="devis">Devis à valider <span class="compte" id="cpt-devis"></span></button>
+        <button class="onglet" data-filtre="pret">Prêts <span class="compte" id="cpt-pret"></span></button>
+        <button class="onglet" data-filtre="rendu">Historique <span class="compte" id="cpt-rendu"></span></button>
+      </nav>
+      <label class="recherche"><input type="search" id="recherche" placeholder="N° de ticket, marque, référence, n° de série…" aria-label="Rechercher un dépôt"></label>
+      <button class="btn btn-ligne btn-export" id="btn-export" title="Télécharger la liste au format tableur">⬇ Export CSV</button>
+    </div>
+
+    <div id="liste" class="liste">
+      <div class="vide"><div class="vide-titre">Chargement…</div></div>
+    </div>
+
+    <footer class="contact">
+      <div>
+        <h4>Votre horloger</h4>
+        <p class="nom">Viktor Haratyk</p>
+        <p>Artisan horloger · CAP Horlogerie<br>Révisions garanties 1 an</p>
       </div>
-      <p class="pro-aide">
-        Une question sur un dépôt ?<br>
-        <b>Viktor Haratyk — 07 85 85 10 80</b><br>
-        Mercredi &amp; jeudi 10h–18h, samedi 10h–14h · 43 rue du Vieux Four, Marcq-en-Barœul
-      </p>
-    </main>
-  </div>
+      <div>
+        <h4>Contact</h4>
+        <p><a href="tel:+33785851080">07 85 85 10 80</a><br>
+           <a href="mailto:haratykviktor@gmail.com">haratykviktor@gmail.com</a></p>
+      </div>
+      <div>
+        <h4>Atelier</h4>
+        <p><a href="https://www.google.com/maps/search/?api=1&query=43+rue+du+Vieux+Four+59700+Marcq-en-Bar%C5%93ul" target="_blank" rel="noopener">43 rue du Vieux Four<br>59700 Marcq-en-Barœul</a><br>
+           <span id="horaires">Mercredi &amp; jeudi 10h–18h · Samedi 10h–14h</span></p>
+      </div>
+    </footer>
+  </main>
 </div>
 
+<div id="print-zone" class="print-zone"></div>
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="pro.js?v=5.3"></script>
+<script type="module" src="pro.js?v=6.2"></script>
 </body>
 </html>
