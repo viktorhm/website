@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=7.1">
+<link rel="stylesheet" href="style.css?v=7.3">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -184,10 +184,6 @@
 
     <section class="bloc">
       <h2>Journal des ventes</h2>
-      <select id="journal-portee" class="bilan-select" style="margin-bottom:12px">
-        <option value="mois">Mois affiché</option>
-        <option value="tout">Tout l'historique</option>
-      </select>
       <div class="grille-piece grille-vente">
         <select id="vente-type" class="bilan-select">
           <option value="pile">Pile</option>
@@ -200,7 +196,16 @@
         <input type="number" id="vente-cout" placeholder="Coût €" step="0.01" min="0">
         <button id="btn-vente-ajouter" class="btn btn-secondaire">Ajouter</button>
       </div>
-      <div id="bilan-journal" style="margin-top:14px"></div>
+      <div class="journal-barre">
+        <button type="button" id="btn-journal-afficher" class="btn btn-secondaire">📒 Afficher le journal</button>
+        <span id="journal-resume" class="journal-resume"></span>
+        <select id="journal-portee" class="bilan-select">
+          <option value="mois">Mois affiché</option>
+          <option value="tout">Tout l'historique</option>
+        </select>
+        <button type="button" id="btn-journal-csv" class="btn btn-secondaire" title="Télécharger le journal (Excel / tableur)">⬇ Télécharger</button>
+      </div>
+      <div id="bilan-journal" style="margin-top:14px" hidden></div>
     </section>
 
     <section class="bloc">
@@ -219,10 +224,6 @@
       <div id="bilan-pro"></div>
     </section>
 
-    <section class="bloc">
-      <h2>Tickets validés (devis acceptés)</h2>
-      <div id="bilan-valides" class="liste-tickets"></div>
-    </section>
   </main>
 
   <!-- ============ VUE : FICHE TICKET ============ -->
@@ -374,6 +375,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=7.1"></script>
+<script type="module" src="app.js?v=7.3"></script>
 </body>
 </html>

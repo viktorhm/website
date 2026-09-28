@@ -140,7 +140,7 @@ button { font: inherit; }
 .kpi:hover { border-color: var(--laiton-fonce); transform: translateY(-1px); }
 .kpi::before { content: ""; position: absolute; left: 18px; right: 18px; top: 0; height: 2px; border-radius: 0 0 2px 2px; background: var(--c, var(--ligne)); }
 .kpi-libelle { font-size: .68rem; letter-spacing: .18em; text-transform: uppercase; color: var(--texte-2); }
-.kpi-valeur { font-family: var(--serif); font-size: 2.4rem; font-weight: 600; line-height: 1.1; margin-top: 8px; }
+.kpi-valeur { font-family: var(--mono); font-size: 1.9rem; font-weight: 700; line-height: 1.15; margin-top: 8px; }
 .kpi-sous { font-size: .8rem; color: var(--texte-2); margin-top: 2px; }
 .kpi-devis { --c: var(--laiton); }
 .kpi-atelier { --c: var(--acier); }
@@ -307,7 +307,7 @@ button { font: inherit; }
   .depot-photo { width: 52px; height: 52px; }
   .depot-montant { display: none; }
   .controle { grid-template-columns: 1fr 1fr; }
-  .kpi-valeur { font-size: 2rem; }
+  .kpi-valeur { font-size: 1.6rem; }
   .btn-export { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }

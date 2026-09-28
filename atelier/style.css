@@ -669,10 +669,14 @@ textarea { resize: vertical; margin-top: 10px; }
 /* Réglages : actions en liens texte (style « changer ») */
 .cfg-btn {
   width: auto; height: auto; background: none; border: none; border-radius: 0;
-  color: var(--acier-bleu); font-size: .88rem; padding: 4px 6px;
+  color: var(--acier-bleu); font-size: 1.05rem; padding: 4px 8px;
 }
 .cfg-btn:hover:not(:disabled) { color: var(--laiton); border: none; }
 .cfg-suppr { color: var(--emauxrouge); }
 .cfg-suppr:hover:not(:disabled) { color: var(--emauxrouge); text-decoration: underline; border: none; }
 .cfg-btn:disabled { opacity: .25; }
 .cfg-actions { gap: 8px; }
+
+/* Journal des ventes replié */
+.journal-barre { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.journal-resume { flex: 1; color: var(--texte-2); font-family: "JetBrains Mono", monospace; font-size: .88rem; }

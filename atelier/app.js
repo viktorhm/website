@@ -721,9 +721,9 @@ function rendreEditeursListes() {
         <span class="cfg-nom">${echap(nom)}${verrou ? ' <span class="cfg-verrou" title="Utilisé par l\'onglet Pendules">🔒</span>' : ""}</span>
         ${site}
         <span class="cfg-actions">
-          <button type="button" class="cfg-btn" data-cle="${cle}" data-i="${i}" data-act="haut" ${i === 0 ? "disabled" : ""}>monter</button>
-          <button type="button" class="cfg-btn" data-cle="${cle}" data-i="${i}" data-act="modif" ${verrou ? "disabled" : ""}>modifier</button>
-          <button type="button" class="cfg-btn cfg-suppr" data-cle="${cle}" data-i="${i}" data-act="suppr" ${verrou ? "disabled" : ""}>supprimer</button>
+          <button type="button" class="cfg-btn" data-cle="${cle}" data-i="${i}" data-act="haut" title="Monter" ${i === 0 ? "disabled" : ""}>↑</button>
+          <button type="button" class="cfg-btn" data-cle="${cle}" data-i="${i}" data-act="modif" title="Modifier" ${verrou ? "disabled" : ""}>✎</button>
+          <button type="button" class="cfg-btn cfg-suppr" data-cle="${cle}" data-i="${i}" data-act="suppr" title="Supprimer" ${verrou ? "disabled" : ""}>✕</button>
         </span>
       </div>`;
     }).join("") || `<p class="liste-vide">Liste vide.</p>`;
@@ -1581,6 +1581,53 @@ $("#btn-vente-ajouter")?.addEventListener("click", async () => {
 });
 
 let porteeInit = false;
+let journalSource = { liste: [], tout: false };
+
+// Journal replié par défaut (état mémorisé sur cet appareil)
+const CLE_JOURNAL = "atelier.journalOuvert";
+function journalOuvert() { try { return localStorage.getItem(CLE_JOURNAL) === "1"; } catch { return false; } }
+function appliquerJournal(ouvert) {
+  $("#bilan-journal").hidden = !ouvert;
+  $("#btn-journal-afficher").textContent = ouvert ? "📕 Masquer le journal" : "📒 Afficher le journal";
+}
+appliquerJournal(journalOuvert());
+$("#btn-journal-afficher").addEventListener("click", () => {
+  const ouvert = $("#bilan-journal").hidden;
+  try { localStorage.setItem(CLE_JOURNAL, ouvert ? "1" : "0"); } catch {}
+  appliquerJournal(ouvert);
+});
+
+// Téléchargement du journal (CSV lisible par Excel : séparateur ; + BOM UTF-8)
+$("#btn-journal-csv").addEventListener("click", () => {
+  const { liste, tout } = journalSource;
+  if (!liste.length) return toast("Aucune vente à exporter", true);
+  const tri = [...liste].sort((a, b) => new Date(a.date) - new Date(b.date));
+  const cell = v => { const x = String(v ?? ""); return /[";\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; };
+  const nb = n => (parseFloat(n) || 0).toFixed(2).replace(".", ",");
+  const lignes = [["Date", "Heure", "Type", "Désignation", "Vendu (€)", "Coût (€)", "Marge (€)"]];
+  tri.forEach(v => {
+    const d = new Date(v.date);
+    lignes.push([d.toLocaleDateString("fr-FR"), d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
+      v.type || "", v.designation || "", nb(v.montant), nb(v.cout), nb((parseFloat(v.montant) || 0) - (parseFloat(v.cout) || 0))]);
+  });
+  const tot = k => tri.reduce((s, v) => s + (parseFloat(v[k]) || 0), 0);
+  lignes.push(["Total", "", "", tri.length + " ventes", nb(tot("montant")), nb(tot("cout")), nb(tot("montant") - tot("cout"))]);
+  const csv = "\uFEFF" + lignes.map(l => l.map(cell).join(";")).join("\r\n");
+  let nom = "tout";
+  if (!tout) {
+    const [a, m] = $("#bilan-mois").value.split("-");
+    nom = a + "-" + m;
+  }
+  const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  const lien = document.createElement("a");
+  lien.href = url;
+  lien.download = `journal-ventes-${nom}.csv`;
+  document.body.appendChild(lien);
+  lien.click();
+  lien.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast("Journal téléchargé ✓");
+});
 function rendreJournalVentes(ventesMois) {
   const zone = $("#bilan-journal");
   if (!zone) return;
@@ -1589,6 +1636,12 @@ function rendreJournalVentes(ventesMois) {
     $("#journal-portee").addEventListener("change", rendreBilan);
   }
   const tout = $("#journal-portee").value === "tout";
+  const src = tout ? ventesLibres : ventesMois;
+  const totalResume = src.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
+  $("#journal-resume").textContent = src.length
+    ? `${src.length} vente${src.length > 1 ? "s" : ""} · ${eur(totalResume)}`
+    : (tout ? "aucune vente" : "aucune vente ce mois-ci");
+  journalSource = { liste: src, tout };
   const source = tout ? ventesLibres : ventesMois;
   const tri = [...source].sort((a, b) => new Date(b.date) - new Date(a.date));
   zone.innerHTML = tri.length ? tri.map(v => `
@@ -1789,27 +1842,6 @@ function rendreBilan() {
       toast("Erreur lors du marquage", true);
     }
   }));
-
-  // --- Tickets validés ---
-  const valides = tousTickets
-    .filter(t => t.devis && t.devis.statut === "accepte")
-    .sort((a, b) => new Date(b.devis.dateReponse || 0) - new Date(a.devis.dateReponse || 0));
-  $("#bilan-valides").innerHTML = valides.map(t => `
-    <div class="ticket-carte" data-id="${t.id}">
-      <div class="tc-num">N° ${t.numero}</div>
-      <div class="tc-corps">
-        <div class="tc-client">${echap(t.clientNom)}${t.clientPro ? ' <span class="tag-pro">PRO</span>' : ""}</div>
-        <div class="tc-objet">Accepté le ${t.devis.dateReponse ? fmtDate(t.devis.dateReponse) : "—"} · ${eur(montantTicket(t))}</div>
-      </div>
-      ${["rendu", "facture"].includes(filtreActif) ? (() => {
-        const d = dateStatut(t, "rendu");
-        const m = montantTicket(t);
-        return `<div class="tc-rendu">${d ? "Rendu le " + d.toLocaleDateString("fr-FR") : ""}${m ? "<br><b>" + eur(m) + "</b>" : ""}</div>`;
-      })() : ""}
-      <div class="tc-statut statut-${t.statut}">${statutLabel(t.statut)}</div>
-    </div>
-  `).join("") || "<p class='liste-vide'>Aucun ticket validé.</p>";
-  $$("#bilan-valides .ticket-carte").forEach(c => c.addEventListener("click", () => ouvrirFiche(c.dataset.id)));
 
   rendreCourbe();
 }
