@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=7.3">
+<link rel="stylesheet" href="style.css?v=7.5">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -129,57 +129,96 @@
   </main>
 
   <!-- ============ VUE : BILAN ============ -->
-  <main id="vue-bilan" class="vue" hidden>
+  <main id="vue-bilan" class="vue vue-large" hidden>
     <div class="bilan-entete">
       <h1 class="tickets-titre" style="margin:0">Bilan</h1>
+      <div class="mois-nav">
+        <button type="button" id="mois-prec" class="btn btn-secondaire mois-fleche" title="Mois précédent">‹</button>
+        <select id="bilan-mois" class="bilan-select"></select>
+        <button type="button" id="mois-suiv" class="btn btn-secondaire mois-fleche" title="Mois suivant">›</button>
+      </div>
       <div class="bilan-actions">
         <button id="btn-pile" class="btn btn-secondaire">🔋 + Pile 10 €</button>
-        <button id="btn-pile-annuler" class="btn btn-danger" hidden>🗑 Supprimer</button>
-        <select id="bilan-mois" class="bilan-select"></select>
+        <button id="btn-pile-annuler" class="btn btn-danger" title="Supprimer la dernière pile enregistrée" hidden>🗑</button>
       </div>
     </div>
 
-    <div class="stats-grille">
-      <div class="stat-carte stat-attente">
-        <div class="stat-libelle">Devis en attente</div>
-        <div class="stat-valeur" id="stat-attente-n">—</div>
-        <div class="stat-sous" id="stat-attente-eur"></div>
+    <!-- 1. Le mois -->
+    <section class="bloc bilan-mois-bloc">
+      <h2 id="fin-titre">—</h2>
+      <div class="fin-grille">
+        <div class="fin-principal">
+          <div class="fin-libelle">Encaissé</div>
+          <div class="fin-total" id="fin-total">—</div>
+          <div class="fin-evol" id="fin-evol"></div>
+          <div class="fin-piles" id="fin-piles"></div>
+        </div>
+        <div class="fin-lignes" id="fin-lignes"></div>
       </div>
-      <div class="stat-carte stat-atelier">
-        <div class="stat-libelle">En atelier (acceptés)</div>
-        <div class="stat-valeur" id="stat-atelier-n">—</div>
-        <div class="stat-sous" id="stat-atelier-eur"></div>
-      </div>
-      <div class="stat-carte stat-pieces">
-        <div class="stat-libelle">Pièces en attente</div>
-        <div class="stat-valeur" id="stat-pieces-n">—</div>
-        <div class="stat-sous" id="stat-pieces-detail"></div>
-      </div>
-      <div class="stat-carte stat-pret">
-        <div class="stat-libelle">Prêts à retirer</div>
-        <div class="stat-valeur" id="stat-pret-n">—</div>
-        <div class="stat-sous" id="stat-pret-eur"></div>
-      </div>
-      <div class="stat-carte stat-ca">
-        <div class="stat-libelle" id="stat-ca-libelle">Encaissé (rendus)</div>
-        <div class="stat-valeur" id="stat-ca-eur">—</div>
-        <div class="stat-sous" id="stat-ca-n"></div>
-      </div>
-      <div class="stat-carte stat-piles">
-        <div class="stat-libelle">Piles — aujourd'hui</div>
-        <div class="stat-valeur" id="stat-piles-jour">—</div>
-        <div class="stat-sous" id="stat-piles-mois"></div>
-      </div>
-      <div class="stat-carte stat-marge">
-        <div class="stat-libelle" id="stat-marge-libelle">Marge (rendus)</div>
-        <div class="stat-valeur" id="stat-marge-eur">—</div>
-        <div class="stat-sous" id="stat-marge-detail"></div>
-      </div>
-    </div>
+      <div id="bilan-courbe" class="bilan-graph"></div>
+    </section>
 
+    <!-- 2. L'atelier maintenant -->
     <section class="bloc">
-      <h2>Encaissé par mois (tickets rendus)</h2>
-      <div id="bilan-courbe"></div>
+      <h2>L'atelier maintenant</h2>
+      <div id="bilan-flux" class="flux"></div>
+    </section>
+
+    <!-- 3. À relancer + pièces -->
+    <div class="bilan-2col">
+      <section class="bloc" id="bloc-relances">
+        <h2>À relancer</h2>
+        <div id="bilan-relances"></div>
+      </section>
+
+      <section class="bloc">
+        <h2 id="cmd-titre">Pièces à commander</h2>
+        <div id="bilan-commandes"></div>
+        <div class="grille-piece grille-cmd-libre">
+          <input type="text" id="cmd-designation" placeholder="Fourniture (ex. huile 9010)">
+          <input type="text" id="cmd-ref" placeholder="Réf.">
+          <select id="cmd-fournisseur" class="bilan-select select-fournisseur"></select>
+          <button id="btn-cmd-libre" class="btn btn-secondaire">Ajouter</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- 4. Pros -->
+    <section class="bloc">
+      <h2>Dû par les clients pro</h2>
+      <div id="bilan-pro"></div>
+    </section>
+
+    <!-- 5. Factures fournisseurs -->
+    <section class="bloc" id="bloc-factures">
+      <h2 id="fact-titre">Factures fournisseurs</h2>
+      <div class="journal-barre" style="margin-top:0">
+        <button type="button" id="btn-fact-nouvelle" class="btn btn-secondaire">＋ Ajouter une facture</button>
+        <span id="fact-resume" class="journal-resume"></span>
+        <select id="fact-portee" class="bilan-select">
+          <option value="mois">Mois affiché</option>
+          <option value="annee">Année</option>
+          <option value="tout">Tout</option>
+        </select>
+        <button type="button" id="btn-fact-csv" class="btn btn-secondaire" title="Télécharger pour la compta">⬇ Télécharger</button>
+      </div>
+      <div id="fact-form" class="fact-form" hidden>
+        <input type="date" id="fact-date" class="bilan-select">
+        <select id="fact-fournisseur" class="bilan-select select-fournisseur"></select>
+        <input type="number" id="fact-montant" placeholder="Montant €" step="0.01" min="0" inputmode="decimal">
+        <input type="text" id="fact-numero" placeholder="N° de facture">
+        <select id="fact-categorie" class="bilan-select"></select>
+        <input type="text" id="fact-note" placeholder="Note (ex. ressorts de barillet, commande #1234)">
+        <div class="fact-pj-zone">
+          <label for="fact-fichier" class="btn btn-secondaire">📎 Photo ou PDF</label>
+          <input type="file" id="fact-fichier" accept="image/*,application/pdf" hidden>
+          <span id="fact-fichier-info" class="fact-fichier-info"></span>
+        </div>
+        <button type="button" id="btn-fact-enregistrer" class="btn btn-principal">Enregistrer la facture</button>
+      </div>
+      <div id="fact-repartition" class="fact-repartition"></div>
+      <button type="button" id="btn-fact-afficher" class="btn btn-secondaire" style="margin-top:12px">📂 Afficher les factures</button>
+      <div id="fact-liste" style="margin-top:12px" hidden></div>
     </section>
 
     <section class="bloc">
@@ -206,22 +245,6 @@
         <button type="button" id="btn-journal-csv" class="btn btn-secondaire" title="Télécharger le journal (Excel / tableur)">⬇ Télécharger</button>
       </div>
       <div id="bilan-journal" style="margin-top:14px" hidden></div>
-    </section>
-
-    <section class="bloc">
-      <h2>Pièces à commander</h2>
-      <div id="bilan-commandes"></div>
-      <div class="grille-piece grille-cmd-libre">
-        <input type="text" id="cmd-designation" placeholder="Fourniture (ex. huile 9010, rouleau A6…)">
-        <input type="text" id="cmd-ref" placeholder="Réf.">
-        <select id="cmd-fournisseur" class="bilan-select select-fournisseur"></select>
-        <button id="btn-cmd-libre" class="btn btn-secondaire">Ajouter</button>
-      </div>
-    </section>
-
-    <section class="bloc">
-      <h2>Dû par les clients pro</h2>
-      <div id="bilan-pro"></div>
     </section>
 
   </main>
@@ -375,6 +398,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=7.3"></script>
+<script type="module" src="app.js?v=7.5"></script>
 </body>
 </html>

@@ -900,6 +900,7 @@ function moisRestitution(t) {
 
 let ventesLibres = [];
 let commandesLibres = [];
+let facturesFourn = [];
 
 function demarrerEcoutesAnnexes() {
   chargerConfig();
@@ -915,6 +916,14 @@ function demarrerEcoutesAnnexes() {
     commandesLibres = [];
     snap.forEach(d => commandesLibres.push({ id: d.id, ...d.data() }));
     if (!$("#vue-bilan").hidden) rendreBilan();
+  });
+  onSnapshot(collection(db, "factures"), snap => {
+    facturesFourn = [];
+    snap.forEach(d => facturesFourn.push({ id: d.id, ...d.data() }));
+    if (!$("#vue-bilan").hidden) rendreBilan();
+  }, err => {
+    console.error("Lecture factures refusée :", err);
+    toast("Lecture « factures » refusée — ajoute la règle Firestore puis recharge", true);
   });
 }
 
@@ -948,6 +957,15 @@ $$(".filtre").forEach(f => f.addEventListener("click", () => {
   rendreListe();
 }));
 $("#tickets-recherche").addEventListener("input", rendreListe);
+
+// Vignette photo sur les cartes (clic = photo en grand, sans ouvrir la fiche)
+function vignetteTicket(t) {
+  const u = t.photos && t.photos[0];
+  if (!u) return `<div class="tc-photo tc-photo-vide">${t.typeObjet === TYPE_PENDULE ? "🕰" : "⌚"}</div>`;
+  const plus = t.photos.length > 1 ? `<span class="tc-photo-n">${t.photos.length}</span>` : "";
+  return `<a class="tc-photo" href="${echapAttr(u)}" target="_blank" rel="noopener" title="Voir la photo">
+    <img src="${echapAttr(u.replace("/upload/", "/upload/w_160,h_160,c_fill/"))}" alt="" loading="lazy">${plus}</a>`;
+}
 
 // Groupes de statuts pour les filtres de la liste
 const FILTRES = {
@@ -1022,6 +1040,7 @@ function rendreListe() {
 
   $("#liste-tickets").innerHTML = liste.map(t => `
     <div class="ticket-carte" data-id="${t.id}">
+      ${vignetteTicket(t)}
       <div class="tc-num">N° ${t.numero}</div>
       <div class="tc-corps">
         <div class="tc-client">${echap(t.clientNom)}${t.clientPro ? ' <span class="tag-pro">PRO</span>' : ""}</div>
@@ -1036,7 +1055,10 @@ function rendreListe() {
     </div>
   `).join("") || `<p class="liste-vide">Aucun ticket ici pour l'instant.</p>`;
 
-  $$(".ticket-carte").forEach(c => c.addEventListener("click", () => ouvrirFiche(c.dataset.id)));
+  $$(".ticket-carte").forEach(c => c.addEventListener("click", e => {
+    if (e.target.closest(".tc-photo[href]")) return;
+    ouvrirFiche(c.dataset.id);
+  }));
 }
 
 // ------------------------------------------------------------
@@ -1508,6 +1530,13 @@ function initBilanMois() {
     sel.appendChild(opt);
   }
   sel.addEventListener("change", rendreBilan);
+  // ‹ mois précédent  ·  mois suivant ›  (les options vont du plus récent au plus ancien)
+  $("#mois-prec").addEventListener("click", () => {
+    if (sel.selectedIndex < sel.options.length - 1) { sel.selectedIndex++; rendreBilan(); }
+  });
+  $("#mois-suiv").addEventListener("click", () => {
+    if (sel.selectedIndex > 0) { sel.selectedIndex--; rendreBilan(); }
+  });
 }
 
 const eur = n => n.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " €";
@@ -1676,24 +1705,288 @@ function ventesDuMois(annee, mois) {
   });
 }
 
+// ------------------------------------------------------------
+// Factures fournisseurs (collection « factures ») → rentabilité réelle
+// ------------------------------------------------------------
+const CATEGORIES_FACTURE = ["Pièces & fournitures", "Consommables", "Outillage", "Frais généraux", "Autre"];
+const dateFacture = f => new Date((f.date || "") + "T12:00:00");
+function facturesDuMois(annee, mois) {
+  return facturesFourn.filter(f => {
+    const d = dateFacture(f);
+    return d.getFullYear() === annee && d.getMonth() + 1 === mois;
+  });
+}
+function aujourdhuiISO() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+
+let factureFichier = null;          // URL Cloudinary de la pièce jointe en cours
+let factSource = { liste: [], libelle: "" };
+
+async function uploadPieceJointe(fichier) {
+  // Photo : compressée comme les photos de dépôt. PDF : envoyé tel quel.
+  if (fichier.type.startsWith("image/")) return uploadCloudinary(fichier);
+  const fd = new FormData();
+  fd.append("file", fichier);
+  fd.append("upload_preset", CLOUDINARY_PRESET);
+  const r = await fetch(`https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD}/auto/upload`, { method: "POST", body: fd });
+  if (!r.ok) throw new Error("upload");
+  return (await r.json()).secure_url;
+}
+
+function initFactures() {
+  $("#fact-categorie").innerHTML = CATEGORIES_FACTURE.map(c => `<option>${echap(c)}</option>`).join("");
+  $("#fact-date").value = aujourdhuiISO();
+
+  const ouvrirForm = ouvert => {
+    $("#fact-form").hidden = !ouvert;
+    $("#btn-fact-nouvelle").textContent = ouvert ? "✕ Fermer" : "＋ Ajouter une facture";
+    if (ouvert) { rendreSelectsFournisseurs(); $("#fact-montant").focus(); }
+  };
+  $("#btn-fact-nouvelle").addEventListener("click", () => ouvrirForm($("#fact-form").hidden));
+
+  const CLE = "atelier.facturesOuvert";
+  const appliquer = o => {
+    $("#fact-liste").hidden = !o;
+    $("#btn-fact-afficher").textContent = o ? "📕 Masquer" : "📂 Afficher les factures";
+  };
+  try { appliquer(localStorage.getItem(CLE) === "1"); } catch { appliquer(false); }
+  $("#btn-fact-afficher").addEventListener("click", () => {
+    const o = $("#fact-liste").hidden;
+    try { localStorage.setItem(CLE, o ? "1" : "0"); } catch {}
+    appliquer(o);
+  });
+  $("#fact-portee").addEventListener("change", rendreBilan);
+
+  $("#fact-fichier").addEventListener("change", async e => {
+    const f = e.target.files[0];
+    if (!f) return;
+    const info = $("#fact-fichier-info");
+    info.textContent = "⏳ envoi…";
+    try {
+      factureFichier = await uploadPieceJointe(f);
+      info.innerHTML = `✓ <a href="${echapAttr(factureFichier)}" target="_blank" rel="noopener">${echap(f.name)}</a>`;
+    } catch {
+      factureFichier = null;
+      info.textContent = "";
+      toast("Échec de l'envoi du fichier", true);
+    }
+    e.target.value = "";
+  });
+
+  $("#btn-fact-enregistrer").addEventListener("click", async () => {
+    const montant = parseFloat($("#fact-montant").value);
+    const fournisseur = $("#fact-fournisseur").value;
+    if (!fournisseur) return toast("Choisis le fournisseur", true);
+    if (!montant || montant <= 0) return toast("Indique le montant de la facture", true);
+    try {
+      await addDoc(collection(db, "factures"), {
+        date: $("#fact-date").value || aujourdhuiISO(),
+        fournisseur,
+        numero: $("#fact-numero").value.trim(),
+        categorie: $("#fact-categorie").value,
+        montant,
+        note: $("#fact-note").value.trim(),
+        fichier: factureFichier || "",
+        createdAt: serverTimestamp()
+      });
+      memoriserFournisseur(fournisseur);
+      $("#fact-montant").value = ""; $("#fact-numero").value = ""; $("#fact-note").value = "";
+      $("#fact-fichier-info").textContent = ""; factureFichier = null;
+      toast("Facture enregistrée ✓ — " + eur(montant));
+    } catch (e) {
+      console.error(e);
+      toast(e.code === "permission-denied"
+        ? "Règle Firestore manquante pour « factures » — publie les règles"
+        : "Erreur d'enregistrement", true);
+    }
+  });
+
+  $("#btn-fact-csv").addEventListener("click", () => {
+    const { liste, libelle } = factSource;
+    if (!liste.length) return toast("Aucune facture à exporter", true);
+    const cell = v => { const x = String(v ?? ""); return /[";\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x; };
+    const nb = n => (parseFloat(n) || 0).toFixed(2).replace(".", ",");
+    const tri = [...liste].sort((a, b) => dateFacture(a) - dateFacture(b));
+    const lignes = [["Date", "Fournisseur", "N° facture", "Catégorie", "Montant (€)", "Note", "Fichier"]];
+    tri.forEach(f => lignes.push([dateFacture(f).toLocaleDateString("fr-FR"), f.fournisseur, f.numero, f.categorie, nb(f.montant), f.note, f.fichier]));
+    lignes.push(["Total", "", "", tri.length + " factures", nb(tri.reduce((s, f) => s + (parseFloat(f.montant) || 0), 0)), "", ""]);
+    const csv = "﻿" + lignes.map(l => l.map(cell).join(";")).join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+    const a = document.createElement("a");
+    a.href = url; a.download = `factures-fournisseurs-${libelle}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    toast("Factures téléchargées ✓");
+  });
+}
+initFactures();
+
+function rendreFactures(annee, mois) {
+  const portee = $("#fact-portee").value;
+  let liste, libelle;
+  if (portee === "annee") {
+    liste = facturesFourn.filter(f => dateFacture(f).getFullYear() === annee);
+    libelle = String(annee);
+  } else if (portee === "tout") {
+    liste = facturesFourn; libelle = "tout";
+  } else {
+    liste = facturesDuMois(annee, mois);
+    libelle = annee + "-" + String(mois).padStart(2, "0");
+  }
+  factSource = { liste, libelle };
+  const total = liste.reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
+  const nomPortee = { mois: MOIS_FR[mois - 1] + " " + annee, annee: "année " + annee, tout: "depuis le début" }[portee];
+  $("#fact-resume").textContent = liste.length
+    ? `${liste.length} facture${liste.length > 1 ? "s" : ""} · ${eur(total)} — ${nomPortee}`
+    : "aucune facture — " + nomPortee;
+  $("#fact-titre").textContent = "Factures fournisseurs" + (liste.length ? " — " + eur(total) : "");
+
+  // Répartition par fournisseur (barres proportionnelles)
+  const parF = {};
+  liste.forEach(f => (parF[f.fournisseur] = (parF[f.fournisseur] || 0) + (parseFloat(f.montant) || 0)));
+  const rangs = Object.entries(parF).sort((a, b) => b[1] - a[1]);
+  const maxF = rangs.length ? rangs[0][1] : 1;
+  $("#fact-repartition").innerHTML = rangs.map(([nom, v]) => `
+    <div class="fact-rep-ligne">
+      <span class="fact-rep-nom">${echap(nom)}</span>
+      <span class="fact-rep-barre"><i style="width:${Math.max(2, v / maxF * 100)}%"></i></span>
+      <b>${eur(v)}</b>
+    </div>`).join("");
+
+  const tri = [...liste].sort((a, b) => dateFacture(b) - dateFacture(a));
+  $("#fact-liste").innerHTML = tri.length ? tri.map(f => `
+    <div class="cmd-ligne">
+      <div class="cmd-info">
+        ${echap(f.fournisseur)}${f.numero ? `<span class="cmd-ref"> · n° ${echap(f.numero)}</span>` : ""}
+        <div class="cmd-ticket">${dateFacture(f).toLocaleDateString("fr-FR")} · ${echap(f.categorie || "")}${f.note ? " — " + echap(f.note) : ""}</div>
+      </div>
+      ${f.fichier ? `<a class="fact-pj" href="${echapAttr(f.fichier)}" target="_blank" rel="noopener" title="Voir la facture">📎</a>` : ""}
+      <b style="font-family:'JetBrains Mono',monospace;white-space:nowrap">${eur(parseFloat(f.montant) || 0)}</b>
+      <button class="btn-recue btn-fact-suppr" data-id="${f.id}" style="border-color:var(--emauxrouge);color:var(--emauxrouge)">🗑</button>
+    </div>`).join("") : "<p class='liste-vide'>Aucune facture sur cette période.</p>";
+  $$(".btn-fact-suppr").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Supprimer cette facture ?")) return;
+    await deleteDoc(doc(db, "factures", b.dataset.id));
+    toast("Facture supprimée");
+  }));
+}
+
 function rendreBilan() {
   initBilanMois();
   const [annee, mois] = $("#bilan-mois").value.split("-").map(Number);
   const dansLeMois = d => d && d.getFullYear() === annee && d.getMonth() + 1 === mois;
+  const somme = l => l.reduce((s, t) => s + montantTicket(t), 0);
+  const repartition = l => {
+    const nPro = l.filter(t => t.clientPro).length;
+    const nCli = l.length - nPro;
+    return [nCli ? nCli + " client" + (nCli > 1 ? "s" : "") : "", nPro ? nPro + " pro" : ""].filter(Boolean).join(" · ");
+  };
 
-  // --- Cartes ---
-  const attente = tousTickets.filter(t => t.statut === "devis_envoye");
-  $("#stat-attente-n").textContent = attente.length;
-  $("#stat-attente-eur").textContent = eur(attente.reduce((s, t) => s + montantTicket(t), 0)) + " en jeu";
+  // ---------- 1. Le mois : encaissé, coûts, marge ----------
+  const chiffresMois = (a, m) => {
+    const rendus = tousTickets.filter(t => {
+      const d = t.statut === "rendu" ? dateStatut(t, "rendu") : null;
+      return d && d.getFullYear() === a && d.getMonth() + 1 === m;
+    });
+    const ventes = ventesDuMois(a, m);
+    const prest = somme(rendus);
+    const vent = ventes.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
+    const couts = rendus.reduce((s, t) => s + coutPieces(t), 0) + ventes.reduce((s, v) => s + (parseFloat(v.cout) || 0), 0);
+    return { rendus, ventes, prest, vent, couts, total: prest + vent, marge: prest + vent - couts };
+  };
+  const c = chiffresMois(annee, mois);
+  const precedent = mois === 1 ? chiffresMois(annee - 1, 12) : chiffresMois(annee, mois - 1);
+  const ventesMois = c.ventes;
 
-  const atelier = tousTickets.filter(t => ["accepte", "piece_attente", "en_cours"].includes(t.statut));
-  $("#stat-atelier-n").textContent = atelier.length;
-  $("#stat-atelier-eur").textContent = eur(atelier.reduce((s, t) => s + montantTicket(t), 0)) + " à venir";
+  $("#fin-titre").textContent = MOIS_FR[mois - 1] + " " + annee;
+  $("#fin-total").textContent = eur(c.total);
+  const ev = $("#fin-evol");
+  if (precedent.total > 0) {
+    const pct = Math.round((c.total - precedent.total) / precedent.total * 100);
+    ev.textContent = (pct >= 0 ? "▲ +" : "▼ ") + pct + " % vs " + MOIS_FR[(mois + 10) % 12];
+    ev.className = "fin-evol " + (pct >= 0 ? "hausse" : "baisse");
+  } else {
+    ev.textContent = precedent.total === 0 && c.total > 0 ? "premier mois encaissé" : "";
+    ev.className = "fin-evol";
+  }
+  const nPiles = ventesMois.filter(v => v.type === "pile").length;
+  const aujourdHui = new Date();
+  const pilesJour = ventesLibres.filter(v => {
+    if (v.type !== "pile") return false;
+    const d = new Date(v.date);
+    return d.toDateString() === aujourdHui.toDateString();
+  }).length;
+  // Rentabilité réelle : encaissé − factures fournisseurs du mois
+  const factMois = facturesDuMois(annee, mois);
+  const totalFact = factMois.reduce((s, f) => s + (parseFloat(f.montant) || 0), 0);
+  const resultat = c.total - totalFact;
+  const tauxRes = c.total ? Math.round(resultat / c.total * 100) : 0;
+  $("#fin-lignes").innerHTML = `
+    <div class="fin-ligne"><span>Prestations <em>${c.rendus.length} montre${c.rendus.length > 1 ? "s" : ""} rendue${c.rendus.length > 1 ? "s" : ""}</em></span><b>${eur(c.prest)}</b></div>
+    <div class="fin-ligne"><span>Ventes <em>${ventesMois.length} vente${ventesMois.length > 1 ? "s" : ""} dont ${nPiles} pile${nPiles > 1 ? "s" : ""}</em></span><b>${eur(c.vent)}</b></div>
+    <div class="fin-ligne fin-cout"><span>Factures fournisseurs <em>${factMois.length ? factMois.length + " facture" + (factMois.length > 1 ? "s" : "") : "aucune saisie"}</em></span><b>− ${eur(totalFact)}</b></div>
+    <div class="fin-ligne fin-marge ${resultat < 0 ? "negatif" : ""}"><span>Résultat du mois${c.total ? ` <em>${tauxRes} %</em>` : ""}</span><b>${resultat >= 0 ? "" : "− "}${eur(Math.abs(resultat))}</b></div>
+    ${factMois.length ? "" : `<div class="fin-note">Sans facture saisie ce mois : marge estimée sur les coûts des tickets ${eur(c.marge)}</div>`}`;
+  $("#fin-piles").textContent = "🔋 " + pilesJour + " pile" + (pilesJour > 1 ? "s" : "") + " aujourd'hui";
+  $("#btn-pile-annuler").hidden = !ventesLibres.some(v => v.type === "pile");
 
-  const prets = tousTickets.filter(t => t.statut === "pret");
-  $("#stat-pret-n").textContent = prets.length;
-  $("#stat-pret-eur").textContent = eur(prets.reduce((s, t) => s + montantTicket(t), 0)) + " à encaisser";
+  rendreJournalVentes(ventesMois);
+  rendreFactures(annee, mois);
 
+  // ---------- 2. L'atelier maintenant ----------
+  const etapes = [
+    { id: "a_deviser", libelle: "Devis à effectuer", couleur: "var(--texte-2)", liste: tousTickets.filter(t => ["depose", "diagnostic"].includes(t.statut)) },
+    { id: "devis_envoye", libelle: "Devis en attente", couleur: "var(--laiton)", liste: tousTickets.filter(t => t.statut === "devis_envoye") },
+    { id: "accepte", libelle: "En réparation", couleur: "var(--acier-bleu)", liste: tousTickets.filter(t => ["accepte", "en_cours", "piece_attente"].includes(t.statut)) },
+    { id: "pret", libelle: "Prêts à retirer", couleur: "var(--emauxvert)", liste: tousTickets.filter(t => t.statut === "pret") }
+  ];
+  $("#bilan-flux").innerHTML = etapes.map((e, i) => `
+    <button type="button" class="flux-etape" data-filtre="${e.id}" style="--c:${e.couleur}">
+      <span class="flux-libelle">${e.libelle}</span>
+      <span class="flux-n">${e.liste.length}</span>
+      <span class="flux-eur">${somme(e.liste) ? eur(somme(e.liste)) : "—"}</span>
+      <span class="flux-rep">${repartition(e.liste) || "&nbsp;"}</span>
+    </button>${i < etapes.length - 1 ? '<span class="flux-fleche">›</span>' : ""}`).join("");
+  $$("#bilan-flux .flux-etape").forEach(b => b.addEventListener("click", () => {
+    // Ouvre l'onglet Client si l'étape contient des clients, sinon Pro, sinon Pendules
+    const liste = etapes.find(e => e.id === b.dataset.filtre).liste;
+    const nClient = liste.filter(t => !t.clientPro && t.typeObjet !== TYPE_PENDULE).length;
+    const nPro = liste.filter(t => t.clientPro && t.typeObjet !== TYPE_PENDULE).length;
+    modePendule = !nClient && !nPro && liste.length > 0;
+    modePro = !nClient && nPro > 0;
+    filtreActif = b.dataset.filtre;
+    $$(".filtre").forEach(x => x.classList.toggle("actif", x.dataset.statut === filtreActif));
+    montrerVue("tickets");
+  }));
+
+  // ---------- 3. À relancer ----------
+  const JOUR = 864e5;
+  const depuis = d => d ? Math.floor((Date.now() - d.getTime()) / JOUR) : 0;
+  const relances = [
+    ...tousTickets.filter(t => t.statut === "devis_envoye").map(t => {
+      const d = t.devis && t.devis.dateEnvoi ? new Date(t.devis.dateEnvoi) : dateStatut(t, "devis_envoye");
+      return { t, j: depuis(d), motif: "devis sans réponse", seuil: 7 };
+    }),
+    ...tousTickets.filter(t => t.statut === "pret").map(t => ({ t, j: depuis(dateStatut(t, "pret")), motif: "prête, pas retirée", seuil: 14 }))
+  ].filter(r => r.j >= r.seuil).sort((a, b) => b.j - a.j);
+  $("#bilan-relances").innerHTML = relances.length ? relances.map(r => `
+    <div class="relance" data-id="${r.t.id}">
+      <span class="relance-num">N° ${r.t.numero}</span>
+      <span class="relance-client">${echap(r.t.clientNom)}${r.t.clientPro ? ' <span class="tag-pro">PRO</span>' : ""}
+        <em>${echap([r.t.marque, r.t.modele].filter(Boolean).join(" ") || r.t.typeObjet || "")}</em></span>
+      <span class="relance-motif">${r.motif} · <b>${r.j} j</b></span>
+      <a class="relance-tel" href="tel:${echapAttr(chiffresTel(r.t.clientTel))}">📞 ${echap(fmtTel(r.t.clientTel))}</a>
+    </div>`).join("")
+    : "<p class='liste-vide'>Rien à relancer — aucun devis sans réponse depuis 7 jours, aucune montre prête depuis 14 jours.</p>";
+  $("#bloc-relances h2").textContent = "À relancer" + (relances.length ? " (" + relances.length + ")" : "");
+  $$("#bilan-relances .relance").forEach(el => el.addEventListener("click", e => {
+    if (e.target.closest("a")) return;
+    ouvrirFiche(el.dataset.id);
+  }));
+
+  // ---------- 4. Pièces à commander ----------
   // Pièces en attente de commande / réception
   const enAttente = [];
   tousTickets.filter(t => t.statut !== "rendu").forEach(t => {
@@ -1704,10 +1997,7 @@ function rendreBilan() {
   commandesLibres.filter(c => !c.recu).forEach(c => {
     enAttente.push({ libre: c, p: c });
   });
-  $("#stat-pieces-n").textContent = enAttente.length;
-  $("#stat-pieces-detail").textContent = enAttente.length
-    ? [...new Set(enAttente.map(x => x.p.fournisseur || "sans fournisseur"))].length + " fournisseur(s)"
-    : "rien à commander";
+  $("#cmd-titre").textContent = "Pièces à commander" + (enAttente.length ? " (" + enAttente.length + ")" : "");
 
   const parFournisseur = {};
   enAttente.forEach(x => {
@@ -1748,46 +2038,6 @@ function rendreBilan() {
     toast("Pièce marquée comme reçue ✓");
   }));
 
-  const rendusMois = tousTickets.filter(t => t.statut === "rendu" && dansLeMois(dateStatut(t, "rendu")));
-  const ventesMois = ventesDuMois(annee, mois);
-  const nPiles = ventesMois.filter(v => v.type === "pile").length;
-  const caTickets = rendusMois.reduce((s, t) => s + montantTicket(t), 0);
-  const caVentes = ventesMois.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
-
-  $("#stat-ca-libelle").textContent = "Encaissé — " + MOIS_FR[mois - 1];
-  $("#stat-ca-eur").textContent = eur(caTickets + caVentes);
-  $("#stat-ca-n").textContent = "Prestations " + eur(caTickets) + " · Ventes " + eur(caVentes);
-
-  rendreJournalVentes(ventesMois);
-
-  // Compteur de piles : aujourd'hui + total du mois sélectionné
-  const aujourdHui = new Date();
-  const pilesJour = ventesLibres.filter(v => {
-    if (v.type !== "pile") return false;
-    const d = new Date(v.date);
-    return d.getFullYear() === aujourdHui.getFullYear()
-      && d.getMonth() === aujourdHui.getMonth()
-      && d.getDate() === aujourdHui.getDate();
-  }).length;
-  const pilesMois = ventesMois.filter(v => v.type === "pile");
-  const montantPilesMois = pilesMois.reduce((s, v) => s + (parseFloat(v.montant) || 0), 0);
-  $("#stat-piles-jour").textContent = pilesJour;
-  $("#stat-piles-mois").textContent = pilesMois.length
-    ? pilesMois.length + " pile" + (pilesMois.length > 1 ? "s" : "") + " en " + MOIS_FR[mois - 1] + " · " + eur(montantPilesMois)
-    : "aucune pile en " + MOIS_FR[mois - 1];
-
-  // Annulation de pile : visible seulement s'il y en a ce mois-ci
-  $("#btn-pile-annuler").hidden = !ventesLibres.some(v => v.type === "pile");
-
-  // Marge automatique : encaissé − coûts (pièces des tickets rendus + coût des piles)
-  const coutMois = rendusMois.reduce((s, t) => s + coutPieces(t), 0)
-    + ventesMois.reduce((s, v) => s + (parseFloat(v.cout) || 0), 0);
-  const margeMois = caTickets + caVentes - coutMois;
-  $("#stat-marge-libelle").textContent = "Marge — " + MOIS_FR[mois - 1];
-  $("#stat-marge-eur").textContent = eur(margeMois);
-  $("#stat-marge-detail").textContent = coutMois
-    ? eur(coutMois) + " de coûts déduits"
-    : "aucun coût saisi";
 
   // --- Dû par les clients pro ---
   // À facturer : UNIQUEMENT les montres rendues (non facturées), devis validé ou accord oral.
@@ -1843,68 +2093,101 @@ function rendreBilan() {
     }
   }));
 
-  rendreCourbe();
+
+  rendreCourbe(annee, mois);
 }
 
-function rendreCourbe() {
-  // Courbe : encaissé mensuel sur 12 mois
+const MOIS_COURT = ["jan", "fév", "mars", "avr", "mai", "juin", "juil", "août", "sep", "oct", "nov", "déc"];
+function rendreCourbe(anneeSel, moisSel) {
+  // Barres empilées : prestations (tickets rendus) + ventes, 12 derniers mois
   const maintenant = new Date();
   const points = [];
   for (let i = 11; i >= 0; i--) {
     const d = new Date(maintenant.getFullYear(), maintenant.getMonth() - i, 1);
-    points.push({ a: d.getFullYear(), m: d.getMonth(), total: 0 });
+    points.push({ a: d.getFullYear(), m: d.getMonth(), prest: 0, vent: 0, fact: 0 });
   }
+  const cible = d => points.find(x => x.a === d.getFullYear() && x.m === d.getMonth());
   tousTickets.filter(t => t.statut === "rendu").forEach(t => {
     const d = dateStatut(t, "rendu");
-    if (!d) return;
-    const cible = points.find(x => x.a === d.getFullYear() && x.m === d.getMonth());
-    if (cible) cible.total += montantTicket(t);
+    const p = d && cible(d);
+    if (p) p.prest += montantTicket(t);
   });
   ventesLibres.forEach(v => {
-    const d = new Date(v.date);
-    const cible = points.find(x => x.a === d.getFullYear() && x.m === d.getMonth());
-    if (cible) cible.total += parseFloat(v.montant) || 0;
+    const p = cible(new Date(v.date));
+    if (p) p.vent += parseFloat(v.montant) || 0;
+  });
+  facturesFourn.forEach(f => {
+    const p = cible(dateFacture(f));
+    if (p) p.fact += parseFloat(f.montant) || 0;
   });
 
-  const L = 600, H = 190, basY = 150, hautY = 24;
-  const max = Math.max(...points.map(p => p.total), 1);
-  const px = i => Math.round(20 + i * (L - 40) / 11);
-  const py = v => Math.round(basY - (v / max) * (basY - hautY));
+  const C_PREST = "#B58C38", C_VENTE = "#4A8BD6";
+  const L = 640, H = 210, bas = 172, haut = 26, marge = 14;
+  const max = Math.max(...points.map(p => p.prest + p.vent), 1);
+  const pas = (L - marge * 2) / 12;
+  const larg = Math.min(30, pas * 0.56);
+  const hauteur = v => (v / max) * (bas - haut);
+  const barre = (x, y, w, h, coul, arrondi) => {
+    if (h <= 0) return "";
+    const r = Math.min(4, h, w / 2);
+    // coins arrondis seulement en haut (extrémité des données)
+    return arrondi
+      ? `<path d="M${x},${y + h} V${y + r} Q${x},${y} ${x + r},${y} H${x + w - r} Q${x + w},${y} ${x + w},${y + r} V${y + h} Z" fill="${coul}"/>`
+      : `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${coul}"/>`;
+  };
 
-  // Lissage Catmull-Rom converti en courbes de Bézier
-  const pts = points.map((p, i) => [px(i), py(p.total)]);
-  let chemin = `M${pts[0][0]},${pts[0][1]}`;
-  for (let i = 0; i < pts.length - 1; i++) {
-    const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
-    const c1x = p1[0] + (p2[0] - p0[0]) / 6, c1y = p1[1] + (p2[1] - p0[1]) / 6;
-    const c2x = p2[0] - (p3[0] - p1[0]) / 6, c2y = p2[1] - (p3[1] - p1[1]) / 6;
-    chemin += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0]},${p2[1]}`;
-  }
-  const aire = chemin + ` L${px(11)},${basY} L${px(0)},${basY} Z`;
-
-  const cercles = points.map((p, i) =>
-    `<circle cx="${px(i)}" cy="${py(p.total)}" r="4" fill="#C9A55C"/>` +
-    (p.total ? `<text x="${px(i)}" y="${py(p.total) - 10}" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" fill="var(--laiton)">${Math.round(p.total)}</text>` : "")
-  ).join("");
-
-  const labels = points.map((p, i) =>
-    `<text x="${px(i)}" y="${basY + 20}" text-anchor="middle" font-size="11" fill="var(--texte-2)">${MOIS_FR[p.m].slice(0, 3)}${p.m === 0 ? " " + String(p.a).slice(2) : ""}</text>`
-  ).join("");
+  const barres = points.map((p, i) => {
+    const x = marge + i * pas + (pas - larg) / 2;
+    const hP = hauteur(p.prest), hV = hauteur(p.vent);
+    const gap = hP > 0 && hV > 0 ? 2 : 0;
+    const sel = p.a === anneeSel && p.m === moisSel - 1;
+    const total = p.prest + p.vent;
+    return `<g class="barre-mois ${sel ? "sel" : ""}" data-mois="${p.a}-${String(p.m + 1).padStart(2, "0")}"
+        data-info="${MOIS_FR[p.m]} ${p.a}|${eur(p.prest)}|${eur(p.vent)}|${eur(total)}|${eur(p.fact)}|${(total - p.fact < 0 ? "− " : "") + eur(Math.abs(total - p.fact))}">
+      <rect class="zone" x="${marge + i * pas}" y="0" width="${pas}" height="${H}" fill="transparent"/>
+      ${barre(x, bas - hP, larg, hP, C_PREST, hV === 0)}
+      ${barre(x, bas - hP - gap - hV, larg, hV, C_VENTE, true)}
+      ${sel && total ? `<text x="${x + larg / 2}" y="${bas - hP - gap - hV - 8}" text-anchor="middle" class="barre-val">${Math.round(total)}</text>` : ""}
+      <text x="${x + larg / 2}" y="${bas + 20}" text-anchor="middle" class="barre-mois-lib">${MOIS_COURT[p.m]}${p.m === 0 ? " " + String(p.a).slice(2) : ""}</text>
+      ${sel ? `<line x1="${x}" x2="${x + larg}" y1="${bas + 28}" y2="${bas + 28}" stroke="var(--laiton)" stroke-width="2" stroke-linecap="round"/>` : ""}
+    </g>`;
+  }).join("");
 
   $("#bilan-courbe").innerHTML = `
-    <svg viewBox="0 0 ${L} ${H}" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="degAire" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#C9A55C" stop-opacity=".35"/>
-          <stop offset="1" stop-color="#C9A55C" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-      <line x1="0" y1="${basY}" x2="${L}" y2="${basY}" stroke="var(--ligne)" stroke-width="1"/>
-      <path d="${aire}" fill="url(#degAire)"/>
-      <path d="${chemin}" fill="none" stroke="#C9A55C" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
-      ${cercles}
-      ${labels}
-    </svg>`;
+    <div class="graph-legende">
+      <span><i style="background:${C_PREST}"></i>Prestations</span>
+      <span><i style="background:${C_VENTE}"></i>Ventes</span>
+      <span class="graph-aide">touchez une barre pour afficher le mois</span>
+    </div>
+    <div class="graph-zone">
+      <svg viewBox="0 0 ${L} ${H}" style="width:100%;height:auto;display:block" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Encaissé par mois sur 12 mois">
+        <line x1="${marge}" y1="${bas}" x2="${L - marge}" y2="${bas}" stroke="var(--ligne)" stroke-width="1"/>
+        ${barres}
+      </svg>
+      <div class="graph-bulle" hidden></div>
+    </div>`;
+
+  const bulle = $("#bilan-courbe .graph-bulle");
+  $$("#bilan-courbe .barre-mois").forEach(g => {
+    g.addEventListener("mouseenter", () => {
+      const [nom, pr, ve, to, fa, re] = g.dataset.info.split("|");
+      bulle.innerHTML = `<b>${nom}</b><div><i style="background:${C_PREST}"></i>Prestations <span>${pr}</span></div><div><i style="background:${C_VENTE}"></i>Ventes <span>${ve}</span></div><div class="bulle-total">Encaissé <span>${to}</span></div><div>Factures <span>− ${fa}</span></div><div class="bulle-total">Résultat <span>${re}</span></div>`;
+      const zone = g.querySelector(".zone").getBoundingClientRect();
+      const parent = bulle.parentElement.getBoundingClientRect();
+      bulle.hidden = false;
+      let gauche = zone.left - parent.left + zone.width / 2 - bulle.offsetWidth / 2;
+      gauche = Math.max(0, Math.min(parent.width - bulle.offsetWidth, gauche));
+      bulle.style.left = gauche + "px";
+    });
+    g.addEventListener("mouseleave", () => (bulle.hidden = true));
+    g.addEventListener("click", () => {
+      const sel = $("#bilan-mois");
+      if ([...sel.options].some(o => o.value === g.dataset.mois)) {
+        sel.value = g.dataset.mois;
+        rendreBilan();
+      }
+    });
+  });
 }
 
 // ------------------------------------------------------------
