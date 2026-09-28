@@ -197,6 +197,7 @@ function montrerVue(nom) {
     $("#tickets-titre").textContent = modePendule ? "Pendules" : (modePro ? "Tickets professionnels" : "Tickets atelier client");
     rendreListe();
   }
+  $("#btn-atelier").classList.toggle("actif", nom === "bilan");
   if (nom === "bilan") rendreBilan();
   if (nom === "reglages") { rendreTableHoraires(); rendreEditeursListes(); }
   window.scrollTo(0, 0);
@@ -209,6 +210,7 @@ $$(".nav-btn").forEach(b => b.addEventListener("click", () => {
   montrerVue(b.dataset.vue);
 }));
 $("#btn-retour").addEventListener("click", () => montrerVue("tickets"));
+$("#btn-atelier").addEventListener("click", () => montrerVue("bilan"));
 
 // ------------------------------------------------------------
 // Pastilles (sélecteurs tactiles)

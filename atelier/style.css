@@ -845,3 +845,16 @@ textarea { resize: vertical; margin-top: 10px; }
 #bilan-relances .relance-motif { font-size: .76rem; }
 #bilan-relances .relance-tel { padding: 3px 7px; font-size: .78rem; border: none; }
 #bilan-relances .liste-vide { font-size: .84rem; margin: 0; }
+
+/* « ATELIER » (jaune, à côté du logo) = accès à la vue d'ensemble, ex-onglet Bilan */
+button.entete-titre {
+  background: none; border: none; border-bottom: 2px solid transparent;
+  font: inherit; font-weight: 700; letter-spacing: .22em; text-transform: uppercase;
+  font-size: .9rem; color: var(--laiton); cursor: pointer; padding: 6px 2px;
+  transition: border-color .15s, color .15s;
+}
+button.entete-titre:hover { color: #E2C689; }
+button.entete-titre.actif { border-bottom-color: var(--laiton); }
+@media (max-width: 900px) {
+  button.entete-titre { display: inline-block !important; font-size: .82rem; letter-spacing: .14em; flex-shrink: 0; }
+}

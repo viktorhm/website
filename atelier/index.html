@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=7.6">
+<link rel="stylesheet" href="style.css?v=7.7">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -27,13 +27,12 @@
 
   <header class="entete">
     <img src="/logo.svg" alt="Horlogerie Haratyk" class="entete-logo">
-    <div class="entete-titre">Atelier</div>
+    <button type="button" class="entete-titre" id="btn-atelier" title="Vue d'ensemble de l'atelier">Atelier</button>
     <nav class="entete-nav">
       <button class="nav-btn actif" data-vue="depot">Dépôt</button>
       <button class="nav-btn" data-vue="tickets" data-pro="0">Client <span id="badge-client" class="badge" hidden></span></button>
       <button class="nav-btn" data-vue="tickets" data-pro="1">Pro <span id="badge-pro" class="badge" hidden></span></button>
       <button class="nav-btn" data-vue="tickets" data-pendule="1">Pendules</button>
-      <button class="nav-btn" data-vue="bilan">Bilan</button>
     </nav>
     <button id="btn-reglages" class="btn-deco btn-rouage" title="Réglages">⚙</button>
     <button id="btn-logout" class="btn-deco">Déconnexion</button>
@@ -131,7 +130,7 @@
   <!-- ============ VUE : BILAN ============ -->
   <main id="vue-bilan" class="vue vue-large" hidden>
     <div class="bilan-entete">
-      <h1 class="tickets-titre" style="margin:0">Bilan</h1>
+      <h1 class="tickets-titre" style="margin:0">Vue d'ensemble</h1>
       <div class="mois-nav">
         <button type="button" id="mois-prec" class="btn btn-secondaire mois-fleche" title="Mois précédent">‹</button>
         <select id="bilan-mois" class="bilan-select"></select>
@@ -398,6 +397,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=7.6"></script>
+<script type="module" src="app.js?v=7.7"></script>
 </body>
 </html>
