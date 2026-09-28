@@ -827,3 +827,21 @@ textarea { resize: vertical; margin-top: 10px; }
 }
 .fact-form #fact-categorie { grid-column: span 2; }
 @media (max-width: 640px) { .fact-form #fact-categorie { grid-column: span 1; } }
+
+/* À relancer : compact + défilant */
+#bilan-relances { max-height: 230px; overflow-y: auto; padding-right: 4px; scrollbar-width: thin; scrollbar-color: var(--ligne) transparent; }
+#bilan-relances::-webkit-scrollbar { width: 6px; }
+#bilan-relances::-webkit-scrollbar-thumb { background: var(--ligne); border-radius: 3px; }
+#bilan-relances .relance,
+.bilan-2col #bilan-relances .relance {
+  grid-template-columns: auto 1fr auto auto; row-gap: 0; column-gap: 10px;
+  padding: 6px 0; font-size: .84rem;
+}
+#bilan-relances .relance-motif, #bilan-relances .relance-tel { grid-column: auto; justify-self: end; margin: 0; }
+#bilan-relances .relance-num { font-size: .8rem; }
+#bilan-relances .relance-client { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+#bilan-relances .relance-client em { display: inline; font-size: .78rem; margin-left: 4px; }
+#bilan-relances .relance-client .tag-pro { font-size: .6rem; padding: 0 5px; }
+#bilan-relances .relance-motif { font-size: .76rem; }
+#bilan-relances .relance-tel { padding: 3px 7px; font-size: .78rem; border: none; }
+#bilan-relances .liste-vide { font-size: .84rem; margin: 0; }

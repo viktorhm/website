@@ -1976,10 +1976,10 @@ function rendreBilan() {
       <span class="relance-num">N° ${r.t.numero}</span>
       <span class="relance-client">${echap(r.t.clientNom)}${r.t.clientPro ? ' <span class="tag-pro">PRO</span>' : ""}
         <em>${echap([r.t.marque, r.t.modele].filter(Boolean).join(" ") || r.t.typeObjet || "")}</em></span>
-      <span class="relance-motif">${r.motif} · <b>${r.j} j</b></span>
-      <a class="relance-tel" href="tel:${echapAttr(chiffresTel(r.t.clientTel))}">📞 ${echap(fmtTel(r.t.clientTel))}</a>
+      <span class="relance-motif" title="${r.motif}">${r.motif.startsWith("devis") ? "devis" : "prête"} · <b>${r.j} j</b></span>
+      <a class="relance-tel" href="tel:${echapAttr(chiffresTel(r.t.clientTel))}" title="${echapAttr(fmtTel(r.t.clientTel))}">📞</a>
     </div>`).join("")
-    : "<p class='liste-vide'>Rien à relancer — aucun devis sans réponse depuis 7 jours, aucune montre prête depuis 14 jours.</p>";
+    : "<p class='liste-vide'>Rien à relancer.</p>";
   $("#bloc-relances h2").textContent = "À relancer" + (relances.length ? " (" + relances.length + ")" : "");
   $$("#bilan-relances .relance").forEach(el => el.addEventListener("click", e => {
     if (e.target.closest("a")) return;
