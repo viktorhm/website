@@ -858,3 +858,80 @@ button.entete-titre.actif { border-bottom-color: var(--laiton); }
 @media (max-width: 900px) {
   button.entete-titre { display: inline-block !important; font-size: .82rem; letter-spacing: .14em; flex-shrink: 0; }
 }
+
+/* ============================================================
+   v8.0 — Page Pièces (à remplacer → à commander → commandée → reçue)
+   ============================================================ */
+.pieces-recherche { max-width: 420px; margin-left: auto; }
+.pieces-etapes { margin-bottom: 18px; }
+.pieces-etapes .flux-etape { padding: 12px 14px; }
+.pieces-etapes .flux-etape.actif { background: var(--carte-2); border-color: var(--c); box-shadow: inset 0 0 0 1px var(--c); }
+.pieces-etapes .flux-n { font-size: 1.7rem; }
+
+.pieces-groupe { margin-bottom: 18px; }
+.pg-tete {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 0 4px 8px; border-bottom: 1px solid var(--ligne); margin-bottom: 8px;
+}
+.pg-nom { font-weight: 700; font-size: 1rem; }
+.pg-n { color: var(--texte-2); font-size: .85rem; }
+.pg-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+.pg-actions .btn { padding: 8px 14px; font-size: .88rem; }
+
+.piece-carte {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--carte); border: 1px solid var(--ligne); border-left: 3px solid var(--c);
+  border-radius: var(--rayon-s); padding: 10px 12px; margin-bottom: 8px;
+}
+.piece-carte .tc-photo { width: 60px; height: 60px; }
+.pc-corps { flex: 1; min-width: 0; }
+.pc-piece { font-weight: 700; font-size: 1.02rem; }
+.pc-ref { font-family: "JetBrains Mono", monospace; font-weight: 500; font-size: .85rem; color: var(--texte-2); margin-left: 6px; }
+.pc-montre { color: var(--texte-2); font-size: .86rem; margin-top: 2px; }
+.pc-ticket {
+  background: none; border: 1px solid var(--laiton-fonce); color: var(--laiton); border-radius: 5px;
+  font-family: "JetBrains Mono", monospace; font-weight: 700; font-size: .78rem; padding: 1px 6px; cursor: pointer;
+}
+.pc-ticket:hover { background: rgba(201,165,92,.12); }
+.pc-meta { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 5px; font-size: .82rem; }
+.pc-fourn { color: var(--acier-bleu); font-weight: 600; }
+.pc-choix-fourn { padding: 5px 8px; font-size: .82rem; border-color: #E09A4E; }
+.pc-attente { color: var(--texte-2); font-family: "JetBrains Mono", monospace; }
+.pc-attente.long { color: #E09A4E; font-weight: 700; }
+.pc-date { color: var(--texte-2); }
+.pc-prix { font-family: "JetBrains Mono", monospace; color: var(--texte-2); }
+.pc-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.pc-actions .btn { padding: 10px 14px; font-size: .9rem; white-space: nowrap; }
+.pc-suppr { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 6px; opacity: .7; }
+.pc-suppr:hover { opacity: 1; }
+.pieces-vide { padding: 30px 10px; text-align: center; border: 1px dashed var(--ligne); border-radius: var(--rayon-s); }
+
+/* Sélecteur de statut (fiche + page Pièces) */
+.etat-piece {
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  background: transparent; color: var(--c); border: 1px solid var(--c);
+  border-radius: 999px; padding: 4px 12px; font: inherit; font-size: .76rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .04em; margin-left: 6px; vertical-align: middle;
+}
+.etat-piece option { background: var(--carte); color: var(--texte); text-transform: none; }
+#piece-etat { padding: 12px 10px; }
+
+/* Résumé pièces dans la vue d'ensemble */
+.pieces-resume { display: flex; flex-direction: column; gap: 6px; }
+.pieces-resume-ligne {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--fond); border: 1px solid var(--ligne); border-left: 3px solid var(--c);
+  border-radius: var(--rayon-s); padding: 9px 12px; color: var(--texte); font: inherit; cursor: pointer;
+}
+.pieces-resume-ligne:hover { border-color: var(--laiton-fonce); border-left-color: var(--c); }
+.pieces-resume-ligne b { font-family: "JetBrains Mono", monospace; font-size: 1.1rem; }
+.pieces-resume-ouvrir { margin-top: 6px; }
+
+@media (max-width: 700px) {
+  .piece-carte { flex-wrap: wrap; }
+  .pc-corps { flex-basis: calc(100% - 80px); }
+  .pc-actions { width: 100%; justify-content: flex-end; }
+  .pg-actions { margin-left: 0; width: 100%; }
+  .pieces-recherche { max-width: none; width: 100%; }
+}
+@media (max-width: 700px) { .pc-actions { flex-wrap: wrap; } .piece-carte { padding: 10px; } }

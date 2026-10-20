@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=7.7">
+<link rel="stylesheet" href="style.css?v=8.1">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -33,6 +33,7 @@
       <button class="nav-btn" data-vue="tickets" data-pro="0">Client <span id="badge-client" class="badge" hidden></span></button>
       <button class="nav-btn" data-vue="tickets" data-pro="1">Pro <span id="badge-pro" class="badge" hidden></span></button>
       <button class="nav-btn" data-vue="tickets" data-pendule="1">Pendules</button>
+      <button class="nav-btn" data-vue="pieces">Pièces <span id="badge-pieces" class="badge" hidden></span></button>
     </nav>
     <button id="btn-reglages" class="btn-deco btn-rouage" title="Réglages">⚙</button>
     <button id="btn-logout" class="btn-deco">Déconnexion</button>
@@ -171,14 +172,8 @@
       </section>
 
       <section class="bloc">
-        <h2 id="cmd-titre">Pièces à commander</h2>
-        <div id="bilan-commandes"></div>
-        <div class="grille-piece grille-cmd-libre">
-          <input type="text" id="cmd-designation" placeholder="Fourniture (ex. huile 9010)">
-          <input type="text" id="cmd-ref" placeholder="Réf.">
-          <select id="cmd-fournisseur" class="bilan-select select-fournisseur"></select>
-          <button id="btn-cmd-libre" class="btn btn-secondaire">Ajouter</button>
-        </div>
+        <h2>Pièces</h2>
+        <div id="bilan-pieces" class="pieces-resume"></div>
       </section>
     </div>
 
@@ -248,6 +243,27 @@
 
   </main>
 
+  <!-- ============ VUE : PIÈCES ============ -->
+  <main id="vue-pieces" class="vue vue-large" hidden>
+    <div class="bilan-entete">
+      <h1 class="tickets-titre" style="margin:0">Pièces</h1>
+      <input type="search" id="pieces-recherche" class="pieces-recherche" placeholder="🔍 Pièce, réf., n° de ticket, client, fournisseur…">
+    </div>
+
+    <div id="pieces-etapes" class="flux pieces-etapes"></div>
+    <div id="pieces-contenu" class="pieces-contenu"></div>
+
+    <section class="bloc" style="margin-top:18px">
+      <h2>Fourniture pour l'atelier (hors ticket)</h2>
+      <div class="grille-piece grille-cmd-libre">
+        <input type="text" id="cmd-designation" placeholder="Fourniture (ex. huile 9010, rouleau A6…)">
+        <input type="text" id="cmd-ref" placeholder="Réf.">
+        <select id="cmd-fournisseur" class="bilan-select select-fournisseur"></select>
+        <button id="btn-cmd-libre" class="btn btn-secondaire">Ajouter à commander</button>
+      </div>
+    </section>
+  </main>
+
   <!-- ============ VUE : FICHE TICKET ============ -->
   <main id="vue-fiche" class="vue" hidden>
     <div class="fiche-entete">
@@ -298,7 +314,7 @@
       </section>
 
       <section class="bloc">
-        <h2>Pièces remplacées</h2>
+        <h2>Pièces</h2>
         <div id="fiche-pieces" class="liste-pieces"></div>
         <div class="grille-piece grille-piece-cmd">
           <input type="text" id="piece-designation" placeholder="Désignation (ex. glace Ø29,5 mm, bracelet cuir 18mm)">
@@ -306,7 +322,12 @@
           <select id="piece-fournisseur" class="bilan-select select-fournisseur"></select>
           <input type="number" id="piece-prix" placeholder="Prix €" step="0.01" min="0">
           <input type="number" id="piece-cout" placeholder="Coût €" step="0.01" min="0" title="Ton prix d'achat (visible par toi seul)">
-          <label class="case-option"><input type="checkbox" id="piece-commander"> à commander</label>
+          <select id="piece-etat" class="bilan-select" title="Où en est cette pièce ?">
+            <option value="a_remplacer">À remplacer</option>
+            <option value="a_commander">À commander</option>
+            <option value="commandee">Commandée (en attente)</option>
+            <option value="recue">Reçue / installée</option>
+          </select>
           <button id="btn-ajouter-piece" class="btn btn-secondaire">Ajouter</button>
         </div>
       </section>
@@ -354,7 +375,7 @@
 
     <section class="bloc">
       <h2>Fournisseurs</h2>
-      <p class="cfg-note" style="margin:0 0 12px">Proposés dans « Pièces remplacées » et « Pièces à commander ». Le site (facultatif) devient un lien dans la liste de commandes.</p>
+      <p class="cfg-note" style="margin:0 0 12px">Proposés dans les pièces des tickets et la page Pièces. Le site (facultatif) devient un lien « ↗ commander ».</p>
       <div id="cfg-fournisseurs" class="cfg-liste"></div>
       <div class="cfg-ajout cfg-ajout-fourn">
         <input type="text" id="cfg-fournisseurs-nom" placeholder="Nom du fournisseur">
@@ -397,6 +418,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=7.7"></script>
+<script type="module" src="app.js?v=8.1"></script>
 </body>
 </html>

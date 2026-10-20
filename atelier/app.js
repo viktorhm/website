@@ -199,6 +199,7 @@ function montrerVue(nom) {
   }
   $("#btn-atelier").classList.toggle("actif", nom === "bilan");
   if (nom === "bilan") rendreBilan();
+  if (nom === "pieces") rendrePieces();
   if (nom === "reglages") { rendreTableHoraires(); rendreEditeursListes(); }
   window.scrollTo(0, 0);
 }
@@ -918,6 +919,8 @@ function demarrerEcoutesAnnexes() {
     commandesLibres = [];
     snap.forEach(d => commandesLibres.push({ id: d.id, ...d.data() }));
     if (!$("#vue-bilan").hidden) rendreBilan();
+    majBadgePieces();
+    if (!$("#vue-pieces").hidden) rendrePieces();
   });
   onSnapshot(collection(db, "factures"), snap => {
     facturesFourn = [];
@@ -944,6 +947,8 @@ function demarrerEcouteTickets() {
     $("#badge-pro").textContent = nPro;
     $("#badge-pro").hidden = nPro === 0;
     if (!$("#vue-bilan").hidden) rendreBilan();
+    majBadgePieces();
+    if (!$("#vue-pieces").hidden) rendrePieces();
     // rafraîchir la fiche ouverte si besoin
     if (ticketOuvert) {
       const maj = tousTickets.find(t => t.id === ticketOuvert.id);
@@ -959,6 +964,290 @@ $$(".filtre").forEach(f => f.addEventListener("click", () => {
   rendreListe();
 }));
 $("#tickets-recherche").addEventListener("input", rendreListe);
+
+// ============================================================
+// PIÈCES : à remplacer → à commander → commandée (en attente) → reçue / installée
+// ============================================================
+const ETATS_PIECE = [
+  { id: "a_remplacer", label: "À remplacer",              court: "À remplacer",   icone: "🔧", couleur: "var(--texte-2)",   suivant: "a_commander", action: "📦 À commander" },
+  { id: "a_commander", label: "À commander",              court: "À commander",   icone: "📦", couleur: "#E09A4E",          suivant: "commandee",   action: "🛒 Commandée" },
+  { id: "commandee",   label: "En attente de livraison",  court: "Commandée",     icone: "🚚", couleur: "var(--acier-bleu)", suivant: "recue",       action: "✓ Reçue" },
+  { id: "recue",       label: "Reçues / installées",      court: "Reçue",         icone: "✓",  couleur: "var(--emauxvert)", suivant: null,          action: "" }
+];
+const etatInfo = id => ETATS_PIECE.find(e => e.id === id) || ETATS_PIECE[0];
+// Compatibilité : anciennes pièces sans « etat »
+const etatPiece = p => p.etat || (p.aCommander ? "a_commander" : "recue");
+const etatLibre = c => c.etat || (c.recu ? "recue" : "a_commander");
+
+function selectEtatPiece(etat, attrs, classe) {
+  const e = etatInfo(etat);
+  return `<select class="etat-piece ${classe}" ${attrs} style="--c:${e.couleur}" title="Statut de la pièce">
+    ${ETATS_PIECE.map(x => `<option value="${x.id}" ${x.id === etat ? "selected" : ""}>${x.court}</option>`).join("")}
+  </select>`;
+}
+
+const JOURS_RECUES = 30; // les pièces reçues restent visibles 30 jours
+function recente(iso) { return iso && (Date.now() - new Date(iso).getTime()) < JOURS_RECUES * 864e5; }
+
+// Toutes les pièces suivies (tickets en cours + fournitures atelier)
+function toutesLesPieces() {
+  const liste = [];
+  tousTickets.forEach(t => {
+    const actif = !["rendu", "refuse"].includes(t.statut);
+    (t.pieces || []).forEach((p, i) => {
+      const etat = etatPiece(p);
+      if (etat === "recue" ? (p.dateRecue ? recente(p.dateRecue) : actif) : actif) {
+        liste.push({ cle: t.id + "#" + i, t, p, i, etat });
+      }
+    });
+  });
+  commandesLibres.forEach(c => {
+    const etat = etatLibre(c);
+    if (etat !== "recue" || recente(c.dateRecue)) liste.push({ cle: "L#" + c.id, libre: c, p: c, etat });
+  });
+  return liste;
+}
+
+function comptesPieces() {
+  const c = Object.fromEntries(ETATS_PIECE.map(e => [e.id, 0]));
+  toutesLesPieces().forEach(x => c[x.etat]++);
+  return c;
+}
+
+function majBadgePieces() {
+  const c = comptesPieces();
+  const n = c.a_commander;
+  const b = $("#badge-pieces");
+  if (!b) return;
+  b.textContent = n;
+  b.hidden = !n;
+}
+
+// Change le statut d'une ou plusieurs pièces d'un ticket (+ statut du ticket si pertinent)
+async function changerEtatPieces(t, indices, etat) {
+  const maintenant = new Date().toISOString();
+  const pieces = (t.pieces || []).map((p, i) => {
+    if (!indices.includes(i)) return p;
+    const { aCommander, ...reste } = p;
+    const n = { ...reste, etat };
+    if (etat === "commandee" && !n.dateCommande) n.dateCommande = maintenant;
+    if (etat === "recue") n.dateRecue = maintenant;
+    if (etat === "a_remplacer" || etat === "a_commander") { delete n.dateCommande; delete n.dateRecue; }
+    if (etat === "commandee") delete n.dateRecue;
+    return n;
+  });
+  const maj = { pieces, updatedAt: serverTimestamp() };
+  let info = "";
+  // Pièce commandée sur une montre en réparation → ticket « Pièce en attente »
+  if (etat === "commandee" && ["accepte", "en_cours"].includes(t.statut)) {
+    maj.statut = "piece_attente";
+    maj.historique = arrayUnion({ statut: "piece_attente", date: maintenant });
+    info = " · ticket passé en « Pièce en attente »";
+  }
+  // Plus aucune pièce en attente → retour « En réparation »
+  if (t.statut === "piece_attente" && pieces.every(p => ["recue", "a_remplacer"].includes(etatPiece(p)))) {
+    maj.statut = "en_cours";
+    maj.historique = arrayUnion({ statut: "en_cours", date: maintenant });
+    info = " · ticket repassé « En réparation »";
+  }
+  try {
+    await updateDoc(doc(db, "tickets", t.id), maj);
+    toast(`${indices.length > 1 ? indices.length + " pièces" : "Pièce"} : ${etatInfo(etat).court.toLowerCase()} ✓${info}`);
+  } catch (e) {
+    console.error(e);
+    toast("Erreur de mise à jour de la pièce", true);
+  }
+}
+
+async function changerEtatLibre(c, etat) {
+  const maj = { etat, recu: etat === "recue" };
+  if (etat === "commandee" && !c.dateCommande) maj.dateCommande = new Date().toISOString();
+  if (etat === "recue") maj.dateRecue = new Date().toISOString();
+  await updateDoc(doc(db, "commandes", c.id), maj);
+  toast("Fourniture : " + etatInfo(etat).court.toLowerCase() + " ✓");
+}
+
+async function changerEtatItems(items, etat) {
+  // regroupe par ticket pour une seule écriture par ticket
+  const parTicket = {};
+  for (const x of items) {
+    if (x.libre) await changerEtatLibre(x.libre, etat);
+    else (parTicket[x.t.id] = parTicket[x.t.id] || { t: x.t, ind: [] }).ind.push(x.i);
+  }
+  for (const { t, ind } of Object.values(parTicket)) await changerEtatPieces(t, ind, etat);
+}
+
+let ongletPieces = "a_commander";
+let piecesIndex = {};
+
+function depuisJours(iso) {
+  if (!iso) return null;
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 864e5);
+}
+
+function cartePieceHtml(x) {
+  const e = etatInfo(x.etat);
+  const t = x.t;
+  const montre = t ? [t.typeObjet, t.marque, t.modele].filter(Boolean).join(" · ") : "";
+  const jCmd = depuisJours(x.p.dateCommande);
+  const dates = x.etat === "commandee" && jCmd !== null
+    ? `<span class="pc-attente ${jCmd >= 14 ? "long" : ""}">commandée ${jCmd === 0 ? "aujourd'hui" : jCmd === 1 ? "hier" : "il y a " + jCmd + " j"}</span>`
+    : x.etat === "recue" && x.p.dateRecue ? `<span class="pc-date">reçue le ${new Date(x.p.dateRecue).toLocaleDateString("fr-FR")}</span>` : "";
+  const fourn = x.p.fournisseur
+    ? `<span class="pc-fourn">${echap(x.p.fournisseur)}</span>`
+    : `<select class="bilan-select pc-choix-fourn" data-cle="${echapAttr(x.cle)}"><option value="">— choisir le fournisseur —</option>${listeFournisseurs().map(f => `<option value="${echapAttr(f.nom)}">${echap(f.nom)}</option>`).join("")}</select>`;
+  return `
+  <div class="piece-carte" style="--c:${e.couleur}">
+    ${t ? vignetteTicket(t) : `<div class="tc-photo tc-photo-vide">🛠</div>`}
+    <div class="pc-corps">
+      <div class="pc-piece">${echap(x.p.designation)}${x.p.ref ? ` <span class="pc-ref">${echap(x.p.ref)}</span>` : ""}</div>
+      <div class="pc-montre">
+        ${t ? `<button type="button" class="pc-ticket" data-ticket="${t.id}">N° ${t.numero}</button> ${echap(t.clientNom)}${t.clientPro ? ' <span class="tag-pro">PRO</span>' : ""} — ${echap(montre)}`
+            : `<span class="cmd-libre-tag">ATELIER</span> fourniture ajoutée le ${new Date(x.libre.date).toLocaleDateString("fr-FR")}`}
+      </div>
+      <div class="pc-meta">${fourn}${dates}${x.p.prix ? `<span class="pc-prix">${eur(parseFloat(x.p.prix) || 0)}</span>` : ""}</div>
+    </div>
+    <div class="pc-actions">
+      ${e.suivant ? `<button type="button" class="btn btn-secondaire pc-suivant" data-cle="${echapAttr(x.cle)}">${e.action}</button>` : ""}
+      ${selectEtatPiece(x.etat, `data-cle="${echapAttr(x.cle)}"`, "pc-etat")}
+      ${x.libre ? `<button type="button" class="pc-suppr" data-cle="${echapAttr(x.cle)}" title="Supprimer cette fourniture">🗑</button>` : ""}
+    </div>
+  </div>`;
+}
+
+function rendrePieces() {
+  const tout = toutesLesPieces();
+  piecesIndex = Object.fromEntries(tout.map(x => [x.cle, x]));
+  const cpt = Object.fromEntries(ETATS_PIECE.map(e => [e.id, 0]));
+  tout.forEach(x => cpt[x.etat]++);
+
+  $("#pieces-etapes").innerHTML = ETATS_PIECE.map((e, i) => `
+    <button type="button" class="flux-etape ${ongletPieces === e.id ? "actif" : ""}" data-etat="${e.id}" style="--c:${e.couleur}">
+      <span class="flux-libelle">${e.icone} ${e.label}</span>
+      <span class="flux-n">${cpt[e.id]}</span>
+    </button>${i < ETATS_PIECE.length - 1 ? '<span class="flux-fleche">›</span>' : ""}`).join("");
+  $$("#pieces-etapes .flux-etape").forEach(b => b.addEventListener("click", () => {
+    ongletPieces = b.dataset.etat;
+    rendrePieces();
+  }));
+
+  const rech = $("#pieces-recherche").value.trim();
+  const champsPiece = x => [x.p.designation, x.p.ref, x.p.fournisseur, x.t && x.t.numero, x.t && x.t.clientNom,
+    x.t && x.t.marque, x.t && x.t.modele, x.libre && "atelier"];
+  let liste = tout.filter(x => x.etat === ongletPieces);
+  let ailleursP = 0;
+  if (rech) {
+    ailleursP = tout.filter(x => x.etat !== ongletPieces && contientMots(champsPiece(x), rech)).length;
+    liste = liste.filter(x => contientMots(champsPiece(x), rech));
+  }
+
+  // Regroupement : par fournisseur pour commander / attendre, par montre sinon
+  const parFourn = ["a_commander", "commandee"].includes(ongletPieces);
+  const groupes = {};
+  liste.forEach(x => {
+    const cle = parFourn ? (x.p.fournisseur || "Fournisseur non renseigné")
+                         : (x.t ? "T" + x.t.id : "Fournitures atelier");
+    (groupes[cle] = groupes[cle] || []).push(x);
+  });
+  const cles = Object.keys(groupes).sort((a, b) => {
+    if (a === "Fournisseur non renseigné") return 1;
+    if (b === "Fournisseur non renseigné") return -1;
+    if (!parFourn) return (groupes[b][0].t?.numero || 0) - (groupes[a][0].t?.numero || 0);
+    return a.localeCompare(b);
+  });
+
+  const vide = {
+    a_remplacer: "Aucune pièce à remplacer. Ajoute les pièces depuis la fiche d'un ticket (section Pièces).",
+    a_commander: "Rien à commander pour le moment 👍",
+    commandee: "Aucune commande en attente de livraison.",
+    recue: `Aucune pièce reçue ces ${JOURS_RECUES} derniers jours.`
+  };
+
+  $("#pieces-contenu").innerHTML = (rech ? `<div class="recherche-info">${liste.length} résultat${liste.length > 1 ? "s" : ""} dans « ${etatInfo(ongletPieces).label} »${ailleursP ? ` · ${ailleursP} autre${ailleursP > 1 ? "s" : ""} dans d'autres étapes (touche l'étape en haut)` : ""}</div>` : "") +
+    (cles.map(cle => {
+      const items = groupes[cle];
+      let titre;
+      if (parFourn) {
+        const site = siteFournisseur(cle);
+        titre = `<span class="pg-nom">${echap(cle)}</span><span class="pg-n">${items.length} pièce${items.length > 1 ? "s" : ""}</span>
+          ${site ? `<a class="cmd-site" href="${echapAttr(site)}" target="_blank" rel="noopener">↗ commander</a>` : ""}
+          ${`<span class="pg-actions">
+            <button type="button" class="btn-lien pg-copier" data-groupe="${echapAttr(cle)}">📋 Copier la liste</button>
+            ${ongletPieces === "a_commander" ? `<button type="button" class="btn btn-secondaire pg-tout" data-groupe="${echapAttr(cle)}" data-etat="commandee">🛒 Tout commandé</button>` : ""}
+            ${ongletPieces === "commandee" ? `<button type="button" class="btn btn-secondaire pg-tout" data-groupe="${echapAttr(cle)}" data-etat="recue">✓ Tout reçu</button>` : ""}
+          </span>`}`;
+      } else {
+        const t = items[0].t;
+        titre = t
+          ? `<button type="button" class="pc-ticket" data-ticket="${t.id}">N° ${t.numero}</button><span class="pg-nom">${echap(t.clientNom)}</span><span class="pg-n">${echap([t.marque, t.modele].filter(Boolean).join(" ") || t.typeObjet || "")} · ${statutLabel(t.statut)}</span>`
+          : `<span class="pg-nom">Fournitures atelier</span>`;
+      }
+      return `<div class="pieces-groupe"><div class="pg-tete">${titre}</div>${items.map(cartePieceHtml).join("")}</div>`;
+    }).join("") || `<p class="liste-vide pieces-vide">${rech ? "Aucune pièce ne correspond." : vide[ongletPieces]}</p>`);
+
+  window.__piecesGroupes = groupes;
+}
+
+// Délégation des actions de la page Pièces
+document.addEventListener("click", async e => {
+  if (!e.target.closest("#vue-pieces")) return;
+  const tk = e.target.closest(".pc-ticket");
+  if (tk) return ouvrirFiche(tk.dataset.ticket);
+  const suiv = e.target.closest(".pc-suivant");
+  if (suiv) {
+    const x = piecesIndex[suiv.dataset.cle];
+    if (x) { suiv.disabled = true; await changerEtatItems([x], etatInfo(x.etat).suivant); }
+    return;
+  }
+  const sup = e.target.closest(".pc-suppr");
+  if (sup) {
+    const x = piecesIndex[sup.dataset.cle];
+    if (x && x.libre && confirm(`Supprimer « ${x.libre.designation} » ?`)) {
+      await deleteDoc(doc(db, "commandes", x.libre.id));
+      toast("Fourniture supprimée");
+    }
+    return;
+  }
+  const tout = e.target.closest(".pg-tout");
+  if (tout) {
+    const items = (window.__piecesGroupes || {})[tout.dataset.groupe] || [];
+    const etat = tout.dataset.etat;
+    if (!items.length || !confirm(`Marquer ${items.length} pièce(s) de ${tout.dataset.groupe} comme « ${etatInfo(etat).court.toLowerCase()} » ?`)) return;
+    tout.disabled = true;
+    await changerEtatItems(items, etat);
+    return;
+  }
+  const cop = e.target.closest(".pg-copier");
+  if (cop) {
+    const items = (window.__piecesGroupes || {})[cop.dataset.groupe] || [];
+    const texte = items.map(x => "- " + x.p.designation + (x.p.ref ? " — réf. " + x.p.ref : "")
+      + (x.t ? " (ticket " + x.t.numero + ")" : "")).join("\n");
+    try { await navigator.clipboard.writeText(texte); toast("Liste copiée ✓ — colle-la dans ta commande"); }
+    catch { prompt("Copie la liste :", texte.replace(/\n/g, " | ")); }
+  }
+});
+document.addEventListener("change", async e => {
+  if (!e.target.closest("#vue-pieces")) return;
+  const sel = e.target.closest(".pc-etat");
+  if (sel) {
+    const x = piecesIndex[sel.dataset.cle];
+    if (x) await changerEtatItems([x], sel.value);
+    return;
+  }
+  const f = e.target.closest(".pc-choix-fourn");
+  if (f && f.value) {
+    const x = piecesIndex[f.dataset.cle];
+    if (!x) return;
+    if (x.libre) await updateDoc(doc(db, "commandes", x.libre.id), { fournisseur: f.value });
+    else {
+      const pieces = (x.t.pieces || []).map((p, i) => (i === x.i ? { ...p, fournisseur: f.value } : p));
+      await updateDoc(doc(db, "tickets", x.t.id), { pieces, updatedAt: serverTimestamp() });
+    }
+    memoriserFournisseur(f.value);
+    toast("Fournisseur : " + f.value + " ✓");
+  }
+});
+$("#pieces-recherche").addEventListener("input", rendrePieces);
 
 // Vignette photo sur les cartes (clic = photo en grand, sans ouvrir la fiche)
 function vignetteTicket(t) {
@@ -990,6 +1279,17 @@ function chiffresTel(s) {
   return n;
 }
 
+// Texte normalisé pour la recherche : sans accents, minuscules, tirets/apostrophes → espaces
+function normRech(v) {
+  return String(v ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().replace(/[-'’.,/]/g, " ").replace(/\s+/g, " ").trim();
+}
+// Tous les mots tapés doivent apparaître, dans n'importe quel ordre
+function contientMots(champs, rech) {
+  const texte = " " + champs.map(normRech).join(" ") + " ";
+  return normRech(rech).split(" ").filter(Boolean).every(m => texte.includes(m));
+}
+
 function correspondRecherche(t, rech) {
   const chiffres = chiffresTel(rech);
   // 3 chiffres ou plus : recherche téléphone (+ numéro de ticket)
@@ -998,8 +1298,8 @@ function correspondRecherche(t, rech) {
     const tel = chiffresTel(t.clientTel);
     return String(t.numero).includes(chiffres) || tel.includes(chiffres) || (sansZero.length >= 3 && tel.includes(sansZero));
   }
-  return [t.numero, t.clientNom, t.marque, t.modele, t.numSerie, t.contremarque, t.clientEmail, t.typeObjet]
-    .some(v => String(v || "").toLowerCase().includes(rech));
+  return contientMots([t.numero, t.clientCivilite, t.clientNom, t.marque, t.modele, t.numSerie,
+    t.contremarque, t.clientEmail, t.typeObjet, t.clientAdresse], rech);
 }
 
 function rendreListe() {
@@ -1012,19 +1312,29 @@ function rendreListe() {
   let liste;
   const info = $("#recherche-info");
   if (rech) {
-    // Recherche : sur TOUS les tickets (client, pro, pendules, tous statuts)
-    liste = tousTickets.filter(t => correspondRecherche(t, rech));
+    // Recherche limitée à l'onglet (Client / Pro / Pendules) ET à l'état sélectionné
+    const filtre = FILTRES[filtreActif] || FILTRES.tous;
+    liste = base.filter(filtre).filter(t => correspondRecherche(t, rech));
+    const ailleurs = filtreActif === "tous" ? 0
+      : base.filter(t => !filtre(t) && correspondRecherche(t, rech)).length;
+    const nomFiltre = ($(`.filtre[data-statut="${filtreActif}"]`)?.childNodes[0]?.textContent || "").trim();
     info.hidden = false;
-    info.innerHTML = `${liste.length} résultat${liste.length > 1 ? "s" : ""} sur l'ensemble des tickets`
+    info.innerHTML = `${liste.length} résultat${liste.length > 1 ? "s" : ""} dans « ${echap(nomFiltre)} »`
       + (liste.length && new Set(liste.map(t => t.clientId || t.clientNom)).size === 1
-          ? ` — <b>${echap(liste[0].clientNom)}</b> · ${echap(fmtTel(liste[0].clientTel))}` : "");
+          ? ` — <b>${echap(liste[0].clientNom)}</b> · ${echap(fmtTel(liste[0].clientTel))}` : "")
+      + (ailleurs ? ` · <button type="button" class="btn-lien" id="rech-voir-tous">${ailleurs} autre${ailleurs > 1 ? "s" : ""} dans d'autres états → voir dans « Tous »</button>` : "");
+    $("#rech-voir-tous")?.addEventListener("click", () => {
+      filtreActif = "tous";
+      $$(".filtre").forEach(x => x.classList.toggle("actif", x.dataset.statut === "tous"));
+      rendreListe();
+    });
   } else {
     info.hidden = true;
     liste = base.filter(FILTRES[filtreActif] || FILTRES.tous);
   }
 
   const selMois = $("#filtre-mois");
-  selMois.hidden = !!rech || !["rendu", "facture"].includes(filtreActif);
+  selMois.hidden = !["rendu", "facture"].includes(filtreActif);
   if (!selMois.hidden && selMois.value) {
     liste = liste.filter(t => moisRestitution(t) === selMois.value);
   }
@@ -1202,7 +1512,7 @@ function rendreFiche() {
   $("#fiche-pieces").innerHTML = pieces.map((p, i) => `
     <div class="piece-ligne">
       <span>${echap(p.designation)}${p.ref ? ` <em>(${echap(p.ref)})</em>` : ""}${p.fournisseur ? ` <em>· ${echap(p.fournisseur)}</em>` : ""}
-        ${p.aCommander ? `<button class="tag-option tag-cmd piece-cmd" data-i="${i}" title="Marquer comme reçue">📦 à commander</button>` : ""}
+        ${selectEtatPiece(etatPiece(p), `data-i="${i}"`, "piece-etat-fiche")}
       </span>
       <b>${(parseFloat(p.prix) || 0).toFixed(2)} €</b>
     </div>
@@ -1211,15 +1521,8 @@ function rendreFiche() {
     return `<div class="piece-ligne piece-total"><span>Total pièces${cout ? ` <em style="font-weight:400">· coût d'achat ${cout.toFixed(2)} €</em>` : ""}</span><b>${total.toFixed(2)} €</b></div>`;
   })() : "<p class='liste-vide'>Aucune pièce pour l'instant.</p>");
 
-  $$(".piece-cmd").forEach(b => b.addEventListener("click", async () => {
-    const nouvelles = pieces.map((p, i) => {
-      if (i !== parseInt(b.dataset.i)) return p;
-      const { aCommander, ...reste } = p;
-      return reste;
-    });
-    await updateDoc(doc(db, "tickets", t.id), { pieces: nouvelles, updatedAt: serverTimestamp() });
-    toast("Pièce marquée comme reçue ✓");
-  }));
+  $$(".piece-etat-fiche").forEach(sel => sel.addEventListener("change", () =>
+    changerEtatPieces(t, [parseInt(sel.dataset.i)], sel.value)));
 
   // Notes
   $("#fiche-notes").innerHTML = (t.notes || []).map(n =>
@@ -1290,14 +1593,16 @@ $("#btn-ajouter-piece").addEventListener("click", async () => {
     cout: parseFloat($("#piece-cout").value) || 0,
     date: new Date().toISOString()
   };
-  if ($("#piece-commander").checked) piece.aCommander = true;
+  piece.etat = $("#piece-etat").value || "a_remplacer";
+  if (piece.etat === "commandee") piece.dateCommande = new Date().toISOString();
+  if (piece.etat === "recue") piece.dateRecue = new Date().toISOString();
   memoriserFournisseur(piece.fournisseur);
   await updateDoc(doc(db, "tickets", ticketOuvert.id), {
     pieces: arrayUnion(piece),
     updatedAt: serverTimestamp()
   });
   $("#piece-designation").value = ""; $("#piece-ref").value = ""; $("#piece-prix").value = "";
-  $("#piece-cout").value = ""; $("#piece-commander").checked = false;
+  $("#piece-cout").value = "";
 });
 
 $("#btn-ajouter-note").addEventListener("click", async () => {
@@ -1551,6 +1856,7 @@ $("#btn-cmd-libre").addEventListener("click", async () => {
       designation,
       ref: $("#cmd-ref").value.trim(),
       fournisseur: $("#cmd-fournisseur").value,
+      etat: "a_commander",
       date: new Date().toISOString(),
       createdAt: serverTimestamp()
     });
@@ -1988,58 +2294,16 @@ function rendreBilan() {
     ouvrirFiche(el.dataset.id);
   }));
 
-  // ---------- 4. Pièces à commander ----------
-  // Pièces en attente de commande / réception
-  const enAttente = [];
-  tousTickets.filter(t => t.statut !== "rendu").forEach(t => {
-    (t.pieces || []).forEach((p, i) => {
-      if (p.aCommander) enAttente.push({ t, p, i });
-    });
-  });
-  commandesLibres.filter(c => !c.recu).forEach(c => {
-    enAttente.push({ libre: c, p: c });
-  });
-  $("#cmd-titre").textContent = "Pièces à commander" + (enAttente.length ? " (" + enAttente.length + ")" : "");
-
-  const parFournisseur = {};
-  enAttente.forEach(x => {
-    const f = x.p.fournisseur || "Fournisseur non renseigné";
-    (parFournisseur[f] = parFournisseur[f] || []).push(x);
-  });
-  $("#bilan-commandes").innerHTML = Object.keys(parFournisseur).sort().map(f => `
-    <div class="cmd-fournisseur">${echap(f)} — ${parFournisseur[f].length} pièce(s)${siteFournisseur(f) ? ` <a class="cmd-site" href="${echapAttr(siteFournisseur(f))}" target="_blank" rel="noopener">↗ commander</a>` : ""}</div>
-    ${parFournisseur[f].map(x => `
-      <div class="cmd-ligne">
-        <div class="cmd-info">
-          ${echap(x.p.designation)}
-          ${x.p.ref ? `<span class="cmd-ref"> · ${echap(x.p.ref)}</span>` : ""}
-          ${x.libre
-            ? `<div class="cmd-ticket"><span class="cmd-libre-tag">ATELIER</span> ajouté le ${new Date(x.libre.date).toLocaleDateString("fr-FR")}</div>`
-            : `<div class="cmd-ticket">Ticket n° ${x.t.numero} — ${echap(x.t.clientNom)}</div>`}
-        </div>
-        ${x.libre
-          ? `<button class="btn-recue" data-libre="${x.libre.id}">✓ Reçue</button>`
-          : `<button class="btn-recue" data-ticket="${x.t.id}" data-i="${x.i}">✓ Reçue</button>`}
-      </div>`).join("")}
-  `).join("") || "<p class='liste-vide'>Aucune pièce en attente de commande.</p>";
-
-  $$("#bilan-commandes .btn-recue").forEach(b => b.addEventListener("click", async () => {
-    if (b.dataset.libre) {
-      await deleteDoc(doc(db, "commandes", b.dataset.libre));
-      toast("Fourniture marquée comme reçue ✓");
-      return;
-    }
-    const t = tousTickets.find(x => x.id === b.dataset.ticket);
-    if (!t) return;
-    const nouvelles = (t.pieces || []).map((p, i) => {
-      if (i !== parseInt(b.dataset.i)) return p;
-      const { aCommander, ...reste } = p;
-      return reste;
-    });
-    await updateDoc(doc(db, "tickets", t.id), { pieces: nouvelles, updatedAt: serverTimestamp() });
-    toast("Pièce marquée comme reçue ✓");
+  // ---------- 4. Pièces : résumé (détail sur la page Pièces) ----------
+  const cptP = comptesPieces();
+  $("#bilan-pieces").innerHTML = ETATS_PIECE.map(e => `
+    <button type="button" class="pieces-resume-ligne" data-etat="${e.id}" style="--c:${e.couleur}">
+      <span>${e.icone} ${e.label}</span><b>${cptP[e.id]}</b>
+    </button>`).join("") + `<button type="button" class="btn btn-secondaire pieces-resume-ouvrir" data-etat="">Ouvrir la page Pièces ›</button>`;
+  $$("#bilan-pieces [data-etat]").forEach(b => b.addEventListener("click", () => {
+    if (b.dataset.etat) ongletPieces = b.dataset.etat;
+    montrerVue("pieces");
   }));
-
 
   // --- Dû par les clients pro ---
   // À facturer : UNIQUEMENT les montres rendues (non facturées), devis validé ou accord oral.
