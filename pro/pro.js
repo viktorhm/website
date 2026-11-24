@@ -668,7 +668,24 @@ function phaseLune(date = new Date()) {
   return { age, p, eclairage, nom, avantPleine, prochainePleine };
 }
 
-function svgLune({ p, eclairage }) {
+// Soleil dans le même graphisme que la lune (dégradé doré, halo doux)
+function svgSoleil() {
+  const rayons = Array.from({ length: 12 }, (_, i) => {
+    const a = i * 30 * Math.PI / 180, l = i % 2 ? 26 : 28.5;
+    return `<line x1="${(30 + Math.cos(a) * 19).toFixed(1)}" y1="${(30 + Math.sin(a) * 19).toFixed(1)}" x2="${(30 + Math.cos(a) * l).toFixed(1)}" y2="${(30 + Math.sin(a) * l).toFixed(1)}"/>`;
+  }).join("");
+  return `<svg viewBox="0 0 60 60" aria-hidden="true">
+    <defs>
+      <radialGradient id="soleil-g" cx="42%" cy="38%" r="68%">
+        <stop offset="0" stop-color="#FFF27A"/><stop offset=".55" stop-color="#FFD91A"/><stop offset="1" stop-color="#F2B705"/>
+      </radialGradient>
+    </defs>
+    <g stroke="#FFD91A" stroke-width="3.2" stroke-linecap="round">${rayons}</g>
+    <circle cx="30" cy="30" r="15.5" fill="url(#soleil-g)" stroke="#000" stroke-width="2"/>
+  </svg>`;
+}
+
+function svgLune({ p, eclairage }, prefixe = "lune") {
   // Style planche : disque noir cerclé, partie éclairée jaune avec mers lunaires
   const c = 30, r = 27;
   const croissante = p < 0.5;              // hémisphère nord : éclairée à droite
@@ -677,54 +694,21 @@ function svgLune({ p, eclairage }) {
   const arcExt = croissante ? 1 : 0;
   const arcTerm = croissante ? (croissant ? 0 : 1) : (croissant ? 1 : 0);
   const eclaire = `M${c} ${c - r} A${r} ${r} 0 0 ${arcExt} ${c} ${c + r} A${rx} ${r} 0 0 ${arcTerm} ${c} ${c - r}Z`;
-  const id = "lune" + Math.round(p * 1000);
-  // Mers lunaires placées comme sur la vraie face visible (nord en haut)
-  const mers = [
-    [14, 27, 6.5, 12, -12],  // Océan des Tempêtes
-    [21, 19, 7, 5.5, -15],   // Mer des Pluies
-    [33.5, 18.5, 4.6, 4.2, 0], // Mer de la Sérénité
-    [38.5, 27.5, 5.8, 4.6, 20], // Mer de la Tranquillité
-    [48, 21.5, 3.2, 2.6, 10], // Mer des Crises
-    [45.5, 34, 3.4, 4.8, 15], // Mer de la Fécondité
-    [36, 37, 3.2, 2.6, 0],   // Mer du Nectar
-    [26, 40, 5.5, 3.6, -10], // Mer des Nuées
-    [16.5, 40.5, 2.8, 2.6, 0], // Mer des Humeurs
-    [30, 11, 8, 2, 0]        // Mer du Froid
-  ].map(([x, y, a, b, rot]) => `<ellipse cx="${x}" cy="${y}" rx="${a}" ry="${b}" transform="rotate(${rot} ${x} ${y})"/>`).join("");
-  const cratere = (x, y, rr) =>
-    `<circle cx="${x}" cy="${y}" r="${rr}" fill="#B57A00" opacity=".55"/>`
-    + `<circle cx="${x + rr * .25}" cy="${y + rr * .25}" r="${rr * .7}" fill="#FFF3B8" opacity=".7"/>`;
-  const rayons = [[-100, 18], [-70, 13], [-35, 9], [10, 7], [150, 8], [195, 10], [-140, 12]]
-    .map(([a, l]) => `<line x1="30" y1="47" x2="${(30 + Math.cos(a * Math.PI / 180) * l).toFixed(1)}" y2="${(47 + Math.sin(a * Math.PI / 180) * l).toFixed(1)}"/>`).join("");
+  const id = prefixe + Math.round(p * 1000);
+  const mer = (x, y, rx2, ry2) => `<ellipse cx="${x}" cy="${y}" rx="${rx2}" ry="${ry2}" fill="#E0A800" opacity=".35"/>`;
   return `<svg viewBox="0 0 60 60" aria-hidden="true">
     <defs>
-      <radialGradient id="${id}-g" cx="44%" cy="40%" r="62%">
-        <stop offset="0" stop-color="#FFF8C8"/><stop offset=".45" stop-color="#FFE36A"/>
-        <stop offset=".85" stop-color="#F4BE1E"/><stop offset="1" stop-color="#D99A00"/>
+      <radialGradient id="${id}-g" cx="42%" cy="38%" r="68%">
+        <stop offset="0" stop-color="#FFF27A"/><stop offset=".55" stop-color="#FFD91A"/><stop offset="1" stop-color="#F2B705"/>
       </radialGradient>
-      <radialGradient id="${id}-n" cx="50%" cy="45%" r="60%">
-        <stop offset="0" stop-color="#232833"/><stop offset="1" stop-color="#0B0D12"/>
-      </radialGradient>
-      <filter id="${id}-f" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.7"/></filter>
-      <filter id="${id}-r" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation=".45"/></filter>
-      <filter id="${id}-t" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation=".55"/></filter>
-      <clipPath id="${id}-d"><circle cx="${c}" cy="${c}" r="${r}"/></clipPath>
-      <mask id="${id}-m" maskUnits="userSpaceOnUse" x="0" y="0" width="60" height="60">
-        <path d="${eclaire}" fill="#fff" filter="url(#${id}-t)"/>
-      </mask>
+      <clipPath id="${id}-c"><path d="${eclaire}"/></clipPath>
     </defs>
-    <circle cx="${c}" cy="${c}" r="${r}" fill="url(#${id}-n)"/>
-    <g clip-path="url(#${id}-d)">
-      <g fill="#3A4152" opacity=".35" filter="url(#${id}-f)">${mers}</g>
-      <g mask="url(#${id}-m)">
-        <circle cx="${c}" cy="${c}" r="${r}" fill="url(#${id}-g)"/>
-        <g fill="#C08604" opacity=".4" filter="url(#${id}-f)">${mers}</g>
-        <g stroke="#FFF9DC" stroke-width=".6" stroke-linecap="round" opacity=".28" filter="url(#${id}-r)">${rayons}</g>
-        <circle cx="30" cy="47" r="1.3" fill="#FFFBE6" opacity=".9"/>
-        ${cratere(23, 27, 1.5)}${cratere(19, 33, 1)}${cratere(41, 43, 1.3)}${cratere(44, 13, 1.1)}${cratere(13, 18, 1)}${cratere(36, 50, 1)}
-      </g>
+    <circle cx="${c}" cy="${c}" r="${r}" fill="#0A0A0A"/>
+    <g clip-path="url(#${id}-c)">
+      <circle cx="${c}" cy="${c}" r="${r}" fill="url(#${id}-g)"/>
+      ${mer(22, 22, 7, 5)}${mer(37, 19, 5, 4)}${mer(36, 35, 8, 6)}${mer(22, 39, 5, 4)}${mer(29, 29, 3, 2.5)}
     </g>
-    <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#000" stroke-opacity=".7" stroke-width="1.6"/>
+    <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#000" stroke-width="2"/>
   </svg>`;
 }
 
@@ -769,7 +753,15 @@ async function chargerMeteo() {
     const d = await r.json();
     const c = d.current, j = d.daily;
     const now = meteoInfo(c.weather_code, c.is_day === 1);
-    $("#meteo-icone").textContent = now.icone;
+    // Ciel dégagé ou peu nuageux : lune dessinée (phase réelle du jour) la nuit, soleil le jour
+    const icone = $("#meteo-icone");
+    if (c.weather_code <= 1) {
+      icone.innerHTML = c.is_day === 1 ? svgSoleil() : svgLune(phaseLune(), "astre");
+      icone.classList.add("dessin");
+    } else {
+      icone.textContent = now.icone;
+      icone.classList.remove("dessin");
+    }
     $("#meteo-temp").textContent = Math.round(c.temperature_2m) + "°";
     const pluie = j.precipitation_probability_max?.[0];
     $("#meteo-texte").textContent = `${now.texte} · ${Math.round(j.temperature_2m_min[0])}° / ${Math.round(j.temperature_2m_max[0])}°`

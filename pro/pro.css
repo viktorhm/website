@@ -417,6 +417,8 @@ button { font: inherit; }
 .meteo-jour span:last-child { font-family: var(--mono); color: var(--texte); font-size: .8rem; }
 .meteo-jour small { color: var(--texte-3); margin-left: 3px; font-size: .7rem; }
 .meteo-lieu { position: absolute; top: -9px; right: 14px; background: var(--fond); padding: 0 6px; font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--laiton); }
+.meteo-icone.dessin { display: block; width: 46px; height: 46px; flex: none; }
+.meteo-icone.dessin svg { display: block; width: 100%; height: 100%; filter: drop-shadow(0 0 6px rgba(255, 220, 90, .35)); }
 /* Phase de lune */
 .meteo-lune { display: flex; flex-direction: column; align-items: center; gap: 7px; padding-left: 16px; border-left: 1px solid var(--ligne-douce); cursor: default; }
 .lune-frise { display: flex; align-items: center; gap: 5px; }
