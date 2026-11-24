@@ -9,7 +9,7 @@
 <link rel="apple-touch-icon" href="/assets/favicon.png">
 <title>Espace professionnel — Horlogerie Haratyk</title>
 <link rel="icon" href="/assets/favicon.png">
-<link rel="stylesheet" href="pro.css?v=6.5">
+<link rel="stylesheet" href="pro.css?v=6.8">
 </head>
 <body>
 
@@ -39,11 +39,52 @@
       </div>
       <div class="entete-droite">
         <div class="etat-ligne" title="État de la synchronisation"><span class="led" id="led"></span><span id="led-texte">En ligne</span></div>
-        <button id="btn-notif" class="btn-deco btn-notif" hidden>🔔 Activer les notifications</button>
+        <button id="btn-reglages-pro" class="btn-deco btn-rouage" title="Réglages du compte" aria-label="Réglages du compte">⚙</button>
         <button id="btn-logout" class="btn-deco">Déconnexion</button>
       </div>
     </div>
   </header>
+
+  <!-- Réglages du compte (panneau) -->
+  <div id="panneau-reglages" class="panneau-fond" hidden>
+    <section class="panneau" role="dialog" aria-modal="true" aria-labelledby="panneau-titre">
+      <div class="panneau-tete">
+        <h2 id="panneau-titre">Réglages du compte</h2>
+        <button type="button" class="panneau-fermer" id="btn-fermer-reglages" aria-label="Fermer">✕</button>
+      </div>
+
+      <div class="panneau-bloc">
+        <h3>Mot de passe</h3>
+        <form id="form-mdp" autocomplete="on">
+          <input type="email" autocomplete="username" id="mdp-email" hidden>
+          <input type="password" id="mdp-actuel" placeholder="Mot de passe actuel" autocomplete="current-password" required>
+          <input type="password" id="mdp-nouveau" placeholder="Nouveau mot de passe (6 caractères minimum)" autocomplete="new-password" minlength="6" required>
+          <input type="password" id="mdp-confirme" placeholder="Confirmer le nouveau mot de passe" autocomplete="new-password" minlength="6" required>
+          <p class="panneau-erreur" id="mdp-erreur"></p>
+          <button type="submit" class="btn btn-or" id="btn-mdp">Changer le mot de passe</button>
+        </form>
+      </div>
+
+      <div class="panneau-bloc">
+        <h3>Notifications</h3>
+        <p class="panneau-note">Être prévenu sur cet appareil quand un devis est prêt ou qu'une montre est prête à retirer.</p>
+        <button id="btn-notif" class="btn btn-ligne btn-notif" hidden>🔔 Activer les notifications</button>
+      </div>
+
+      <div class="panneau-bloc">
+        <h3>Affichage</h3>
+        <label class="panneau-case"><input type="checkbox" id="opt-meteo" checked> Afficher la météo</label>
+        <div class="meteo-ville" id="meteo-ville-zone">
+          <label for="meteo-ville-recherche" class="panneau-note" style="display:block;margin:14px 0 6px">Ville de la météo : <b id="meteo-ville-actuelle">Marcq-en-Barœul</b></label>
+          <div class="meteo-ville-champ">
+            <input type="search" id="meteo-ville-recherche" placeholder="Rechercher une ville…" autocomplete="off">
+            <ul id="meteo-ville-resultats" class="meteo-ville-resultats" hidden></ul>
+          </div>
+          <button type="button" class="btn-lien-pro" id="meteo-ville-reset" hidden>↺ Revenir à l'atelier (Marcq-en-Barœul)</button>
+        </div>
+      </div>
+    </section>
+  </div>
 
   <main class="page">
     <div class="accueil">
@@ -52,6 +93,17 @@
         <h1 id="accueil-titre">Bonjour</h1>
         <div class="accueil-date" id="accueil-date"></div>
       </div>
+      <aside id="meteo" class="meteo" hidden aria-label="Météo à l'atelier">
+        <div class="meteo-actuel">
+          <span class="meteo-icone" id="meteo-icone"></span>
+          <div>
+            <div class="meteo-temp" id="meteo-temp"></div>
+            <div class="meteo-texte" id="meteo-texte"></div>
+          </div>
+        </div>
+        <div class="meteo-jours" id="meteo-jours"></div>
+        <div class="meteo-lieu" id="meteo-lieu">Marcq-en-Barœul · atelier</div>
+      </aside>
     </div>
 
     <div id="alerte-devis" class="alerte" hidden>
@@ -122,6 +174,6 @@
 <div id="print-zone" class="print-zone"></div>
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="pro.js?v=6.5"></script>
+<script type="module" src="pro.js?v=6.8"></script>
 </body>
 </html>

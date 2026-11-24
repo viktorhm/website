@@ -52,8 +52,10 @@ async function notifierPro(t, type) {
     const res = await r.json().catch(() => ({}));
     if (r.ok && res.envoyes > 0) {
       setTimeout(() => toast(`🔔 Notification envoyée à ${t.clientNom} (${res.envoyes} appareil${res.envoyes > 1 ? "s" : ""})`), 1800);
-    } else if (!r.ok) {
-      console.warn("Notification pro non envoyée :", res.error || r.status);
+    } else if (r.ok) {
+      setTimeout(() => toast(`🔕 ${t.clientNom} n'a pas activé les notifications sur son espace pro`), 1800);
+    } else {
+      setTimeout(() => toast("🔕 Notification non envoyée : " + (res.error || "erreur " + r.status), true), 1800);
     }
   } catch (e) {
     console.warn("Notification pro non envoyée :", e);
@@ -224,7 +226,7 @@ function montrerVue(nom) {
   $("#btn-atelier").classList.toggle("actif", nom === "bilan");
   if (nom === "bilan") rendreBilan();
   if (nom === "pieces") rendrePieces();
-  if (nom === "reglages") { rendreTableHoraires(); rendreEditeursListes(); }
+  if (nom === "reglages") { rendreTableHoraires(); rendreEditeursListes(); majBoutonNotifAtelier(); }
   window.scrollTo(0, 0);
 }
 $$(".nav-btn").forEach(b => b.addEventListener("click", () => {
@@ -1044,6 +1046,13 @@ function demarrerEcouteTickets() {
     tousTickets = [];
     snap.forEach(d => tousTickets.push({ id: d.id, ...d.data() }));
     rendreListe();
+    // Arrivée depuis une notification : ?t=<id du ticket>
+    if (ticketDemandeNotif && tousTickets.some(t => t.id === ticketDemandeNotif)) {
+      const id = ticketDemandeNotif;
+      ticketDemandeNotif = null;
+      history.replaceState(null, "", location.pathname);
+      setTimeout(() => ouvrirFiche(id), 0);
+    }
     const actifs = t => !["rendu"].includes(t.statut);
     const nClient = tousTickets.filter(t => !t.clientPro && actifs(t)).length;
     const nPro = tousTickets.filter(t => t.clientPro && actifs(t)).length;
@@ -2797,3 +2806,120 @@ function imprimerTickets(liste) { imprimerPages(liste.map(pageTicketHTML).join("
 
 // Rendu initial des listes (valeurs par défaut, remplacées dès la config chargée)
 rendreListesParametrees();
+
+// ------------------------------------------------------------
+// Notifications de l'atelier (devis acceptés / refusés par les clients)
+// ------------------------------------------------------------
+var ticketDemandeNotif = new URLSearchParams(location.search).get("t");
+const VAPID_PUBLIC_KEY = "BAmRdio-yTF6aRvXkJRTzmm5WnvONSAJpYMFsv3ZR5fDCdp-Pkui-H3kd2rJ3OSAVGKsc-Ecv35wCalQ34tZt7A";
+const pushDispo = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+
+function cleVapid(base64) {
+  const pad = "=".repeat((4 - base64.length % 4) % 4);
+  const b = atob((base64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from([...b].map(c => c.charCodeAt(0)));
+}
+async function idAbonnement(endpoint) {
+  const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(endpoint));
+  return [...new Uint8Array(h)].map(x => x.toString(16).padStart(2, "0")).join("").slice(0, 40);
+}
+const swAtelier = () => navigator.serviceWorker.register("/atelier/sw.js", { scope: "/atelier/" });
+
+async function sauverAbonnementAtelier(abo) {
+  const user = auth.currentUser;
+  if (!user) return;
+  const j = abo.toJSON();
+  await setDoc(doc(db, "pushAbonnements", await idAbonnement(j.endpoint)), {
+    email: user.email, emailMin: user.email.toLowerCase(),
+    endpoint: j.endpoint, keys: j.keys, role: "atelier",
+    appareil: navigator.userAgent.slice(0, 180), majLe: serverTimestamp()
+  });
+}
+
+async function majBoutonNotifAtelier() {
+  const btn = $("#btn-notif-atelier"), test = $("#btn-notif-test"), info = $("#notif-atelier-info");
+  if (!btn) return;
+  if (!pushDispo()) {
+    btn.disabled = true; test.hidden = true;
+    info.textContent = "Ce navigateur ne gère pas les notifications (sur iPad/iPhone : ajouter l'atelier à l'écran d'accueil).";
+    return;
+  }
+  if (Notification.permission === "denied") {
+    btn.textContent = "🔕 Notifications bloquées"; btn.dataset.etat = "bloque"; test.hidden = true;
+    info.textContent = "Autorise-les via le cadenas 🔒 à gauche de l'adresse.";
+    return;
+  }
+  const reg = await navigator.serviceWorker.getRegistration("/atelier/");
+  const abo = reg && await reg.pushManager.getSubscription();
+  const actif = !!abo && Notification.permission === "granted";
+  btn.textContent = actif ? "🔔 Notifications activées — désactiver" : "🔔 Activer les notifications";
+  btn.dataset.etat = actif ? "actif" : "inactif";
+  test.hidden = !actif;
+  info.textContent = actif ? "Cet appareil sera prévenu des réponses aux devis." : "";
+  if (actif) sauverAbonnementAtelier(abo).catch(() => {});
+}
+
+$("#btn-notif-atelier").addEventListener("click", async () => {
+  const btn = $("#btn-notif-atelier");
+  try {
+    btn.disabled = true;
+    if (btn.dataset.etat === "bloque") {
+      alert("Les notifications sont bloquées pour ce site.\nClique sur le cadenas 🔒 à gauche de l'adresse, puis autorise « Notifications ».");
+    } else if (btn.dataset.etat === "actif") {
+      const reg = await navigator.serviceWorker.getRegistration("/atelier/");
+      const abo = reg && await reg.pushManager.getSubscription();
+      if (abo) {
+        try { await deleteDoc(doc(db, "pushAbonnements", await idAbonnement(abo.endpoint))); } catch {}
+        await abo.unsubscribe();
+      }
+      toast("Notifications désactivées sur cet appareil");
+    } else {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") { toast("Notifications non autorisées", true); return; }
+      const reg = await swAtelier();
+      await navigator.serviceWorker.ready;
+      const abo = (await reg.pushManager.getSubscription())
+        || await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: cleVapid(VAPID_PUBLIC_KEY) });
+      await sauverAbonnementAtelier(abo);
+      toast("Notifications activées ✓ — tu seras prévenu des réponses aux devis");
+    }
+  } catch (e) {
+    console.error(e);
+    toast(e.code === "permission-denied" ? "Règle Firestore « pushAbonnements » manquante" : "Impossible d'activer les notifications ici", true);
+  } finally {
+    btn.disabled = false;
+    majBoutonNotifAtelier();
+  }
+});
+
+$("#btn-notif-test").addEventListener("click", async () => {
+  const btn = $("#btn-notif-test");
+  btn.disabled = true;
+  try {
+    const r = await fetch("/.netlify/functions/notifier-pro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + await auth.currentUser.getIdToken() },
+      body: JSON.stringify({ type: "test" })
+    });
+    const res = await r.json().catch(() => ({}));
+    if (r.ok && res.envoyes > 0) toast(`Test envoyé ✓ (${res.envoyes} appareil${res.envoyes > 1 ? "s" : ""}) — la notification doit apparaître`);
+    else if (r.ok) toast("Aucun appareil de l'atelier abonné — active d'abord les notifications", true);
+    else toast("Échec du test : " + (res.error || "erreur " + r.status), true);
+  } catch {
+    toast("Échec du test (connexion)", true);
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+// Clic sur une notification alors que l'atelier est déjà ouvert
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", e => {
+    if (e.data && e.data.type === "ouvrir") {
+      const id = new URL(e.data.url, location.origin).searchParams.get("t");
+      if (id && tousTickets.some(t => t.id === id)) ouvrirFiche(id);
+      else if (id) ticketDemandeNotif = id;
+    }
+  });
+  if (pushDispo() && Notification.permission === "granted") swAtelier().catch(() => {});
+}

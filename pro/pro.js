@@ -6,7 +6,8 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import {
-  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut,
+  updatePassword, reauthenticateWithCredential, EmailAuthProvider
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
   getFirestore, collection, query, where, onSnapshot, getDocs, getDoc, doc, limit, setDoc, deleteDoc, serverTimestamp
@@ -132,6 +133,7 @@ onAuthStateChanged(auth, user => {
     chargerSociete(user.email);
     chargerHoraires();
     initNotifications();
+    chargerMeteo();
     demarrerEcoute(user.email);
   } else if (arretEcoute) {
     arretEcoute();
@@ -586,6 +588,182 @@ function ouvrirTicket(id) {
   if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
   history.replaceState(null, "", location.pathname);
 }
+
+// ------------------------------------------------------------
+// Météo à l'atelier (Open-Meteo, gratuit, sans clé) — actualisée toutes les 30 min
+// ------------------------------------------------------------
+const METEO_CODES = [
+  [[0], "☀️", "Ensoleillé", "🌙", "Ciel dégagé"],
+  [[1], "🌤️", "Plutôt ensoleillé", "🌙", "Peu nuageux"],
+  [[2], "⛅", "Éclaircies", "☁️", "Partiellement nuageux"],
+  [[3], "☁️", "Couvert"],
+  [[45, 48], "🌫️", "Brouillard"],
+  [[51, 53, 55, 56, 57], "🌦️", "Bruine"],
+  [[61, 63, 80, 81], "🌧️", "Pluie"],
+  [[65, 82], "🌧️", "Forte pluie"],
+  [[66, 67], "🌧️", "Pluie verglaçante"],
+  [[71, 73, 75, 77, 85, 86], "🌨️", "Neige"],
+  [[95, 96, 99], "⛈️", "Orage"]
+];
+function meteoInfo(code, jour = true) {
+  const m = METEO_CODES.find(x => x[0].includes(code)) || [[], "🌡️", "—"];
+  return !jour && m[3] ? { icone: m[3], texte: m[4] } : { icone: m[1], texte: m[2] };
+}
+let meteoTimer = null;
+const CLE_METEO = "pro.meteo";
+function meteoActive() { try { return localStorage.getItem(CLE_METEO) !== "0"; } catch { return true; } }
+
+// Ville de la météo (mémorisée sur cet appareil) — par défaut : l'atelier
+const VILLE_ATELIER = { nom: "Marcq-en-Barœul", lat: 50.674, lon: 3.096, atelier: true };
+const CLE_VILLE = "pro.meteoVille";
+function villeMeteo() {
+  try {
+    const v = JSON.parse(localStorage.getItem(CLE_VILLE) || "null");
+    if (v && typeof v.lat === "number" && typeof v.lon === "number" && v.nom) return v;
+  } catch {}
+  return VILLE_ATELIER;
+}
+function choisirVille(v) {
+  try {
+    if (!v || v.atelier) localStorage.removeItem(CLE_VILLE);
+    else localStorage.setItem(CLE_VILLE, JSON.stringify({ nom: v.nom, detail: v.detail || "", lat: v.lat, lon: v.lon }));
+  } catch {}
+  majChoixVille();
+  chargerMeteo();
+}
+function majChoixVille() {
+  const v = villeMeteo();
+  $("#meteo-ville-actuelle").textContent = v.nom;
+  $("#meteo-ville-reset").hidden = !!v.atelier;
+  $("#meteo-ville-zone").style.opacity = meteoActive() ? "1" : ".45";
+}
+
+async function chargerMeteo() {
+  clearTimeout(meteoTimer);
+  if (!meteoActive()) { $("#meteo").hidden = true; return; }
+  meteoTimer = setTimeout(chargerMeteo, 30 * 60 * 1000);
+  try {
+    const ville = villeMeteo();
+    $("#meteo-lieu").textContent = ville.atelier ? "Marcq-en-Barœul · atelier" : ville.nom;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${ville.lat}&longitude=${ville.lon}`
+      + "&current=temperature_2m,weather_code,is_day,wind_speed_10m"
+      + "&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max"
+      + "&timezone=Europe%2FParis&forecast_days=4";
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(r.status);
+    const d = await r.json();
+    const c = d.current, j = d.daily;
+    const now = meteoInfo(c.weather_code, c.is_day === 1);
+    $("#meteo-icone").textContent = now.icone;
+    $("#meteo-temp").textContent = Math.round(c.temperature_2m) + "°";
+    const pluie = j.precipitation_probability_max?.[0];
+    $("#meteo-texte").textContent = `${now.texte} · ${Math.round(j.temperature_2m_min[0])}° / ${Math.round(j.temperature_2m_max[0])}°`
+      + (pluie >= 30 ? ` · 💧 ${pluie} %` : "");
+    $("#meteo-jours").innerHTML = j.time.slice(1, 4).map((jour, i) => {
+      const nom = new Date(jour + "T12:00:00").toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", "");
+      const m = meteoInfo(j.weather_code[i + 1]);
+      return `<div class="meteo-jour" title="${attr(m.texte)}"><span>${nom}</span><span>${m.icone}</span><span>${Math.round(j.temperature_2m_max[i + 1])}°<small>${Math.round(j.temperature_2m_min[i + 1])}°</small></span></div>`;
+    }).join("");
+    $("#meteo").hidden = false;
+  } catch {
+    $("#meteo").hidden = true; // pas de météo plutôt qu'un cadre vide
+  }
+}
+
+// ------------------------------------------------------------
+// ⚙ Réglages du compte : mot de passe, notifications, météo
+// ------------------------------------------------------------
+function ouvrirReglages() {
+  $("#form-mdp").reset();
+  $("#mdp-erreur").textContent = "";
+  $("#mdp-email").value = auth.currentUser?.email || "";
+  $("#opt-meteo").checked = meteoActive();
+  $("#meteo-ville-recherche").value = "";
+  $("#meteo-ville-resultats").hidden = true;
+  majChoixVille();
+  $("#panneau-reglages").hidden = false;
+  majBoutonNotif();
+  setTimeout(() => $("#mdp-actuel").focus(), 50);
+}
+function fermerReglages() { $("#panneau-reglages").hidden = true; }
+$("#btn-reglages-pro").addEventListener("click", ouvrirReglages);
+$("#btn-fermer-reglages").addEventListener("click", fermerReglages);
+$("#panneau-reglages").addEventListener("click", e => { if (e.target.id === "panneau-reglages") fermerReglages(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#panneau-reglages").hidden) fermerReglages(); });
+
+$("#opt-meteo").addEventListener("change", e => {
+  try { localStorage.setItem(CLE_METEO, e.target.checked ? "1" : "0"); } catch {}
+  majChoixVille();
+  chargerMeteo();
+});
+
+// Recherche de ville (géocodage Open-Meteo, gratuit, sans clé)
+let villeTimer = null, villeResultats = [];
+$("#meteo-ville-recherche").addEventListener("input", e => {
+  clearTimeout(villeTimer);
+  const q = e.target.value.trim();
+  const ul = $("#meteo-ville-resultats");
+  if (q.length < 2) { ul.hidden = true; return; }
+  villeTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(q)}&count=6&language=fr&format=json`);
+      const d = await r.json();
+      villeResultats = (d.results || []).map(x => ({
+        nom: x.name, lat: x.latitude, lon: x.longitude,
+        detail: [x.postcodes && x.postcodes[0], x.admin2 || x.admin1, x.country_code !== "FR" ? x.country : ""].filter(Boolean).join(" · ")
+      }));
+      ul.innerHTML = villeResultats.length
+        ? villeResultats.map((v, i) => `<li><button type="button" data-i="${i}"><b>${echap(v.nom)}</b> <span>${echap(v.detail)}</span></button></li>`).join("")
+        : `<li class="vide-ville">Aucune ville trouvée</li>`;
+      ul.hidden = false;
+    } catch {
+      ul.innerHTML = `<li class="vide-ville">Recherche impossible (pas de connexion ?)</li>`;
+      ul.hidden = false;
+    }
+  }, 300);
+});
+$("#meteo-ville-resultats").addEventListener("click", e => {
+  const b = e.target.closest("button[data-i]");
+  if (!b) return;
+  const v = villeResultats[parseInt(b.dataset.i)];
+  if (!v) return;
+  $("#meteo-ville-recherche").value = "";
+  $("#meteo-ville-resultats").hidden = true;
+  if (!meteoActive()) { try { localStorage.setItem(CLE_METEO, "1"); } catch {} $("#opt-meteo").checked = true; }
+  choisirVille(v);
+  toast("Météo : " + v.nom + " ✓");
+});
+$("#meteo-ville-reset").addEventListener("click", () => { choisirVille(null); toast("Météo de l'atelier rétablie"); });
+
+$("#form-mdp").addEventListener("submit", async e => {
+  e.preventDefault();
+  const err = $("#mdp-erreur");
+  const actuel = $("#mdp-actuel").value, nouveau = $("#mdp-nouveau").value, confirme = $("#mdp-confirme").value;
+  err.textContent = "";
+  if (nouveau.length < 6) { err.textContent = "Le nouveau mot de passe doit faire au moins 6 caractères."; return; }
+  if (nouveau !== confirme) { err.textContent = "Les deux nouveaux mots de passe ne correspondent pas."; return; }
+  if (nouveau === actuel) { err.textContent = "Le nouveau mot de passe doit être différent de l'actuel."; return; }
+  const btn = $("#btn-mdp");
+  btn.disabled = true; btn.textContent = "Enregistrement…";
+  try {
+    const user = auth.currentUser;
+    await reauthenticateWithCredential(user, EmailAuthProvider.credential(user.email, actuel));
+    await updatePassword(user, nouveau);
+    toast("Mot de passe modifié ✓");
+    fermerReglages();
+  } catch (ex) {
+    const messages = {
+      "auth/wrong-password": "Mot de passe actuel incorrect.",
+      "auth/invalid-credential": "Mot de passe actuel incorrect.",
+      "auth/weak-password": "Mot de passe trop faible (6 caractères minimum).",
+      "auth/too-many-requests": "Trop de tentatives, réessayez dans quelques minutes.",
+      "auth/network-request-failed": "Pas de connexion internet."
+    };
+    err.textContent = messages[ex.code] || "Impossible de changer le mot de passe. Réessayez ou appelez l'atelier.";
+  } finally {
+    btn.disabled = false; btn.textContent = "Changer le mot de passe";
+  }
+});
 
 // Clic sur une notification alors que l'espace pro est déjà ouvert
 if ("serviceWorker" in navigator) {

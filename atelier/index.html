@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=8.3">
+<link rel="stylesheet" href="style.css?v=8.4">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -371,6 +371,16 @@
     </section>
 
     <section class="bloc">
+      <h2>Notifications sur cet appareil</h2>
+      <p class="cfg-note" style="margin:0 0 12px">Recevez une notification sur cet ordinateur (ou tablette) quand un client — particulier ou pro — <b>accepte ou refuse un devis</b>. À activer sur chaque appareil.</p>
+      <div class="journal-barre" style="margin-top:0">
+        <button type="button" id="btn-notif-atelier" class="btn btn-secondaire">🔔 Activer les notifications</button>
+        <button type="button" id="btn-notif-test" class="btn btn-secondaire" hidden>Envoyer une notification de test</button>
+        <span id="notif-atelier-info" class="journal-resume"></span>
+      </div>
+    </section>
+
+    <section class="bloc">
       <h2>Raccourcis de devis</h2>
       <p class="cfg-note" style="margin:0 0 12px">Boutons proposés au-dessus du devis d'un ticket. La 1re ligne du texte sert de titre ; les lignes suivantes apparaissent en détail sous le titre (atelier, espace pro, email).</p>
       <div id="cfg-devisPresets" class="cfg-liste"></div>
@@ -427,6 +437,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=8.3"></script>
+<script type="module" src="app.js?v=8.4"></script>
 </body>
 </html>

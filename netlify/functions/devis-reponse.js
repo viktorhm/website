@@ -4,6 +4,7 @@
 // page de confirmation au client.
 
 import admin from "firebase-admin";
+import { envoyerPush, emailAtelier } from "./push-util.js";
 
 if (!admin.apps.length) {
   admin.initializeApp({
@@ -161,6 +162,25 @@ export async function handler(event) {
       });
     }
     await docRef.update(misesAJour);
+
+    // Notification sur les appareils de l'atelier (ne bloque jamais la réponse du client)
+    try {
+      const lignes = misesAJour["devis.lignes"] || ticket.devis?.lignes || [];
+      const total = lignes.filter(l => !l.optionnelle || l.refusee === false)
+        .reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
+      const nbOpt = lignes.filter(l => l.optionnelle && l.refusee === false).length;
+      const objet = [ticket.marque, ticket.modele].filter(Boolean).join(" ") || ticket.typeObjet || "";
+      const client = (ticket.clientNom || "Client") + (ticket.clientPro ? " (pro)" : "");
+      await envoyerPush(db, [emailAtelier()], reponse === "accepte"
+        ? { title: `✓ Devis accepté — n° ${ticket.numero}`,
+            body: `${client} · ${objet} · ${total.toFixed(2)} €${nbOpt ? ` (dont ${nbOpt} option${nbOpt > 1 ? "s" : ""})` : ""}`,
+            url: `/atelier/?t=${docRef.id}`, tag: `devis-${docRef.id}` }
+        : { title: `✗ Devis refusé — n° ${ticket.numero}`,
+            body: `${client} · ${objet} — montre à rendre`,
+            url: `/atelier/?t=${docRef.id}`, tag: `devis-${docRef.id}` });
+    } catch (err) {
+      console.error("Notification atelier non envoyée :", err.message);
+    }
 
     if (reponse === "accepte") {
       return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" },
