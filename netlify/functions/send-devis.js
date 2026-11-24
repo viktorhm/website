@@ -2,6 +2,7 @@
 // Boutons Accepter / Refuser → devis-reponse.js met à jour Firestore
 
 import nodemailer from "nodemailer";
+import { refuserSiPasAtelier, destinatairesValides } from "./auth-atelier.js";
 import { gabaritPremium, boutonPremium, friseEtapes, P } from "./email-template.js";
 
 const SITE = "https://horlogerie-haratyk.fr";
@@ -10,9 +11,13 @@ export async function handler(event) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }
+  const refus = await refuserSiPasAtelier(event);
+  if (refus) return refus;
 
   try {
     const { email, nom, numero, contremarque, objet, lignes, token, horaires } = JSON.parse(event.body || "{}");
+    const dest = destinatairesValides(email);
+    if (!dest) return { statusCode: 400, body: JSON.stringify({ error: "Destinataire invalide (3 adresses maximum)" }) };
 
     if (!email || !numero || !Array.isArray(lignes) || !lignes.length || !token) {
       return { statusCode: 400, body: JSON.stringify({ error: "Données incomplètes" }) };
@@ -79,7 +84,7 @@ export async function handler(event) {
 
     await transporter.sendMail({
       from: `"Horlogerie Haratyk" <${process.env.GMAIL_USER}>`,
-      to: email,
+      to: dest,
       subject: `Devis n° ${numero} — ${objet || "votre objet"} (${total.toFixed(2)} €)`,
       html: gabaritPremium({ horaires,
         titre: "Votre devis est pr\u00eat",

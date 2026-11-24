@@ -504,7 +504,7 @@ async function repondreDevis(bouton, token, reponse, opts) {
   bouton.textContent = "Envoi…";
   try {
     const qui = auth.currentUser ? auth.currentUser.email : "";
-    const r = await fetch(`/.netlify/functions/devis-reponse?token=${encodeURIComponent(token)}&reponse=${reponse}&opts=${encodeURIComponent(opts || "")}&qui=${encodeURIComponent(qui)}`);
+    const r = await fetch(`/.netlify/functions/devis-reponse?token=${encodeURIComponent(token)}&reponse=${reponse}&opts=${encodeURIComponent(opts || "")}&qui=${encodeURIComponent(qui)}`, { method: "POST" });
     if (!r.ok) throw new Error();
     toast(reponse === "accepte" ? "Devis accepté ✓ — les travaux vont démarrer" : "Refus enregistré");
   } catch {

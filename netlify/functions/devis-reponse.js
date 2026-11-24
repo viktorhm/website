@@ -97,16 +97,43 @@ async function pageChoix(token) {
   var base = ${totalBase};
   function maj(){var t=base;document.querySelectorAll(".opt:checked").forEach(function(c){t+=parseFloat(c.dataset.prix)||0});document.getElementById("total").textContent=t.toFixed(2)}
   document.querySelectorAll(".opt").forEach(function(c){c.addEventListener("change",maj)});
+  // La réponse est envoyée en POST (un simple lien ouvert par un antivirus ne compte pas)
+  function envoyer(rep, ids){var f=document.createElement("form");f.method="post";f.action="?token=${encodeURIComponent(token)}&reponse="+rep+"&opts="+encodeURIComponent(ids||"");document.body.appendChild(f);f.submit();}
   document.getElementById("ok").addEventListener("click",function(){
     var ids=[].map.call(document.querySelectorAll(".opt:checked"),function(c){return c.dataset.i}).join(",");
-    location.href="?token=${encodeURIComponent(token)}&reponse=accepte&opts="+ids;
+    envoyer("accepte", ids);
   });
   document.getElementById("non").addEventListener("click",function(){
-    if(confirm("Confirmer le refus du devis ?"))location.href="?token=${encodeURIComponent(token)}&reponse=refuse";
+    if(confirm("Confirmer le refus du devis ?"))envoyer("refuse","");
   });
 </script>
 </body></html>`;
   return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" }, body: html };
+}
+
+async function pageConfirmation(token, reponse, opts) {
+  const snap = await db.collection("tickets").where("devis.token", "==", token).limit(1).get();
+  if (snap.empty) {
+    return { statusCode: 404, headers: { "Content-Type": "text/html; charset=utf-8" },
+      body: page("Devis introuvable", "Ce lien ne correspond à aucun devis en cours. Contactez-moi au 07 85 85 10 80.", "erreur") };
+  }
+  const t = snap.docs[0].data();
+  if (["accepte", "refuse"].includes(t.devis?.statut)) {
+    const deja = t.devis.statut === "accepte" ? "accepté" : "refusé";
+    return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" },
+      body: page("Réponse déjà enregistrée", `Ce devis a déjà été ${deja}. Pour modifier votre réponse, contactez l'atelier au 07 85 85 10 80.`) };
+  }
+  const accepte = reponse === "accepte";
+  const action = `?token=${encodeURIComponent(token)}&reponse=${reponse}&opts=${encodeURIComponent(opts || "")}`;
+  const bouton = `<form method="post" action="${action}" style="margin:22px 0 0;">
+      <button type="submit" style="font:inherit;font-size:16px;font-weight:bold;border:none;border-radius:10px;padding:15px 28px;cursor:pointer;
+        background:${accepte ? "#3E7A4E" : "#C0392B"};color:#fff;">${accepte ? "✓ Je confirme mon accord" : "✗ Je confirme le refus"}</button>
+    </form>
+    <p style="margin-top:14px;font-size:13px;"><a href="?token=${encodeURIComponent(token)}" style="color:#A8823C;">Revoir le détail du devis</a></p>`;
+  return { statusCode: 200, headers: { "Content-Type": "text/html; charset=utf-8" },
+    body: page(accepte ? "Confirmer votre accord" : "Confirmer le refus",
+      `Devis du ticket n° <b>${t.numero}</b>. ${accepte ? "Un clic pour valider le devis et lancer les travaux." : "La montre vous sera rendue en l'état."}` + bouton,
+      accepte ? "ok" : "refus") };
 }
 
 export async function handler(event) {
@@ -125,6 +152,12 @@ export async function handler(event) {
   if (!["accepte", "refuse"].includes(reponse)) {
     return { statusCode: 400, headers: { "Content-Type": "text/html; charset=utf-8" },
       body: page("Lien invalide", "Ce lien de réponse au devis est invalide.", "erreur") };
+  }
+
+  // Lien ouvert (GET) : on demande une confirmation — seul un vrai clic (POST) enregistre la réponse.
+  // Évite qu'un antivirus ou une messagerie qui « visite » les liens accepte/refuse à la place du client.
+  if (event.httpMethod !== "POST") {
+    return pageConfirmation(token, reponse, opts);
   }
 
   try {

@@ -2,6 +2,7 @@
 // Version "premium" : envoyé automatiquement à la création du/des ticket(s)
 
 import nodemailer from "nodemailer";
+import { refuserSiPasAtelier, destinatairesValides } from "./auth-atelier.js";
 
 const ENCRE = "#171D23";
 const CARTE = "#222A32";
@@ -16,9 +17,13 @@ export async function handler(event) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }
+  const refus = await refuserSiPasAtelier(event);
+  if (refus) return refus;
 
   try {
     const { email, nom, civilite, tickets, horaires } = JSON.parse(event.body || "{}");
+    const dest = destinatairesValides(email);
+    if (!dest) return { statusCode: 400, body: JSON.stringify({ error: "Destinataire invalide (3 adresses maximum)" }) };
     const horairesTxt = String(horaires || "Mercredi & jeudi 10h\u201318h \u00b7 Samedi 10h\u201314h");
     const horairesHtml = horairesTxt.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
@@ -136,7 +141,7 @@ export async function handler(event) {
     const numeros = tickets.map(t => "n° " + t.numero).join(", ");
     await transporter.sendMail({
       from: `"Horlogerie Haratyk" <${process.env.GMAIL_USER}>`,
-      to: email,
+      to: dest,
       subject: pluriel
         ? `Confirmation de dépôt — ${tickets.length} objets (${numeros})`
         : `Confirmation de dépôt — Ticket ${numeros}`,

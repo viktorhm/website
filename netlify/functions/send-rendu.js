@@ -2,6 +2,7 @@
 // Envoyé automatiquement quand le ticket passe au statut "rendu"
 
 import nodemailer from "nodemailer";
+import { refuserSiPasAtelier, destinatairesValides } from "./auth-atelier.js";
 import { gabaritPremium, boutonPremium, P } from "./email-template.js";
 
 // ⚠ Remplace par TON lien d'avis direct Google (Profil d'établissement
@@ -12,9 +13,13 @@ export async function handler(event) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }
+  const refus = await refuserSiPasAtelier(event);
+  if (refus) return refus;
 
   try {
     const { email, nom, civilite, numero, objet, garantie, horaires } = JSON.parse(event.body || "{}");
+    const dest = destinatairesValides(email);
+    if (!dest) return { statusCode: 400, body: JSON.stringify({ error: "Destinataire invalide (3 adresses maximum)" }) };
 
     if (!email || !numero) {
       return { statusCode: 400, body: JSON.stringify({ error: "email et numero requis" }) };
@@ -53,7 +58,7 @@ export async function handler(event) {
 
     await transporter.sendMail({
       from: `"Horlogerie Haratyk" <${process.env.GMAIL_USER}>`,
-      to: email,
+      to: dest,
       subject: `Merci de votre confiance — Ticket n° ${numero}`,
       html: gabaritPremium({ horaires,
         titre: "À bientôt !",

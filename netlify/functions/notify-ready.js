@@ -2,15 +2,20 @@
 // Variables Netlify : GMAIL_USER et GMAIL_APP_PASSWORD (déjà configurées)
 
 import nodemailer from "nodemailer";
+import { refuserSiPasAtelier, destinatairesValides } from "./auth-atelier.js";
 import { gabaritPremium, friseEtapes, P } from "./email-template.js";
 
 export async function handler(event) {
   if (event.httpMethod !== "POST") {
     return { statusCode: 405, body: JSON.stringify({ error: "Method not allowed" }) };
   }
+  const refus = await refuserSiPasAtelier(event);
+  if (refus) return refus;
 
   try {
     const { email, nom, numero, objet, horaires } = JSON.parse(event.body || "{}");
+    const dest = destinatairesValides(email);
+    if (!dest) return { statusCode: 400, body: JSON.stringify({ error: "Destinataire invalide (3 adresses maximum)" }) };
     const horairesTxt = String(horaires || "Mercredi & jeudi 10h\u201318h \u00b7 Samedi 10h\u201314h");
     const horairesHtml = horairesTxt.replace(/&/g, "&amp;").replace(/</g, "&lt;");
 
@@ -54,7 +59,7 @@ export async function handler(event) {
 
     await transporter.sendMail({
       from: `"Horlogerie Haratyk" <${process.env.GMAIL_USER}>`,
-      to: email,
+      to: dest,
       subject: `Votre ${objet || "objet"} est prêt — Ticket n° ${numero}`,
       html: gabaritPremium({ horaires: horairesTxt,
         titre: "Votre objet est pr\u00eat !",

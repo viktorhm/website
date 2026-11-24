@@ -40,6 +40,14 @@ const auth = getAuth(app);
 // Notification push sur les PC / téléphones du client pro
 // (sans effet si le client n'est pas pro ou n'a pas activé les notifications)
 // ------------------------------------------------------------
+// En-têtes des appels aux fonctions Netlify : jeton du compte atelier
+// (les fonctions d'email refusent tout appel qui ne vient pas de ce compte)
+async function enTetesAtelier() {
+  const h = { "Content-Type": "application/json" };
+  try { if (auth.currentUser) h.Authorization = "Bearer " + await auth.currentUser.getIdToken(); } catch {}
+  return h;
+}
+
 async function notifierPro(t, type) {
   if (!t || !t.clientPro) return;
   try {
@@ -574,7 +582,7 @@ $("#btn-creer-ticket").addEventListener("click", async () => {
       try {
         const r = await fetch("/.netlify/functions/send-depot", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await enTetesAtelier(),
           body: JSON.stringify({
             email: destinataires,
             horaires: configAtelier.horaires,
@@ -1024,7 +1032,13 @@ function demarrerEcoutesAnnexes() {
   });
   onSnapshot(collection(db, "commandes"), snap => {
     commandesLibres = [];
-    snap.forEach(d => commandesLibres.push({ id: d.id, ...d.data() }));
+    // La collection « commandes » contient aussi les achats de la boutique (Stripe) :
+    // on ne garde que les fournitures de l'atelier
+    snap.forEach(d => {
+      const c = d.data();
+      if (c.sessionId || c.montreId || c.paymentIntent || !c.designation) return;
+      commandesLibres.push({ id: d.id, ...c });
+    });
     if (!$("#vue-bilan").hidden) rendreBilan();
     majBadgePieces();
     if (!$("#vue-pieces").hidden) rendrePieces();
@@ -1677,7 +1691,7 @@ async function changerStatut(nouveau) {
       try {
         const r = await fetch("/.netlify/functions/send-rendu", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await enTetesAtelier(),
           body: JSON.stringify({
         horaires: configAtelier.horaires,
             email: destinataires,
@@ -1915,7 +1929,7 @@ $("#btn-envoyer-devis").addEventListener("click", async () => {
     if (!t.clientPro) {
       const r = await fetch("/.netlify/functions/send-devis", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: await enTetesAtelier(),
         body: JSON.stringify({
         horaires: configAtelier.horaires,
           email: (t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).join(", "),
@@ -1990,7 +2004,7 @@ $("#btn-notifier").addEventListener("click", async () => {
   try {
     const r = await fetch("/.netlify/functions/notify-ready", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await enTetesAtelier(),
       body: JSON.stringify({
         horaires: configAtelier.horaires,
         email: (t.clientEmails && t.clientEmails.length ? t.clientEmails : [t.clientEmail]).join(", "),
@@ -2713,7 +2727,7 @@ $("#btn-renvoyer-depot").addEventListener("click", async () => {
   try {
     const r = await fetch("/.netlify/functions/send-depot", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await enTetesAtelier(),
       body: JSON.stringify({
         email: destinataires,
         horaires: configAtelier.horaires,
