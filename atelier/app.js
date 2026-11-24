@@ -35,6 +35,30 @@ const NUMERO_DEPART = 3113;
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
+
+// ------------------------------------------------------------
+// Notification push sur les PC / téléphones du client pro
+// (sans effet si le client n'est pas pro ou n'a pas activé les notifications)
+// ------------------------------------------------------------
+async function notifierPro(t, type) {
+  if (!t || !t.clientPro) return;
+  try {
+    const jeton = await auth.currentUser.getIdToken();
+    const r = await fetch("/.netlify/functions/notifier-pro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: "Bearer " + jeton },
+      body: JSON.stringify({ ticketId: t.id, type })
+    });
+    const res = await r.json().catch(() => ({}));
+    if (r.ok && res.envoyes > 0) {
+      setTimeout(() => toast(`🔔 Notification envoyée à ${t.clientNom} (${res.envoyes} appareil${res.envoyes > 1 ? "s" : ""})`), 1800);
+    } else if (!r.ok) {
+      console.warn("Notification pro non envoyée :", res.error || r.status);
+    }
+  } catch (e) {
+    console.warn("Notification pro non envoyée :", e);
+  }
+}
 const db = getFirestore(app);
 
 // ------------------------------------------------------------
@@ -692,6 +716,7 @@ function rendreListesParametrees() {
   rendrePastilles("etat-objet", lireListe("etats"));
   rendrePastilles("demande-client", lireListe("demandes"));
   rendreSelectsFournisseurs();
+  rendreDevisPresets();
   if (!$("#vue-reglages").hidden) rendreEditeursListes();
 }
 
@@ -710,7 +735,87 @@ async function sauverListe(cle, valeurs) {
   }
 }
 
+function rendreEditeurPresets() {
+  const zone = $("#cfg-devisPresets");
+  if (!zone) return;
+  const liste = lireDevisPresets();
+  zone.innerHTML = liste.map((p, i) => `
+    <div class="cfg-item cfg-preset" data-i="${i}">
+      <div class="cfg-preset-vue">
+        <span class="cfg-nom">${echap(p.nom)}${p.prix !== "" && p.prix != null ? ` <span class="pastille-prix">${parseFloat(p.prix)} €</span>` : ""}</span>
+        <span class="cfg-preset-texte">${htmlDesignation(p.texte)}</span>
+      </div>
+      <span class="cfg-actions">
+        <button type="button" class="cfg-btn preset-act" data-act="haut" data-i="${i}" title="Monter" ${i === 0 ? "disabled" : ""}>↑</button>
+        <button type="button" class="cfg-btn preset-act" data-act="modif" data-i="${i}" title="Modifier">✎</button>
+        <button type="button" class="cfg-btn cfg-suppr preset-act" data-act="suppr" data-i="${i}" title="Supprimer">✕</button>
+      </span>
+    </div>`).join("") || "<p class='liste-vide'>Aucun raccourci.</p>";
+}
+
+async function sauverPresets(liste) {
+  const ok = await sauverListe("devisPresets", liste);
+  if (ok) { rendreDevisPresets(); rendreEditeurPresets(); }
+  return ok;
+}
+function lireFormPreset(form) {
+  const nom = form.querySelector(".pf-nom").value.trim();
+  const prixTxt = form.querySelector(".pf-prix").value.trim();
+  const texte = form.querySelector(".pf-texte").value.replace(/\n{3,}/g, "\n\n").trim();
+  return { nom, prix: prixTxt === "" ? "" : parseFloat(prixTxt), texte: texte || nom };
+}
+
+document.addEventListener("click", async e => {
+  const b = e.target.closest(".preset-act, .pf-ajouter, .pf-enregistrer, .pf-annuler");
+  if (!b) return;
+  const liste = lireDevisPresets().map(p => ({ ...p }));
+  if (b.classList.contains("pf-ajouter")) {
+    const form = b.closest(".cfg-preset-form");
+    const p = lireFormPreset(form);
+    if (!p.nom) return toast("Indique le nom du bouton", true);
+    liste.push(p);
+    if (await sauverPresets(liste)) { form.querySelectorAll("input, textarea").forEach(x => (x.value = "")); toast("Raccourci ajouté ✓"); }
+    return;
+  }
+  if (b.classList.contains("pf-annuler")) return rendreEditeurPresets();
+  if (b.classList.contains("pf-enregistrer")) {
+    const i = parseInt(b.dataset.i);
+    const p = lireFormPreset(b.closest(".cfg-preset-form"));
+    if (!p.nom) return toast("Indique le nom du bouton", true);
+    liste[i] = p;
+    if (await sauverPresets(liste)) toast("Raccourci modifié ✓");
+    return;
+  }
+  const i = parseInt(b.dataset.i), act = b.dataset.act;
+  if (act === "haut" && i > 0) {
+    [liste[i - 1], liste[i]] = [liste[i], liste[i - 1]];
+    await sauverPresets(liste);
+  } else if (act === "suppr") {
+    if (!confirm(`Supprimer le raccourci « ${liste[i].nom} » ?`)) return;
+    liste.splice(i, 1);
+    if (await sauverPresets(liste)) toast("Raccourci supprimé");
+  } else if (act === "modif") {
+    const p = liste[i];
+    const item = b.closest(".cfg-preset");
+    item.innerHTML = `
+      <div class="cfg-preset-form" style="width:100%;margin:0">
+        <input type="text" class="pf-nom" value="${echapAttr(p.nom)}" placeholder="Nom du bouton">
+        <input type="number" class="pf-prix" value="${p.prix === "" || p.prix == null ? "" : p.prix}" placeholder="Prix €" step="0.01" min="0" inputmode="decimal">
+        <textarea class="pf-texte" rows="4">${echap(p.texte || "")}</textarea>
+        <span class="pf-boutons">
+          <button type="button" class="btn-lien pf-annuler">annuler</button>
+          <button type="button" class="btn btn-principal pf-enregistrer" data-i="${i}">Enregistrer</button>
+        </span>
+      </div>`;
+    const ta = item.querySelector(".pf-texte");
+    ajusterHauteur(ta);
+    ta.addEventListener("input", () => ajusterHauteur(ta));
+    item.querySelector(".pf-nom").focus();
+  }
+});
+
 function rendreEditeursListes() {
+  rendreEditeurPresets();
   ["fournisseurs", "typesObjet", "etats", "demandes"].forEach(cle => {
     const zone = document.getElementById("cfg-" + cle);
     if (!zone) return;
@@ -735,7 +840,7 @@ function rendreEditeursListes() {
 
 document.addEventListener("click", async e => {
   const b = e.target.closest(".cfg-btn");
-  if (!b) return;
+  if (!b || !b.dataset.cle) return;
   const cle = b.dataset.cle, i = parseInt(b.dataset.i), act = b.dataset.act;
   const liste = lireListe(cle).map(x => (typeof x === "object" ? { ...x } : x));
   const nomDe = x => (cle === "fournisseurs" ? x.nom : x);
@@ -1053,6 +1158,7 @@ async function changerEtatPieces(t, indices, etat) {
   try {
     await updateDoc(doc(db, "tickets", t.id), maj);
     toast(`${indices.length > 1 ? indices.length + " pièces" : "Pièce"} : ${etatInfo(etat).court.toLowerCase()} ✓${info}`);
+    if (maj.statut === "piece_attente") notifierPro(t, "piece");
   } catch (e) {
     console.error(e);
     toast("Erreur de mise à jour de la pièce", true);
@@ -1551,6 +1657,8 @@ async function changerStatut(nouveau) {
   }
   await updateDoc(doc(db, "tickets", ticketOuvert.id), maj);
   toast("Statut : " + statutLabel(nouveau));
+  if (nouveau === "pret") notifierPro(ticketOuvert, "pret");
+  if (nouveau === "piece_attente") notifierPro(ticketOuvert, "piece");
 
   // Restitution : email de remerciement + avis Google (une seule fois)
   const t = ticketOuvert;
@@ -1631,21 +1739,53 @@ function rendreDevis(t) {
       ? (repondu ? (refusee ? '<span class="tag-option tag-refuse">option refusée</span>' : '<span class="tag-option tag-ok">option acceptée</span>')
                  : '<span class="tag-option">option</span>')
       : "";
+    const enEdition = devisEdition && devisEdition.ticketId === t.id && devisEdition.index === i;
     return `
-    <div class="piece-ligne ${refusee ? "ligne-refusee" : ""}">
-      <span>${echap(l.designation)} ${tag} <button class="btn-lien devis-suppr" data-i="${i}">✕</button></span>
-      <b>${(parseFloat(l.prix) || 0).toFixed(2)} €</b>
+    <div class="piece-ligne devis-ligne ${refusee ? "ligne-refusee" : ""} ${enEdition ? "devis-ligne-edit" : ""}">
+      <span class="dv-texte">${htmlDesignation(l.designation)} ${tag}</span>
+      <span class="dv-droite">
+        <b>${(parseFloat(l.prix) || 0).toFixed(2)} €</b>
+        <span class="dv-actions">
+          ${i > 0 ? `<button class="btn-lien devis-haut" data-i="${i}" title="Monter">↑</button>` : ""}
+          <button class="btn-lien devis-modif" data-i="${i}" title="Modifier">✎</button>
+          <button class="btn-lien devis-suppr" data-i="${i}" title="Supprimer">✕</button>
+        </span>
+      </span>
     </div>`;
   }).join("") + (lignes.length
     ? `<div class="piece-ligne piece-total"><span>Total ${repondu ? "retenu" : "base"} (TVA non applicable)</span><b>${(totalBase + (repondu ? totalOptions : 0)).toFixed(2)} €</b></div>`
       + (!repondu && totalOptions ? `<div class="piece-ligne"><span style="color:var(--texte-2)">dont options proposées</span><b style="color:var(--texte-2)">+ ${totalOptions.toFixed(2)} €</b></div>` : "")
     : "<p class='liste-vide'>Aucune ligne de devis.</p>");
 
+  if (devisEdition && devisEdition.ticketId !== t.id) quitterEditionDevis();
   $$(".devis-suppr").forEach(b => b.addEventListener("click", async () => {
+    if (!confirm("Supprimer cette ligne du devis ?")) return;
     const nouvelles = lignes.filter((_, i) => i !== parseInt(b.dataset.i));
+    quitterEditionDevis();
     await updateDoc(doc(db, "tickets", t.id), {
       "devis.lignes": nouvelles, updatedAt: serverTimestamp()
     });
+  }));
+  $$(".devis-haut").forEach(b => b.addEventListener("click", async () => {
+    const i = parseInt(b.dataset.i);
+    const nouvelles = [...lignes];
+    [nouvelles[i - 1], nouvelles[i]] = [nouvelles[i], nouvelles[i - 1]];
+    quitterEditionDevis();
+    await updateDoc(doc(db, "tickets", t.id), { "devis.lignes": nouvelles, updatedAt: serverTimestamp() });
+  }));
+  $$(".devis-modif").forEach(b => b.addEventListener("click", () => {
+    const i = parseInt(b.dataset.i);
+    const l = lignes[i];
+    devisEdition = { ticketId: t.id, index: i };
+    $("#devis-designation").value = l.designation || "";
+    $("#devis-prix").value = l.prix || "";
+    $("#devis-option").checked = !!l.optionnelle;
+    ajusterHauteur($("#devis-designation"));
+    $("#btn-ajouter-devis").textContent = "Mettre à jour la ligne";
+    $("#btn-annuler-devis").hidden = false;
+    $$(".devis-ligne-edit").forEach(x => x.classList.remove("devis-ligne-edit"));
+    b.closest(".devis-ligne").classList.add("devis-ligne-edit");
+    $("#devis-designation").focus();
   }));
 
   const parQui = devis.repondant ? " par " + devis.repondant : "";
@@ -1667,24 +1807,87 @@ function rendreDevis(t) {
   }
 }
 
-$$("#devis-presets .pastille").forEach(p => p.addEventListener("click", () => {
-  $("#devis-designation").value = p.dataset.des;
-  if (p.dataset.prix) $("#devis-prix").value = p.dataset.prix;
+// ------------------------------------------------------------
+// Raccourcis de devis (paramétrables dans Réglages)
+// ------------------------------------------------------------
+const DEVIS_PRESETS_DEFAUT = [
+  { nom: "Révision méca", prix: 130, texte: "Révision complète mouvement mécanique\n– démontage, nettoyage, lubrification, réglage" },
+  { nom: "Révision auto", prix: 140, texte: "Révision complète mouvement automatique\n– démontage, nettoyage, lubrification, réglage" },
+  { nom: "Mouvement quartz", prix: "", texte: "Remplacement mouvement quartz\n– fourniture + pose" },
+  { nom: "Verre", prix: "", texte: "Remplacement du verre\n– fourniture + pose" },
+  { nom: "Pile", prix: "", texte: "Changement de pile + contrôle" }
+];
+function lireDevisPresets() {
+  const v = configAtelier.devisPresets;
+  return (Array.isArray(v) ? v : DEVIS_PRESETS_DEFAUT).filter(p => p && p.nom);
+}
+function rendreDevisPresets() {
+  const c = $("#devis-presets");
+  if (!c) return;
+  c.innerHTML = lireDevisPresets().map((p, i) =>
+    `<button type="button" class="pastille" data-i="${i}" title="${echapAttr(p.texte || "")}">${echap(p.nom)}${p.prix !== "" && p.prix != null ? ` <span class="pastille-prix">${parseFloat(p.prix)} €</span>` : ""}</button>`
+  ).join("");
+}
+$("#devis-presets").addEventListener("click", e => {
+  const b = e.target.closest(".pastille");
+  if (!b) return;
+  const p = lireDevisPresets()[parseInt(b.dataset.i)];
+  if (!p) return;
+  $("#devis-designation").value = p.texte || p.nom;
+  ajusterHauteur($("#devis-designation"));
+  $("#devis-prix").value = p.prix !== "" && p.prix != null ? p.prix : "";
   $("#devis-prix").focus();
-}));
+});
+
+// Texte de ligne de devis : 1re ligne = titre, lignes suivantes = détail
+function htmlDesignation(txt) {
+  const lignes = String(txt || "").split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  const [titre = "", ...detail] = lignes;
+  return `<span class="dv-titre">${echap(titre)}</span>` +
+    (detail.length ? `<span class="dv-detail">${detail.map(echap).join("<br>")}</span>` : "");
+}
+
+function ajusterHauteur(ta) {
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight + 2, 320) + "px";
+}
+$("#devis-designation").addEventListener("input", e => ajusterHauteur(e.target));
+// Ctrl+Entrée = ajouter la ligne
+$("#devis-designation").addEventListener("keydown", e => {
+  if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); $("#btn-ajouter-devis").click(); }
+});
+
+let devisEdition = null; // { ticketId, index } quand on modifie une ligne existante
+function quitterEditionDevis() {
+  devisEdition = null;
+  $("#devis-designation").value = ""; $("#devis-prix").value = ""; $("#devis-option").checked = false;
+  ajusterHauteur($("#devis-designation"));
+  $("#btn-ajouter-devis").textContent = "Ajouter";
+  $("#btn-annuler-devis").hidden = true;
+  $$(".devis-ligne-edit").forEach(x => x.classList.remove("devis-ligne-edit"));
+}
+$("#btn-annuler-devis").addEventListener("click", quitterEditionDevis);
 
 $("#btn-ajouter-devis").addEventListener("click", async () => {
-  const designation = $("#devis-designation").value.trim();
+  const designation = $("#devis-designation").value.replace(/\n{3,}/g, "\n\n").trim();
   const prix = parseFloat($("#devis-prix").value) || 0;
   if (!designation) return;
   const t = ticketOuvert;
   const ligne = { designation, prix };
   if ($("#devis-option").checked) ligne.optionnelle = true;
-  const lignes = [...((t.devis && t.devis.lignes) || []), ligne];
+  const actuelles = [...((t.devis && t.devis.lignes) || [])];
+  if (devisEdition && devisEdition.ticketId === t.id && actuelles[devisEdition.index]) {
+    const ancienne = actuelles[devisEdition.index];
+    if (ancienne.refusee) ligne.refusee = ancienne.refusee;
+    actuelles[devisEdition.index] = ligne;
+  } else {
+    actuelles.push(ligne);
+  }
   await updateDoc(doc(db, "tickets", t.id), {
-    "devis.lignes": lignes, updatedAt: serverTimestamp()
+    "devis.lignes": actuelles, updatedAt: serverTimestamp()
   });
-  $("#devis-designation").value = ""; $("#devis-prix").value = ""; $("#devis-option").checked = false;
+  toast(devisEdition ? "Ligne modifiée ✓" : "Ligne ajoutée ✓");
+  quitterEditionDevis();
 });
 
 $("#btn-envoyer-devis").addEventListener("click", async () => {
@@ -1727,6 +1930,7 @@ $("#btn-envoyer-devis").addEventListener("click", async () => {
       updatedAt: serverTimestamp()
     });
     toast(t.clientPro ? "Devis publié sur l'espace pro ✓" : "Devis envoyé par email ✓");
+    if (t.clientPro) notifierPro(t, "devis");
   } catch {
     toast("Échec de l'envoi du devis", true);
     btn.disabled = false;

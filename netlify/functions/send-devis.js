@@ -20,11 +20,23 @@ export async function handler(event) {
 
     const total = lignes.filter(l => !l.optionnelle).reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
 
-    const lignesHtml = lignes.map(l => `
+    // 1re ligne = titre (gras), lignes suivantes = détail (gris)
+    const esc = x => String(x ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;");
+    const morceaux = txt => {
+      const l = String(txt || "").split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+      return { titre: l[0] || "", detail: l.slice(1) };
+    };
+    const lignesHtml = lignes.map(l => {
+      const { titre, detail } = morceaux(l.designation);
+      return `
       <tr>
-        <td style="padding:11px 0;border-bottom:1px solid #313B44;font-family:${P.POLICE};font-size:14px;color:${P.IVOIRE};">${String(l.designation).replace(/</g, "&lt;")}${l.optionnelle ? ` <em style="color:${P.LAITON};font-style:normal;font-size:.85em;">(en option)</em>` : ""}</td>
-        <td style="padding:11px 0;border-bottom:1px solid #313B44;text-align:right;white-space:nowrap;font-family:${P.MONO};font-size:14px;color:${P.IVOIRE};">${l.optionnelle ? "+ " : ""}${(parseFloat(l.prix) || 0).toFixed(2)} €</td>
-      </tr>`).join("");
+        <td style="padding:14px 12px 14px 0;border-bottom:1px solid #313B44;font-family:${P.POLICE};font-size:14px;line-height:1.5;color:${P.IVOIRE};vertical-align:top;">
+          <b>${esc(titre)}</b>${l.optionnelle ? ` <em style="color:${P.LAITON};font-style:normal;font-size:.85em;">(en option)</em>` : ""}
+          ${detail.length ? `<div style="margin-top:4px;font-size:13px;line-height:1.6;color:${P.GRIS};">${detail.map(esc).join("<br>")}</div>` : ""}
+        </td>
+        <td style="padding:14px 0;border-bottom:1px solid #313B44;text-align:right;white-space:nowrap;font-family:${P.MONO};font-size:14px;color:${P.IVOIRE};vertical-align:top;">${l.optionnelle ? "+ " : ""}${(parseFloat(l.prix) || 0).toFixed(2)} €</td>
+      </tr>`;
+    }).join("");
 
     const urlBase = `${SITE}/.netlify/functions/devis-reponse?token=${encodeURIComponent(token)}`;
     const aOptions = lignes.some(l => l.optionnelle);
@@ -79,7 +91,10 @@ export async function handler(event) {
 
 Devis pour votre ${objet || "objet"} (ticket n° ${numero}${contremarque ? ", contremarque " + contremarque : ""}) :
 
-${lignes.map(l => `- ${l.designation} : ${(parseFloat(l.prix) || 0).toFixed(2)} €`).join("\n")}
+${lignes.map(l => {
+  const { titre, detail } = morceaux(l.designation);
+  return `- ${titre}${l.optionnelle ? " (en option)" : ""} : ${(parseFloat(l.prix) || 0).toFixed(2)} €` + detail.map(d => "\n    " + d).join("");
+}).join("\n\n")}
 
 Total : ${total.toFixed(2)} € (TVA non applicable, art. 293 B CGI)
 

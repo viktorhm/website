@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Atelier — Horlogerie Haratyk</title>
-<link rel="stylesheet" href="style.css?v=8.1">
+<link rel="stylesheet" href="style.css?v=8.3">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0F1418">
 </head>
@@ -293,19 +293,16 @@
 
       <section class="bloc">
         <h2>Devis</h2>
-        <div class="pastilles" id="devis-presets">
-          <button type="button" class="pastille" data-des="Révision complète mouvement mécanique (démontage, nettoyage, lubrification, réglage)" data-prix="130">Révision méca</button>
-          <button type="button" class="pastille" data-des="Révision complète mouvement automatique (démontage, nettoyage, lubrification, réglage)" data-prix="140">Révision auto</button>
-          <button type="button" class="pastille" data-des="Remplacement mouvement quartz (fourniture + pose)" data-prix="">Mouvement quartz</button>
-          <button type="button" class="pastille" data-des="Remplacement du verre (fourniture + pose)" data-prix="">Verre</button>
-          <button type="button" class="pastille" data-des="Changement de pile + contrôle" data-prix="">Pile</button>
-        </div>
+        <div class="pastilles" id="devis-presets"></div>
         <div id="fiche-devis" class="liste-pieces"></div>
-        <div class="grille-piece grille-devis">
-          <input type="text" id="devis-designation" placeholder="Prestation (ex. révision complète)">
-          <input type="number" id="devis-prix" placeholder="Prix €" step="0.01" min="0">
-          <label class="case-option" title="Le client pourra accepter ou refuser cette ligne"><input type="checkbox" id="devis-option"> option</label>
-          <button id="btn-ajouter-devis" class="btn btn-secondaire">Ajouter</button>
+        <div class="devis-saisie">
+          <textarea id="devis-designation" rows="2" placeholder="Prestation — 1re ligne = titre, Entrée pour ajouter des détails en dessous&#10;ex. Révision complète&#10;– démontage, nettoyage, lubrification"></textarea>
+          <div class="devis-saisie-bas">
+            <input type="number" id="devis-prix" placeholder="Prix €" step="0.01" min="0" inputmode="decimal">
+            <label class="case-option" title="Le client pourra accepter ou refuser cette ligne"><input type="checkbox" id="devis-option"> option</label>
+            <button id="btn-annuler-devis" class="btn-lien" type="button" hidden>annuler</button>
+            <button id="btn-ajouter-devis" class="btn btn-secondaire">Ajouter</button>
+          </div>
         </div>
         <div class="notif-zone">
           <button id="btn-envoyer-devis" class="btn btn-principal">✉ Envoyer le devis au client</button>
@@ -374,6 +371,18 @@
     </section>
 
     <section class="bloc">
+      <h2>Raccourcis de devis</h2>
+      <p class="cfg-note" style="margin:0 0 12px">Boutons proposés au-dessus du devis d'un ticket. La 1re ligne du texte sert de titre ; les lignes suivantes apparaissent en détail sous le titre (atelier, espace pro, email).</p>
+      <div id="cfg-devisPresets" class="cfg-liste"></div>
+      <div class="cfg-preset-form" id="cfg-preset-ajout">
+        <input type="text" class="pf-nom" placeholder="Nom du bouton (ex. Révision méca)">
+        <input type="number" class="pf-prix" placeholder="Prix €" step="0.01" min="0" inputmode="decimal">
+        <textarea class="pf-texte" rows="3" placeholder="Texte du devis&#10;ex. Révision complète mouvement mécanique&#10;– démontage, nettoyage, lubrification, réglage"></textarea>
+        <button type="button" class="btn btn-secondaire pf-ajouter">Ajouter le raccourci</button>
+      </div>
+    </section>
+
+    <section class="bloc">
       <h2>Fournisseurs</h2>
       <p class="cfg-note" style="margin:0 0 12px">Proposés dans les pièces des tickets et la page Pièces. Le site (facultatif) devient un lien « ↗ commander ».</p>
       <div id="cfg-fournisseurs" class="cfg-liste"></div>
@@ -418,6 +427,6 @@
 
 <div id="toast" class="toast" hidden></div>
 
-<script type="module" src="app.js?v=8.1"></script>
+<script type="module" src="app.js?v=8.3"></script>
 </body>
 </html>

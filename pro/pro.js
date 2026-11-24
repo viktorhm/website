@@ -9,7 +9,7 @@ import {
   getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
-  getFirestore, collection, query, where, onSnapshot, getDocs, getDoc, doc, limit
+  getFirestore, collection, query, where, onSnapshot, getDocs, getDoc, doc, limit, setDoc, deleteDoc, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -131,6 +131,7 @@ onAuthStateChanged(auth, user => {
     etatLigne(navigator.onLine, navigator.onLine ? "Connexion…" : "Pas de connexion");
     chargerSociete(user.email);
     chargerHoraires();
+    initNotifications();
     demarrerEcoute(user.email);
   } else if (arretEcoute) {
     arretEcoute();
@@ -192,6 +193,12 @@ function demarrerEcoute(email) {
     // S'il y a des devis à valider à l'arrivée, on ouvre directement cet onglet
     if (premierChargement && mesTickets.some(t => t.statut === "devis_envoye")) choisirFiltre("devis", false);
     premierChargement = false;
+    // Arrivée depuis une notification : ?t=<id du ticket>
+    if (ticketDemande && mesTickets.some(t => t.id === ticketDemande)) {
+      const id = ticketDemande;
+      ticketDemande = null;
+      setTimeout(() => ouvrirTicket(id), 0);
+    }
     majTableauDeBord();
     rendreListe();
   };
@@ -451,19 +458,27 @@ function detailHtml(t) {
   </div>`;
 }
 
+// 1re ligne = titre de la prestation, lignes suivantes = détail
+function designationHtml(txt) {
+  const lignes = String(txt || "").split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const [titre = "", ...detail] = lignes;
+  return `<span class="dv-titre">${echap(titre)}</span>` +
+    (detail.length ? `<span class="dv-detail">${detail.map(echap).join("<br>")}</span>` : "");
+}
+
 function ligneDevisHtml(t, l, i) {
   const prix = eur(parseFloat(l.prix) || 0);
   const repondu = ["accepte", "refuse"].includes((t.devis || {}).statut);
   if (!l.optionnelle) {
-    return `<div class="devis-ligne"><span>${echap(l.designation)}</span><b>${prix}</b></div>`;
+    return `<div class="devis-ligne"><span>${designationHtml(l.designation)}</span><b>${prix}</b></div>`;
   }
   if (repondu) {
     return `<div class="devis-ligne ${l.refusee ? "barree" : ""}">
-      <span>${echap(l.designation)}<span class="tag">option ${l.refusee ? "refusée" : "acceptée"}</span></span><b>${prix}</b></div>`;
+      <span>${designationHtml(l.designation)}<span class="tag">option ${l.refusee ? "refusée" : "acceptée"}</span></span><b>${prix}</b></div>`;
   }
   return `<label class="devis-ligne option">
     <span style="display:flex;align-items:center"><input type="checkbox" class="opt-devis" data-ticket="${t.id}" data-i="${i}" data-prix="${parseFloat(l.prix) || 0}">
-      <span>${echap(l.designation)}<span class="tag">en option</span></span></span>
+      <span>${designationHtml(l.designation)}<span class="tag">en option</span></span></span>
     <b>+ ${prix}</b></label>`;
 }
 
@@ -553,3 +568,145 @@ document.addEventListener("keydown", e => {
     e.target.click();
   }
 });
+
+
+// ------------------------------------------------------------
+// Notifications push sur le PC / téléphone du pro
+// ------------------------------------------------------------
+const VAPID_PUBLIC_KEY = "BAmRdio-yTF6aRvXkJRTzmm5WnvONSAJpYMFsv3ZR5fDCdp-Pkui-H3kd2rJ3OSAVGKsc-Ecv35wCalQ34tZt7A";
+let ticketDemande = new URLSearchParams(location.search).get("t");
+
+function ouvrirTicket(id) {
+  const t = mesTickets.find(x => x.id === id);
+  if (!t) return;
+  const f = Object.keys(FILTRES).find(k => FILTRES[k](t)) || "actifs";
+  ticketOuvertId = id;
+  choisirFiltre(f, false);
+  const el = document.querySelector(`.depot[data-id="${id}"]`);
+  if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+  history.replaceState(null, "", location.pathname);
+}
+
+// Clic sur une notification alors que l'espace pro est déjà ouvert
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.addEventListener("message", e => {
+    if (e.data && e.data.type === "ouvrir") {
+      const id = new URL(e.data.url, location.origin).searchParams.get("t");
+      if (id) ouvrirTicket(id);
+    }
+  });
+}
+
+const pushPossible = () => "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+const estIOS = () => /iphone|ipad|ipod/i.test(navigator.userAgent);
+const estInstalle = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
+
+function cleVapid(base64) {
+  const pad = "=".repeat((4 - base64.length % 4) % 4);
+  const b = atob((base64 + pad).replace(/-/g, "+").replace(/_/g, "/"));
+  return Uint8Array.from([...b].map(c => c.charCodeAt(0)));
+}
+async function idAbonnement(endpoint) {
+  const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(endpoint));
+  return [...new Uint8Array(h)].map(x => x.toString(16).padStart(2, "0")).join("").slice(0, 40);
+}
+async function enregistrementSW() {
+  return navigator.serviceWorker.register("/pro/sw.js", { scope: "/pro/" });
+}
+
+async function majBoutonNotif() {
+  const btn = $("#btn-notif");
+  if (!btn) return;
+  if (!pushPossible()) {
+    // iPhone : il faut d'abord ajouter l'espace pro à l'écran d'accueil
+    btn.hidden = !estIOS();
+    btn.textContent = "🔔 Notifications";
+    btn.dataset.etat = "ios";
+    return;
+  }
+  btn.hidden = false;
+  if (Notification.permission === "denied") {
+    btn.textContent = "🔕 Notifications bloquées";
+    btn.dataset.etat = "bloque";
+    return;
+  }
+  const reg = await navigator.serviceWorker.getRegistration("/pro/");
+  const abo = reg && await reg.pushManager.getSubscription();
+  const actif = !!abo && Notification.permission === "granted";
+  btn.textContent = actif ? "🔔 Notifications activées" : "🔔 Activer les notifications";
+  btn.dataset.etat = actif ? "actif" : "inactif";
+  btn.classList.toggle("notif-actif", actif);
+  // Garde l'abonnement à jour côté serveur (il peut changer)
+  if (actif) sauverAbonnement(abo).catch(() => {});
+}
+
+async function sauverAbonnement(abo) {
+  const user = auth.currentUser;
+  if (!user) return;
+  const j = abo.toJSON();
+  await setDoc(doc(db, "pushAbonnements", await idAbonnement(j.endpoint)), {
+    email: user.email,
+    emailMin: user.email.toLowerCase(),
+    endpoint: j.endpoint,
+    keys: j.keys,
+    appareil: navigator.userAgent.slice(0, 180),
+    majLe: serverTimestamp()
+  });
+}
+
+async function activerNotifications() {
+  const perm = await Notification.requestPermission();
+  if (perm !== "granted") {
+    toast(perm === "denied" ? "Notifications refusées — autorisez-les dans les réglages du navigateur" : "Notifications non activées", true);
+    return majBoutonNotif();
+  }
+  const reg = await enregistrementSW();
+  await navigator.serviceWorker.ready;
+  let abo = await reg.pushManager.getSubscription();
+  if (!abo) abo = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: cleVapid(VAPID_PUBLIC_KEY) });
+  await sauverAbonnement(abo);
+  toast("Notifications activées ✓ — vous serez prévenu des devis et des montres prêtes");
+  majBoutonNotif();
+}
+
+async function desactiverNotifications() {
+  const reg = await navigator.serviceWorker.getRegistration("/pro/");
+  const abo = reg && await reg.pushManager.getSubscription();
+  if (abo) {
+    try { await deleteDoc(doc(db, "pushAbonnements", await idAbonnement(abo.endpoint))); } catch {}
+    await abo.unsubscribe();
+  }
+  toast("Notifications désactivées sur cet appareil");
+  majBoutonNotif();
+}
+
+function initNotifications() {
+  const btn = $("#btn-notif");
+  if (!btn || btn.dataset.init) { majBoutonNotif(); return; }
+  btn.dataset.init = "1";
+  btn.addEventListener("click", async () => {
+    try {
+      const etat = btn.dataset.etat;
+      if (etat === "ios") {
+        alert(estInstalle()
+          ? "Mettez à jour l'iPhone (iOS 16.4 ou plus) pour recevoir les notifications."
+          : "Sur iPhone : touchez le bouton Partager ⬆️ puis « Sur l'écran d'accueil ». Ouvrez ensuite l'espace pro depuis cette icône pour activer les notifications.");
+      } else if (etat === "bloque") {
+        alert("Les notifications sont bloquées pour ce site.\nCliquez sur le cadenas 🔒 à gauche de l'adresse, puis autorisez « Notifications ».");
+      } else if (etat === "actif") {
+        if (confirm("Désactiver les notifications sur cet appareil ?")) await desactiverNotifications();
+      } else {
+        btn.disabled = true;
+        await activerNotifications();
+      }
+    } catch (e) {
+      console.error(e);
+      toast("Impossible d'activer les notifications sur ce navigateur", true);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  // Service worker enregistré dès l'ouverture (rapide au premier clic)
+  if (pushPossible()) enregistrementSW().catch(() => {});
+  majBoutonNotif();
+}

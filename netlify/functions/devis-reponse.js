@@ -52,19 +52,25 @@ async function pageChoix(token) {
 
   const lignes = t.devis?.lignes || [];
   const ech = s => String(s ?? "").replace(/</g, "&lt;");
+  // 1re ligne = titre, lignes suivantes = détail
+  const desig = txt => {
+    const l = String(txt || "").split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    return `<b style="font-weight:bold;color:#22282E;">${ech(l[0] || "")}</b>` +
+      (l.length > 1 ? `<span style="display:block;margin-top:4px;font-size:.88em;line-height:1.6;color:#6B737A;">${l.slice(1).map(ech).join("<br>")}</span>` : "");
+  };
   const base = lignes.filter(l => !l.optionnelle);
   const totalBase = base.reduce((s, l) => s + (parseFloat(l.prix) || 0), 0);
 
   const lignesHtml = lignes.map((l, i) => {
     const prix = (parseFloat(l.prix) || 0).toFixed(2);
     if (!l.optionnelle) {
-      return `<div style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #E5E2DA;">
-        <span>${ech(l.designation)}</span><b style="white-space:nowrap">${prix} €</b></div>`;
+      return `<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid #E5E2DA;line-height:1.45;">
+        <span>${desig(l.designation)}</span><b style="white-space:nowrap">${prix} €</b></div>`;
     }
-    return `<label style="display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #E5E2DA;cursor:pointer;align-items:center;">
-      <span style="display:flex;gap:10px;align-items:center;">
+    return `<label style="display:flex;justify-content:space-between;gap:12px;padding:14px 0;border-bottom:1px solid #E5E2DA;cursor:pointer;align-items:flex-start;line-height:1.45;">
+      <span style="display:flex;gap:10px;align-items:flex-start;">
         <input type="checkbox" class="opt" data-i="${i}" data-prix="${parseFloat(l.prix) || 0}" style="width:20px;height:20px;accent-color:#A8823C;">
-        <span>${ech(l.designation)} <em style="color:#A8823C;font-style:normal;font-size:.85em;">(en option)</em></span>
+        <span>${desig(l.designation)} <em style="color:#A8823C;font-style:normal;font-size:.85em;">(en option)</em></span>
       </span><b style="white-space:nowrap">+ ${prix} €</b></label>`;
   }).join("");
 

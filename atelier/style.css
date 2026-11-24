@@ -935,3 +935,38 @@ button.entete-titre.actif { border-bottom-color: var(--laiton); }
   .pieces-recherche { max-width: none; width: 100%; }
 }
 @media (max-width: 700px) { .pc-actions { flex-wrap: wrap; } .piece-carte { padding: 10px; } }
+
+/* ============================================================
+   v8.3 — Devis : lignes multi-lignes, raccourcis paramétrables
+   ============================================================ */
+.devis-ligne { align-items: flex-start; padding: 14px 0; gap: 16px; }
+.devis-ligne + .devis-ligne { border-top: 1px dashed var(--ligne); }
+.dv-texte { flex: 1; min-width: 0; line-height: 1.45; }
+.dv-titre { font-weight: 700; color: var(--texte); }
+.dv-detail { display: block; margin-top: 4px; color: var(--texte-2); font-size: .9em; line-height: 1.55; }
+.dv-droite { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0; }
+.dv-droite b { font-family: "JetBrains Mono", monospace; font-size: 1.02rem; }
+.dv-actions { display: flex; gap: 4px; }
+.dv-actions .btn-lien { font-size: .95rem; padding: 2px 6px; }
+.devis-ligne-edit { background: rgba(201,165,92,.08); box-shadow: inset 3px 0 0 var(--laiton); padding-left: 10px; border-radius: 6px; }
+.devis-saisie { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.devis-saisie textarea, .cfg-preset-form textarea {
+  width: 100%; resize: vertical; min-height: 54px; line-height: 1.5;
+  background: var(--fond); color: var(--texte); border: 1px solid var(--ligne);
+  border-radius: var(--rayon-s); padding: 12px 14px; font: inherit;
+}
+.devis-saisie textarea:focus, .cfg-preset-form textarea:focus { outline: none; border-color: var(--laiton); }
+.devis-saisie-bas { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.devis-saisie-bas input[type=number] { width: 140px; }
+.devis-saisie-bas #btn-ajouter-devis { margin-left: auto; }
+.pastille-prix { font-family: "JetBrains Mono", monospace; font-size: .8em; opacity: .75; margin-left: 4px; }
+
+.cfg-preset { align-items: flex-start; }
+.cfg-preset-vue { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cfg-preset-texte { font-size: .86rem; color: var(--texte-2); line-height: 1.45; }
+.cfg-preset-texte .dv-titre { color: var(--texte-2); font-weight: 600; }
+.cfg-preset-form { display: grid; grid-template-columns: 1fr 160px; gap: 8px; margin-top: 12px; }
+.cfg-preset-form textarea { grid-column: 1 / -1; }
+.cfg-preset-form .pf-ajouter, .cfg-preset-form .pf-boutons { grid-column: 1 / -1; justify-self: end; }
+.pf-boutons { display: flex; gap: 12px; align-items: center; }
+@media (max-width: 560px) { .cfg-preset-form { grid-template-columns: 1fr; } .devis-saisie-bas input[type=number] { width: 110px; } }

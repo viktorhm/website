@@ -9,6 +9,7 @@
   "dependencies": {
     "stripe": "^17.5.0",
     "firebase-admin": "^13.0.2",
-    "nodemailer": "^6.9.16"
+    "nodemailer": "^6.9.16",
+    "web-push": "^3.6.7"
   }
 }

@@ -380,3 +380,22 @@ button { font: inherit; }
 .kpi-lien:hover { color: var(--laiton); text-decoration: none; }
 .alerte { padding: 14px 18px; }
 @media (max-width: 560px) { .alerte .btn { width: 100%; } }
+
+
+/* Bouton notifications */
+.btn-notif { color: var(--laiton); border-color: var(--laiton-fonce); }
+.btn-notif:hover { color: var(--laiton-clair); border-color: var(--laiton); }
+.btn-notif.notif-actif { color: var(--vert); border-color: rgba(93,181,133,.45); }
+@media (max-width: 560px) { .btn-notif { padding: 8px 10px; font-size: .78rem; } }
+
+
+/* Devis : titre + détail sur plusieurs lignes, plus aéré */
+.devis { padding: 4px 18px; }
+.devis-ligne { align-items: flex-start; padding: 15px 0; line-height: 1.45; }
+.devis-ligne > span:first-child { flex: 1; min-width: 0; }
+.devis-ligne b { padding-top: 1px; }
+.dv-titre { font-weight: 700; color: var(--texte); }
+.dv-detail { display: block; margin-top: 5px; color: var(--texte-2); font-size: .88rem; line-height: 1.6; font-weight: 400; }
+.devis-ligne.option input { margin-top: 2px; align-self: flex-start; }
+.devis-ligne.option > span { align-items: flex-start !important; }
+.devis-ligne.barree .dv-detail { text-decoration: line-through; }
