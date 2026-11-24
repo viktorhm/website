@@ -151,8 +151,8 @@ function majAccueil() {
 
 async function chargerSociete(email) {
   try {
-    let snap = await getDocs(query(collection(db, "clients"), where("email", "==", email), limit(1)));
-    if (snap.empty) snap = await getDocs(query(collection(db, "clients"), where("email2", "==", email), limit(1)));
+    let snap = await getDocs(query(collection(db, "clients"), where("pro", "==", true), where("email", "==", email), limit(1)));
+    if (snap.empty) snap = await getDocs(query(collection(db, "clients"), where("pro", "==", true), where("email2", "==", email), limit(1)));
     if (!snap.empty) { societe = snap.docs[0].data().nom || ""; majAccueil(); }
   } catch (e) {
     console.warn("Fiche client non accessible (règle Firestore ?)", e.code || e);
@@ -176,8 +176,10 @@ let ticketOuvertId = null;
 function demarrerEcoute(email) {
   // La requête DOIT filtrer sur l'email : c'est la condition de la règle Firestore
   const em = email.toLowerCase();
-  const qNouveaux = query(collection(db, "tickets"), where("clientEmails", "array-contains", em));
-  const qAnciens = query(collection(db, "tickets"), where("clientEmail", "==", email));
+  // + clientPro == true : la règle Firestore l'exige, et une requête doit
+  // reprendre les conditions de la règle sinon elle est refusée en bloc.
+  const qNouveaux = query(collection(db, "tickets"), where("clientPro", "==", true), where("clientEmails", "array-contains", em));
+  const qAnciens = query(collection(db, "tickets"), where("clientPro", "==", true), where("clientEmail", "==", email));
   const resultats = { a: [], b: [] };
   let premierChargement = true;
 
