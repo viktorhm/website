@@ -417,8 +417,29 @@ button { font: inherit; }
 .meteo-jour span:last-child { font-family: var(--mono); color: var(--texte); font-size: .8rem; }
 .meteo-jour small { color: var(--texte-3); margin-left: 3px; font-size: .7rem; }
 .meteo-lieu { position: absolute; top: -9px; right: 14px; background: var(--fond); padding: 0 6px; font-size: .62rem; letter-spacing: .14em; text-transform: uppercase; color: var(--laiton); }
+/* Phase de lune */
+.meteo-lune { display: flex; flex-direction: column; align-items: center; gap: 7px; padding-left: 16px; border-left: 1px solid var(--ligne-douce); cursor: default; }
+.lune-frise { display: flex; align-items: center; gap: 5px; }
+.lune-phase { display: block; width: 24px; height: 24px; opacity: .32; filter: saturate(.5); transition: opacity .2s, transform .2s; }
+.lune-phase svg { display: block; width: 100%; height: 100%; }
+.lune-phase.actuelle {
+  opacity: 1; filter: drop-shadow(0 0 4px rgba(255, 220, 90, .6)) drop-shadow(0 0 14px rgba(255, 210, 60, .3));
+  transform: scale(1.5); margin: 0 7px;
+}
+.lune-legende { font-size: .7rem; color: var(--texte-3); white-space: nowrap; }
+.lune-legende b { color: var(--texte); font-weight: 600; }
+.lune-pct { font-family: var(--mono); color: #FFD91A; }
 @media (max-width: 760px) {
-  .meteo { width: 100%; justify-content: space-between; }
+  .meteo { width: 100%; justify-content: space-between; flex-wrap: wrap; }
+}
+@media (max-width: 560px) {
+  .meteo { row-gap: 10px; }
+  .meteo-actuel { flex: 1 1 0; min-width: 0; }
+  .meteo-texte { white-space: normal; }
+  .meteo-lune { flex-basis: 100%; padding-left: 0; border-left: 0; border-top: 1px solid var(--ligne-douce); padding-top: 12px; }
+  .lune-frise { gap: 7px; }
+  .lune-phase { width: 26px; height: 26px; }
+  .lune-legende { white-space: normal; text-align: center; }
 }
 @media (max-width: 420px) {
   .meteo-jours { padding-left: 10px; }

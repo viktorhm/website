@@ -640,10 +640,123 @@ function majChoixVille() {
   $("#meteo-ville-zone").style.opacity = meteoActive() ? "1" : ".45";
 }
 
+// ------------------------------------------------------------
+// Phase de lune (calcul local, aucun service externe)
+// ------------------------------------------------------------
+const MOIS_SYNODIQUE = 29.530588853;
+const NOUVELLE_LUNE_REF = Date.UTC(2000, 0, 6, 18, 14); // nouvelle lune de référence
+
+function phaseLune(date = new Date()) {
+  const jours = (date.getTime() - NOUVELLE_LUNE_REF) / 86400000;
+  const age = ((jours % MOIS_SYNODIQUE) + MOIS_SYNODIQUE) % MOIS_SYNODIQUE;
+  const p = age / MOIS_SYNODIQUE;
+  const eclairage = (1 - Math.cos(2 * Math.PI * p)) / 2;
+  const q = MOIS_SYNODIQUE / 4;
+  let nom;
+  if (age < 1 || age > MOIS_SYNODIQUE - 1) nom = "Nouvelle lune";
+  else if (age < q - 1) nom = "Premier croissant";
+  else if (age <= q + 1) nom = "Premier quartier";
+  else if (age < 2 * q - 1) nom = "Gibbeuse croissante";
+  else if (age <= 2 * q + 1) nom = "Pleine lune";
+  else if (age < 3 * q - 1) nom = "Gibbeuse décroissante";
+  else if (age <= 3 * q + 1) nom = "Dernier quartier";
+  else nom = "Dernier croissant";
+  // Prochaine pleine lune (si on est dedans, on annonce la suivante)
+  let avantPleine = 2 * q - age;
+  if (avantPleine < -1) avantPleine += MOIS_SYNODIQUE;
+  const prochainePleine = new Date(date.getTime() + Math.max(avantPleine, 0) * 86400000);
+  return { age, p, eclairage, nom, avantPleine, prochainePleine };
+}
+
+function svgLune({ p, eclairage }) {
+  // Style planche : disque noir cerclé, partie éclairée jaune avec mers lunaires
+  const c = 30, r = 27;
+  const croissante = p < 0.5;              // hémisphère nord : éclairée à droite
+  const croissant = eclairage < 0.5;        // croissant ou gibbeuse
+  const rx = (r * Math.abs(Math.cos(2 * Math.PI * p))).toFixed(2);
+  const arcExt = croissante ? 1 : 0;
+  const arcTerm = croissante ? (croissant ? 0 : 1) : (croissant ? 1 : 0);
+  const eclaire = `M${c} ${c - r} A${r} ${r} 0 0 ${arcExt} ${c} ${c + r} A${rx} ${r} 0 0 ${arcTerm} ${c} ${c - r}Z`;
+  const id = "lune" + Math.round(p * 1000);
+  // Mers lunaires placées comme sur la vraie face visible (nord en haut)
+  const mers = [
+    [14, 27, 6.5, 12, -12],  // Océan des Tempêtes
+    [21, 19, 7, 5.5, -15],   // Mer des Pluies
+    [33.5, 18.5, 4.6, 4.2, 0], // Mer de la Sérénité
+    [38.5, 27.5, 5.8, 4.6, 20], // Mer de la Tranquillité
+    [48, 21.5, 3.2, 2.6, 10], // Mer des Crises
+    [45.5, 34, 3.4, 4.8, 15], // Mer de la Fécondité
+    [36, 37, 3.2, 2.6, 0],   // Mer du Nectar
+    [26, 40, 5.5, 3.6, -10], // Mer des Nuées
+    [16.5, 40.5, 2.8, 2.6, 0], // Mer des Humeurs
+    [30, 11, 8, 2, 0]        // Mer du Froid
+  ].map(([x, y, a, b, rot]) => `<ellipse cx="${x}" cy="${y}" rx="${a}" ry="${b}" transform="rotate(${rot} ${x} ${y})"/>`).join("");
+  const cratere = (x, y, rr) =>
+    `<circle cx="${x}" cy="${y}" r="${rr}" fill="#B57A00" opacity=".55"/>`
+    + `<circle cx="${x + rr * .25}" cy="${y + rr * .25}" r="${rr * .7}" fill="#FFF3B8" opacity=".7"/>`;
+  const rayons = [[-100, 18], [-70, 13], [-35, 9], [10, 7], [150, 8], [195, 10], [-140, 12]]
+    .map(([a, l]) => `<line x1="30" y1="47" x2="${(30 + Math.cos(a * Math.PI / 180) * l).toFixed(1)}" y2="${(47 + Math.sin(a * Math.PI / 180) * l).toFixed(1)}"/>`).join("");
+  return `<svg viewBox="0 0 60 60" aria-hidden="true">
+    <defs>
+      <radialGradient id="${id}-g" cx="44%" cy="40%" r="62%">
+        <stop offset="0" stop-color="#FFF8C8"/><stop offset=".45" stop-color="#FFE36A"/>
+        <stop offset=".85" stop-color="#F4BE1E"/><stop offset="1" stop-color="#D99A00"/>
+      </radialGradient>
+      <radialGradient id="${id}-n" cx="50%" cy="45%" r="60%">
+        <stop offset="0" stop-color="#232833"/><stop offset="1" stop-color="#0B0D12"/>
+      </radialGradient>
+      <filter id="${id}-f" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation="1.7"/></filter>
+      <filter id="${id}-r" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation=".45"/></filter>
+      <filter id="${id}-t" x="-10%" y="-10%" width="120%" height="120%"><feGaussianBlur stdDeviation=".55"/></filter>
+      <clipPath id="${id}-d"><circle cx="${c}" cy="${c}" r="${r}"/></clipPath>
+      <mask id="${id}-m" maskUnits="userSpaceOnUse" x="0" y="0" width="60" height="60">
+        <path d="${eclaire}" fill="#fff" filter="url(#${id}-t)"/>
+      </mask>
+    </defs>
+    <circle cx="${c}" cy="${c}" r="${r}" fill="url(#${id}-n)"/>
+    <g clip-path="url(#${id}-d)">
+      <g fill="#3A4152" opacity=".35" filter="url(#${id}-f)">${mers}</g>
+      <g mask="url(#${id}-m)">
+        <circle cx="${c}" cy="${c}" r="${r}" fill="url(#${id}-g)"/>
+        <g fill="#C08604" opacity=".4" filter="url(#${id}-f)">${mers}</g>
+        <g stroke="#FFF9DC" stroke-width=".6" stroke-linecap="round" opacity=".28" filter="url(#${id}-r)">${rayons}</g>
+        <circle cx="30" cy="47" r="1.3" fill="#FFFBE6" opacity=".9"/>
+        ${cratere(23, 27, 1.5)}${cratere(19, 33, 1)}${cratere(41, 43, 1.3)}${cratere(44, 13, 1.1)}${cratere(13, 18, 1)}${cratere(36, 50, 1)}
+      </g>
+    </g>
+    <circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="#000" stroke-opacity=".7" stroke-width="1.6"/>
+  </svg>`;
+}
+
+const NOMS_PHASES = ["Nouvelle lune", "Premier croissant", "Premier quartier", "Gibbeuse croissante",
+  "Pleine lune", "Gibbeuse décroissante", "Dernier quartier", "Dernier croissant"];
+
+function rendreLune() {
+  const zone = $("#meteo-lune");
+  if (!zone) return;
+  const l = phaseLune();
+  const actuelle = NOMS_PHASES.indexOf(l.nom);
+  const pct = Math.round(l.eclairage * 100);
+  const fmt = d => d.toLocaleDateString("fr-FR", { day: "numeric", month: "short" });
+  const suite = l.nom === "Pleine lune"
+    ? "nouvelle lune le " + fmt(new Date(Date.now() + (MOIS_SYNODIQUE - l.age) * 86400000))
+    : "pleine lune le " + fmt(l.prochainePleine);
+  zone.title = `${l.nom} — ${pct} % éclairée · âge ${l.age.toFixed(1)} j`;
+  const frise = NOMS_PHASES.map((nom, i) => {
+    const p = i / 8;
+    const svg = svgLune({ p, eclairage: (1 - Math.cos(2 * Math.PI * p)) / 2 });
+    return `<span class="lune-phase${i === actuelle ? " actuelle" : ""}" title="${nom}">${svg}</span>`;
+  }).join("");
+  zone.innerHTML = `
+    <div class="lune-frise" role="img" aria-label="Phase de lune : ${l.nom}">${frise}</div>
+    <div class="lune-legende"><b>${l.nom}</b> · <span class="lune-pct">${pct} %</span> · ${suite}</div>`;
+}
+
 async function chargerMeteo() {
   clearTimeout(meteoTimer);
   if (!meteoActive()) { $("#meteo").hidden = true; return; }
   meteoTimer = setTimeout(chargerMeteo, 30 * 60 * 1000);
+  rendreLune();
   try {
     const ville = villeMeteo();
     $("#meteo-lieu").textContent = ville.atelier ? "Marcq-en-Barœul · atelier" : ville.nom;
