@@ -9,8 +9,8 @@ self.addEventListener("push", e => {
   try { d = e.data ? e.data.json() : {}; } catch { d = { body: e.data && e.data.text() }; }
   e.waitUntil(self.registration.showNotification(d.title || "Horlogerie Haratyk", {
     body: d.body || "Du nouveau à l'atelier.",
-    icon: "/assets/favicon.png",
-    badge: "/assets/favicon.png",
+    icon: "/assets/notif-icon.png",
+    badge: "/assets/notif-badge.png",
     tag: d.tag || undefined,
     renotify: !!d.tag,
     requireInteraction: true,

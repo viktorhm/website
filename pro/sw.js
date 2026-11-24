@@ -10,8 +10,8 @@ self.addEventListener("push", e => {
   const titre = d.title || "Horlogerie Haratyk";
   e.waitUntil(self.registration.showNotification(titre, {
     body: d.body || "Du nouveau sur votre espace professionnel.",
-    icon: "/assets/favicon.png",
-    badge: "/assets/favicon.png",
+    icon: "/assets/notif-icon.png",
+    badge: "/assets/notif-badge.png",
     tag: d.tag || undefined,
     renotify: !!d.tag,
     requireInteraction: true,           // reste affichée jusqu'au clic (PC)
